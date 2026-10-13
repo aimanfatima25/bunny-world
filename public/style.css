@@ -1,0 +1,86 @@
+/* Layout: one centered portrait game frame, sized to fit the screen, caption underneath. */
+:root {
+  --page: #241B33;
+  --frame: #3B2F4A;
+  --ink: #FFF8F1;
+  --muted: #C9BEDB;
+  --pink: #FF7FAF;
+  --carrot: #F28C28;
+  --display: 'Baloo 2', 'Trebuchet MS', system-ui, sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; margin: 0; }
+[hidden] { display: none !important; }
+body {
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--display);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding-inline: 16px;
+  padding-block: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+#stage {
+  position: relative;
+  width: min(100%, calc((100dvh - 72px) * 0.5625));
+  aspect-ratio: 9 / 16;
+  max-width: 100%;
+  min-width: 0;
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 0 0 4px var(--frame), 0 18px 40px rgba(0,0,0,.45);
+  touch-action: manipulation;
+}
+canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; cursor: pointer; }
+.panel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  pointer-events: none;
+  text-align: center;
+}
+.card {
+  pointer-events: auto;
+  background: rgba(36, 27, 51, .86);
+  border: 3px solid var(--ink);
+  border-radius: 20px;
+  padding: 18px 26px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 200px;
+}
+.card h2 { margin: 0; font-size: 30px; line-height: 1; letter-spacing: .01em; }
+.row { display: flex; gap: 28px; font-variant-numeric: tabular-nums; }
+.stat { display: flex; flex-direction: column; align-items: center; }
+.stat span { font-size: 13px; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+.stat b { font-size: 34px; line-height: 1.1; }
+.badge { font-size: 14px; color: var(--pink); min-height: 20px; }
+button {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 20px;
+  color: #3B2F4A;
+  background: var(--carrot);
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  padding: 8px 26px;
+  margin-top: 6px;
+  cursor: pointer;
+  box-shadow: 0 4px 0 #A9560E;
+}
+button:active { transform: translateY(3px); box-shadow: 0 1px 0 #A9560E; }
+button:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
+.hint { font-size: 14px; color: var(--muted); }

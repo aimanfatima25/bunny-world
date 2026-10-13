@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Flappy Bunny</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="stage">
+    <canvas id="game" aria-label="Flappy Bunny game. Tap, click or press Space to hop."></canvas>
+    <div class="panel" id="over" hidden>
+      <div class="card">
+        <h2>Bonk!</h2>
+        <div class="row">
+          <div class="stat"><span>Score</span><b id="score">0</b></div>
+          <div class="stat"><span>Best</span><b id="best">0</b></div>
+        </div>
+        <div class="badge" id="badge"></div>
+        <button id="again" type="button">Hop again</button>
+      </div>
+    </div>
+  </div>
+  <div class="hint">Tap, click or press Space to hop</div>
+
+  <script src="game.js"></script>
+</body>
+</html>
