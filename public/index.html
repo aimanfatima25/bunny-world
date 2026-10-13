@@ -3,28 +3,187 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Flappy Bunny</title>
+  <title>Bunny World</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&display=swap">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- Icon library: each <symbol> is drawn once here and reused with <use href="#id"> -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <!-- small UI icons -->
+      <symbol id="i-coin" viewBox="0 0 18 18"><circle cx="9" cy="9" r="7.5" fill="#F7C548" stroke="#3B2F4A" stroke-width="1.8"/><circle cx="9" cy="9" r="3.5" fill="none" stroke="#B88A12" stroke-width="1.6"/></symbol>
+      <symbol id="i-gift" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11 H20 V20 H4 Z M3 7.5 H21 V11 H3 Z M12 7.5 V20 M12 7.5 C10 3 5.5 4 8 7.5 M12 7.5 C14 3 18.5 4 16 7.5"/></symbol>
+      <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11 L12 4 L20 11 M6 9.5 V20 H18 V9.5 M10 20 V14 H14 V20"/></symbol>
+      <symbol id="i-shop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9 L5.5 4 H18.5 L20 9 Z M5 9 V20 H19 V9 M10 20 V14 H14 V20"/></symbol>
+      <symbol id="i-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M12 3 L14.6 8.6 L20.6 9.3 L16.1 13.4 L17.3 19.4 L12 16.4 L6.7 19.4 L7.9 13.4 L3.4 9.3 L9.4 8.6 Z"/></symbol>
+      <symbol id="i-trophy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4 H16 V10 A4 4 0 0 1 8 10 Z M8 6 H5 A3 3 0 0 0 8 11.5 M16 6 H19 A3 3 0 0 1 16 11.5 M12 14 V18 M8 20 H16"/></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 11 H18 V20 H6 Z M8 11 V8 A4 4 0 0 1 16 8 V11"/></symbol>
+
+      <!-- game icons -->
+      <symbol id="ic-flappy" viewBox="0 0 100 100">
+        <rect x="2" y="2" width="96" height="96" rx="24" fill="#9FC9F2" stroke="#3B2F4A" stroke-width="3"/>
+        <circle cx="22" cy="22" r="7" fill="#fff"/><circle cx="31" cy="20" r="9" fill="#fff"/><circle cx="40" cy="23" r="6" fill="#fff"/>
+        <path d="M4 80 L96 80 L96 86 Q96 96 86 96 L14 96 Q4 96 4 86Z" fill="#7CC36B"/>
+        <rect x="62" y="0" width="20" height="34" rx="6" fill="#F28C28" stroke="#3B2F4A" stroke-width="2.5"/>
+        <rect x="62" y="62" width="20" height="22" rx="6" fill="#F28C28" stroke="#3B2F4A" stroke-width="2.5"/>
+        <ellipse cx="67" cy="60" rx="3" ry="6" fill="#4FA35A" stroke="#2E6B37" stroke-width="1.5"/><ellipse cx="72" cy="57" rx="3" ry="7" fill="#4FA35A" stroke="#2E6B37" stroke-width="1.5"/><ellipse cx="77" cy="60" rx="3" ry="6" fill="#4FA35A" stroke="#2E6B37" stroke-width="1.5"/>
+        <path d="M66 12 L72 14 M66 24 L72 26" stroke="#7A3E0C" stroke-width="1.5" stroke-linecap="round" opacity=".5"/>
+        <path d="M8 74 Q18 56 26 62" fill="none" stroke="#fff" stroke-width="2.5" stroke-dasharray="3 4" stroke-linecap="round"/>
+        <g transform="translate(40 50) rotate(-18)">
+          <ellipse cx="-5" cy="-16" rx="4" ry="10" fill="#fff" stroke="#3B2F4A" stroke-width="2" transform="rotate(-25 -5 -16)"/>
+          <ellipse cx="3" cy="-17" rx="4" ry="10" fill="#fff" stroke="#3B2F4A" stroke-width="2" transform="rotate(-5 3 -17)"/>
+          <ellipse cx="3" cy="-17" rx="1.8" ry="6" fill="#FFC2D6" transform="rotate(-5 3 -17)"/>
+          <circle cx="-11" cy="3" r="4" fill="#fff" stroke="#3B2F4A" stroke-width="2"/>
+          <circle cx="0" cy="0" r="11" fill="#fff" stroke="#3B2F4A" stroke-width="2.2"/>
+          <path d="M-4 -10 L-11 -14 L-11 -6Z M-4 -10 L3 -14 L3 -6Z" fill="#FF7FAF" stroke="#3B2F4A" stroke-width="1.5" stroke-linejoin="round"/>
+          <circle cx="5" cy="-1" r="2" fill="#3B2F4A"/><ellipse cx="5" cy="5" rx="2.6" ry="1.6" fill="#FFB3CB"/>
+        </g>
+        <path d="M22 44 L14 44 M24 52 L12 52" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="ic-carrot" viewBox="0 0 100 100">
+        <rect x="2" y="2" width="96" height="96" rx="24" fill="#FBD3A9" stroke="#3B2F4A" stroke-width="3"/>
+        <g transform="translate(30 16) rotate(25)"><path d="M-5 0 L5 0 L0 20Z" fill="#F28C28" stroke="#3B2F4A" stroke-width="2" stroke-linejoin="round"/><path d="M-2 0 L-5 -7 M0 0 L0 -8 M2 0 L5 -7" stroke="#4FA35A" stroke-width="2.5" stroke-linecap="round"/></g>
+        <g transform="translate(70 26) rotate(-20)"><path d="M-5 0 L5 0 L0 20Z" fill="#F28C28" stroke="#3B2F4A" stroke-width="2" stroke-linejoin="round"/><path d="M-2 0 L-5 -7 M0 0 L0 -8 M2 0 L5 -7" stroke="#4FA35A" stroke-width="2.5" stroke-linecap="round"/></g>
+        <path d="M30 40 L30 46 M70 50 L70 56" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+        <g transform="translate(52 50) rotate(10)"><path d="M-5 0 L5 0 L0 20Z" fill="#F28C28" stroke="#3B2F4A" stroke-width="2" stroke-linejoin="round"/><path d="M-2 0 L-5 -7 M0 0 L0 -8 M2 0 L5 -7" stroke="#4FA35A" stroke-width="2.5" stroke-linecap="round"/></g>
+        <path d="M22 66 L78 66 L71 90 L29 90Z" fill="#C98F5A" stroke="#3B2F4A" stroke-width="2.5" stroke-linejoin="round"/>
+        <path d="M26 74 L74 74 M28 82 L72 82 M38 66 L40 90 M50 66 L50 90 M62 66 L60 90" stroke="#A9560E" stroke-width="1.5"/>
+        <path d="M20 64 L80 64" stroke="#3B2F4A" stroke-width="5" stroke-linecap="round"/>
+        <path d="M76 58 L78 63 L83 64 L78 66 L76 71 L74 66 L69 64 L74 63Z" fill="#fff"/>
+        <path d="M20 30 L21.5 33 L25 34 L21.5 35 L20 38 L18.5 35 L15 34 L18.5 33Z" fill="#fff"/>
+      </symbol>
+      <symbol id="ic-fish" viewBox="0 0 100 100">
+        <rect x="2" y="2" width="96" height="96" rx="24" fill="#A8E0DA" stroke="#3B2F4A" stroke-width="3"/>
+        <circle cx="18" cy="20" r="3" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="84" cy="44" r="4" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="14" cy="50" r="2" fill="none" stroke="#fff" stroke-width="1.5"/>
+        <g transform="translate(50 30)">
+          <path d="M-17 4 Q-17 -15 0 -15 Q17 -15 17 4Z" fill="#E3CCF2" stroke="#3B2F4A" stroke-width="2.2" stroke-linejoin="round"/>
+          <path d="M-11 4 Q-13 12 -9 18 M-4 4 Q-5 13 -2 20 M4 4 Q5 13 2 20 M11 4 Q13 12 9 18" fill="none" stroke="#AFA9EC" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="-5" cy="-4" r="2" fill="#3B2F4A"/><circle cx="5" cy="-4" r="2" fill="#3B2F4A"/>
+          <ellipse cx="-10" cy="0" rx="2.5" ry="1.5" fill="#FFB3CB"/><ellipse cx="10" cy="0" rx="2.5" ry="1.5" fill="#FFB3CB"/>
+          <path d="M-2 0 Q0 2 2 0" fill="none" stroke="#3B2F4A" stroke-width="1.5" stroke-linecap="round"/>
+        </g>
+        <path d="M50 56 L50 50 M46 53 L50 49 L54 53" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M50 60 L52 65 L57 66 L52 68 L50 73 L48 68 L43 66 L48 65Z" fill="#F7C548" stroke="#3B2F4A" stroke-width="1.2" stroke-linejoin="round"/>
+        <g transform="translate(26 74)">
+          <path d="M-12 0 L-19 -6 L-19 6Z" fill="#F28C28" stroke="#3B2F4A" stroke-width="2" stroke-linejoin="round"/>
+          <ellipse cx="0" cy="0" rx="13" ry="9" fill="#F28C28" stroke="#3B2F4A" stroke-width="2"/>
+          <path d="M-3 -8.5 Q-5 0 -3 8.5" fill="none" stroke="#fff" stroke-width="3"/>
+          <circle cx="6" cy="-2" r="1.8" fill="#3B2F4A"/>
+        </g>
+        <g transform="translate(74 74) scale(-1 1)">
+          <path d="M-12 0 L-19 -6 L-19 6Z" fill="#F28C28" stroke="#3B2F4A" stroke-width="2" stroke-linejoin="round"/>
+          <ellipse cx="0" cy="0" rx="13" ry="9" fill="#F28C28" stroke="#3B2F4A" stroke-width="2"/>
+          <path d="M-3 -8.5 Q-5 0 -3 8.5" fill="none" stroke="#fff" stroke-width="3"/>
+          <circle cx="6" cy="-2" r="1.8" fill="#3B2F4A"/>
+        </g>
+        <path d="M4 90 Q20 84 34 90 Q50 96 66 90 Q80 84 96 90 L96 86 Q96 96 86 96 L14 96 Q4 96 4 86Z" fill="#5DCAA5" opacity=".6"/>
+      </symbol>
+      <symbol id="ic-memory" viewBox="0 0 100 100">
+        <rect x="2" y="2" width="96" height="96" rx="24" fill="#E3CCF2" stroke="#3B2F4A" stroke-width="3"/>
+        <g transform="translate(30 52) rotate(-14)">
+          <rect x="-15" y="-21" width="30" height="42" rx="6" fill="#FF7FAF" stroke="#3B2F4A" stroke-width="2.5"/>
+          <rect x="-10" y="-16" width="20" height="32" rx="3" fill="none" stroke="#fff" stroke-width="1.5" stroke-dasharray="3 3"/>
+          <text x="0" y="6" text-anchor="middle" font-size="18" font-weight="700" fill="#fff" font-family="Trebuchet MS, sans-serif">?</text>
+        </g>
+        <g transform="translate(70 50) rotate(12)">
+          <rect x="-15" y="-21" width="30" height="42" rx="6" fill="#FFF8F1" stroke="#3B2F4A" stroke-width="2.5"/>
+          <path d="M0 10 C-14 0 -9 -11 0 -5 C9 -11 14 0 0 10Z" fill="#FF7FAF" stroke="#3B2F4A" stroke-width="2" stroke-linejoin="round"/>
+        </g>
+        <rect x="44" y="24" width="12" height="44" rx="4" fill="#FFF8F1" stroke="#3B2F4A" stroke-width="2.5"/>
+        <path d="M36 20 Q50 10 64 20" fill="none" stroke="#3B2F4A" stroke-width="2" stroke-linecap="round"/>
+        <path d="M60 16 L64 20 L59 22" fill="none" stroke="#3B2F4A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M82 78 L84 83 L89 84 L84 86 L82 91 L80 86 L75 84 L80 83Z" fill="#fff"/>
+        <path d="M16 80 L17.5 83 L21 84 L17.5 85 L16 88 L14.5 85 L11 84 L14.5 83Z" fill="#fff"/>
+      </symbol>
+      <symbol id="ic-bubble" viewBox="0 0 100 100">
+        <rect x="2" y="2" width="96" height="96" rx="24" fill="#FFC2D6" stroke="#3B2F4A" stroke-width="3"/>
+        <circle cx="32" cy="34" r="18" fill="#E8F4FF" fill-opacity=".7" stroke="#3B2F4A" stroke-width="2.2"/>
+        <path d="M22 28 Q24 21 31 19" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="72" cy="26" r="10" fill="#E8F4FF" fill-opacity=".7" stroke="#3B2F4A" stroke-width="2"/>
+        <path d="M66 23 Q67 19 71 18" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
+        <circle cx="26" cy="74" r="8" fill="#E8F4FF" fill-opacity=".7" stroke="#3B2F4A" stroke-width="2"/>
+        <path d="M64 42 L64 50 M78 48 L72 54 M84 62 L76 62 M78 76 L72 70 M50 48 L56 54 M44 62 L52 62" stroke="#3B2F4A" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="64" cy="62" r="3" fill="#F7C548" stroke="#3B2F4A" stroke-width="1.5"/>
+        <circle cx="52" cy="50" r="2" fill="#fff"/><circle cx="78" cy="52" r="2.5" fill="#fff"/><circle cx="74" cy="76" r="1.8" fill="#fff"/>
+        <g transform="translate(62 70) rotate(-25)">
+          <path d="M-7 28 L-7 4 Q-7 -2 0 -2 Q7 -2 7 4 L7 28" fill="#FFE0C2" stroke="#3B2F4A" stroke-width="2.2" stroke-linejoin="round"/>
+          <path d="M-4 2 Q0 -1 4 2" fill="none" stroke="#E8B48C" stroke-width="1.5" stroke-linecap="round"/>
+        </g>
+      </symbol>
+    </defs>
+  </svg>
+
   <div id="stage">
-    <canvas id="game" aria-label="Flappy Bunny game. Tap, click or press Space to hop."></canvas>
-    <div class="panel" id="over" hidden>
-      <div class="card">
-        <h2>Bonk!</h2>
-        <div class="row">
-          <div class="stat"><span>Score</span><b id="score">0</b></div>
-          <div class="stat"><span>Best</span><b id="best">0</b></div>
+    <!-- Everything inside #layer is designed at 360 x 640 and scaled to fit the screen -->
+    <div id="layer">
+
+      <!-- Home screen -->
+      <section class="screen" id="hub">
+        <header class="topbar">
+          <div class="pill coins" aria-label="Coins"><svg class="coin"><use href="#i-coin"/></svg><b id="coinCount">0</b></div>
+          <h1>Bunny World</h1>
+          <button class="round-btn gift" id="giftBtn" type="button" aria-label="Daily gift"><svg><use href="#i-gift"/></svg></button>
+        </header>
+
+        <div class="hero">
+          <canvas id="heroCanvas"></canvas>
+          <div class="hero-name" id="heroName"></div>
         </div>
-        <div class="badge" id="badge"></div>
-        <button id="again" type="button">Hop again</button>
+
+        <div class="friends" id="friends" role="radiogroup" aria-label="Pick your friend"></div>
+
+        <div class="sheet">
+          <div class="games" id="games"></div>
+          <nav class="nav">
+            <button type="button" class="active" aria-current="page"><svg><use href="#i-home"/></svg>Home</button>
+            <button type="button" data-soon="The shop"><svg><use href="#i-shop"/></svg>Shop</button>
+            <button type="button" data-soon="Stickers"><svg><use href="#i-star"/></svg>Stickers</button>
+            <button type="button" data-soon="The top 10"><svg><use href="#i-trophy"/></svg>Top 10</button>
+          </nav>
+        </div>
+      </section>
+
+      <!-- A game is playing -->
+      <section class="screen" id="play" hidden>
+        <canvas id="gameCanvas"></canvas>
+        <button class="round-btn back" id="backBtn" type="button" aria-label="Back to home"><svg><use href="#i-home"/></svg></button>
+        <div class="panel" id="over" hidden>
+          <div class="card">
+            <h2>Bonk!</h2>
+            <div class="row">
+              <div class="stat"><span>Score</span><b id="score">0</b></div>
+              <div class="stat"><span>Best</span><b id="best">0</b></div>
+            </div>
+            <div class="badge" id="badge"></div>
+            <div class="earned"><svg class="coin"><use href="#i-coin"/></svg>+<span id="earned">0</span></div>
+            <div class="buttons">
+              <button class="btn ghost" id="homeBtn" type="button">Home</button>
+              <button class="btn" id="againBtn" type="button">Play again</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Daily gift pop-up -->
+      <div class="panel dim" id="giftPopup" hidden>
+        <div class="card">
+          <svg class="gift-big"><use href="#i-gift"/></svg>
+          <h2>Daily gift!</h2>
+          <div class="earned big"><svg class="coin"><use href="#i-coin"/></svg>+<span id="giftAmount">50</span></div>
+          <button class="btn" id="giftOk" type="button">Yay!</button>
+        </div>
       </div>
+
+      <div class="toast" id="toast" role="status" hidden></div>
     </div>
   </div>
-  <div class="hint">Tap, click or press Space to hop</div>
+  <div class="hint" id="hint"></div>
 
-  <script src="game.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/characters.js"></script>
+  <script src="js/games/flappy.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>
