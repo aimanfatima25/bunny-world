@@ -20,7 +20,7 @@
   ];
   const MEDAL_BONUS = [10, 25, 50];
   const GIFT_COINS = 50;
-  const HUB_HINT = 'Pick a friend, then tap a game';
+  const HUB_HINT = 'Tap a game to play';
 
   const stage = $('stage'), layer = $('layer');
   const hub = $('hub'), play = $('play'), over = $('over');
@@ -63,82 +63,52 @@
 
   function showCoins() { $('coinCount').textContent = store.data.coins.toLocaleString('en-US'); }
 
-  // ---------- friends ----------
+  // ---------- the cottage scene ----------
+  // For now the scene is the picture from the design. When the separate girl and
+  // animal pictures arrive, the chosen girl and chosen animal will sit on the ledge here.
 
-  function drawHero(t) {
-    const ctx = $('heroCanvas').getContext('2d');
-    ctx.clearRect(0, 0, 170, 150);
-    ctx.fillStyle = 'rgba(59, 47, 74, .12)';
-    ctx.beginPath(); ctx.ellipse(82, 140, 40, 6, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.save();
-    ctx.translate(80, 98 + Math.sin(t * 3) * 4);
-    ctx.scale(2.3, 2.3);
-    chars.draw(ctx, store.data.character, { flap: Math.sin(t * 3) * 0.12 });
-    ctx.restore();
-  }
-
-  function heroLoop(now) {
-    drawHero(now / 1000);
-    heroRaf = requestAnimationFrame(heroLoop);
-  }
-
-  function renderFriends() {
-    const box = $('friends');
-    box.innerHTML = '';
-    chars.list.filter(c => store.data.unlocked.includes(c.id)).forEach(c => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'friend';
-      b.dataset.id = c.id;
-      b.setAttribute('role', 'radio');
-      b.setAttribute('aria-checked', String(c.id === store.data.character));
-      b.setAttribute('aria-label', c.name);
-      const canvas = document.createElement('canvas');
-      b.appendChild(canvas);
-      const ctx = fitCanvas(canvas, 46, 46);
-      ctx.translate(21, 30); ctx.scale(0.72, 0.72);
-      chars.draw(ctx, c.id);
-      b.addEventListener('click', () => pickFriend(c.id));
-      box.appendChild(b);
-    });
-    const locked = chars.list.filter(c => !store.owns(c.id)).length;
-    if (locked) {
-      const more = document.createElement('button');
-      more.type = 'button';
-      more.className = 'friend locked';
-      more.setAttribute('aria-label', `${locked} more friends in the shop`);
-      more.innerHTML = icon('i-shop') + '+' + locked;
-      more.addEventListener('click', openShop);
-      box.appendChild(more);
-    }
-  }
+  function heroLoop() {}
+  function renderFriends() {}
 
   function pickFriend(id) {
     store.setCharacter(id);
-    $('heroName').textContent = chars.list.find(c => c.id === id).name;
-    document.querySelectorAll('.friend[role="radio"]').forEach(b => {
-      b.setAttribute('aria-checked', String(b.dataset.id === id));
-    });
   }
 
   // ---------- games menu ----------
+  // The 12 cards from the design. game: starts that game, open: opens a page, neither: coming soon
+
+  const TILES = [
+    { label: 'Flappy Bunny', img: 'flappy', game: 'flappy' },
+    { label: 'Catch the Fish', img: 'catch', game: 'carrot' },
+    { label: 'Merge the Fish', img: 'merge', game: 'fish' },
+    { label: 'Match 3', img: 'match3' },
+    { label: 'Adventure', img: 'adventure' },
+    { label: 'Bubble Pop', img: 'bubble', game: 'bubble' },
+    { label: 'Memory', img: 'memory', game: 'memory' },
+    { label: 'Decorate Room', img: 'room' },
+    { label: 'Dress Up', img: 'dressup' },
+    { label: 'Garden', img: 'garden' },
+    { label: 'Collect Friends', img: 'friends', open: () => openShop() },
+    { label: 'My Aquarium', img: 'aquarium', open: () => openAquarium() }
+  ];
 
   function renderGames() {
     const box = $('games');
-    GAMES.forEach(g => {
+    TILES.forEach(t => {
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = 'game';
-      b.setAttribute('aria-label', g.soon ? `${g.name}, coming soon` : g.name);
-      b.title = g.name;
-      b.innerHTML = icon(g.icon) + (g.soon ? `<span class="soon">${icon('i-lock')}</span>` : '');
-      b.addEventListener('click', () => startGame(g));
+      b.className = 'tile';
+      const ready = t.game || t.open;
+      b.setAttribute('aria-label', ready ? t.label : `${t.label}, coming soon`);
+      b.innerHTML = `<img src="img/games/${t.img}.webp" alt=""><span>${t.label}</span>`
+        + (ready ? '' : `<em class="soon-tag">Soon</em>`);
+      b.addEventListener('click', () => {
+        if (t.game) startGame(GAMES.find(g => g.id === t.game));
+        else if (t.open) t.open();
+        else toast(`${t.label} is coming soon!`);
+      });
       box.appendChild(b);
     });
-    const more = document.createElement('div');
-    more.className = 'game more';
-    more.innerHTML = icon('i-lock') + 'Soon';
-    box.appendChild(more);
   }
 
   function startGame(g) {
@@ -176,7 +146,7 @@
     cancelAnimationFrame(heroRaf);
     hub.hidden = true;
     $('shop').hidden = false;
-    $('hint').textContent = 'Spend coins to unlock new friends';
+    $('hint').textContent = 'Spend stars to unlock new friends';
     renderShop();
   }
 
@@ -219,7 +189,7 @@
         btn.addEventListener('click', () => { pickFriend(c.id); renderShop(); });
       } else {
         btn.innerHTML = icon('i-coin') + c.price;
-        btn.setAttribute('aria-label', `Buy ${c.name} for ${c.price} coins`);
+        btn.setAttribute('aria-label', `Buy ${c.name} for ${c.price} stars`);
         if (store.data.coins < c.price) btn.classList.add('short');
         btn.addEventListener('click', () => buy(c));
       }
@@ -231,7 +201,7 @@
   // First tap asks "Buy?", second tap buys, so nobody buys by accident
   function buy(c) {
     if (store.data.coins < c.price) {
-      toast(`You need ${(c.price - store.data.coins).toLocaleString('en-US')} more coins`);
+      toast(`You need ${(c.price - store.data.coins).toLocaleString('en-US')} more stars`);
       return;
     }
     if (armedBuy !== c.id) {
@@ -410,7 +380,6 @@
 
   function resizeAll() {
     fitLayer();
-    fitCanvas($('heroCanvas'), 170, 150);
     renderFriends();
   }
 
@@ -445,9 +414,12 @@
     $('playerName').focus();
   });
   $('aquariumBack').addEventListener('click', closeAquarium);
-  document.querySelectorAll('.nav [data-soon]').forEach(b => {
-    b.addEventListener('click', () => toast(`${b.dataset.soon} is coming soon!`));
-  });
+  $('friendsNav').addEventListener('click', openShop);
+  $('avatarBtn').addEventListener('click', () => toast('Picking your girl is coming soon!'));
+  $('starPlus').addEventListener('click', () => toast('Play games to earn more stars!'));
+  $('heartPlus').addEventListener('click', () => toast('Hearts are coming soon!'));
+  $('mailBtn').addEventListener('click', () => toast('No new messages'));
+  $('settingsBtn').addEventListener('click', () => toast('Settings are coming soon!'));
 
   resizeAll();
   renderGames();

@@ -230,6 +230,166 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
 .nav button svg { width: 24px; height: 24px; }
 .nav button.active { color: var(--deep-pink); font-weight: 800; }
 
+/* ---------- New home screen (Aiman's design) ----------
+   Positions are the design's own spots scaled to 360 x 640. */
+.home {
+  display: block;
+  color: #6E4A3A;
+  background:
+    repeating-linear-gradient(180deg, transparent 0 38px, rgba(70, 40, 25, .25) 38px 40px),
+    linear-gradient(180deg, #A9785D, #8F604A);
+}
+.home .scene {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 360px;
+  height: 264px;
+  background: url(img/ui/scene.webp) center / cover no-repeat;
+}
+.home .avatar {
+  position: absolute;
+  left: 16px;
+  top: 10px;
+  width: 43px;
+  height: 43px;
+  padding: 0;
+  border-radius: 50%;
+  border: 3px solid #FFF6EC;
+  overflow: hidden;
+  background: #FBEFE3;
+  box-shadow: 0 2px 5px rgba(90, 50, 30, .35);
+}
+.home .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.home .pill {
+  position: absolute;
+  top: 18px;
+  width: 70px;
+  height: 22px;
+  border: 0;
+  border-radius: 12px;
+  background: #FBEFE3;
+  box-shadow: 0 2px 4px rgba(90, 50, 30, .3);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 2px 0 3px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #6E4A3A;
+}
+.home .pill:nth-of-type(1) { left: 64px; }
+.home .pill:nth-of-type(2) { left: 142px; }
+.home .pill img { width: 19px; height: 19px; border-radius: 50%; }
+.home .pill b { flex: 1; text-align: center; font-variant-numeric: tabular-nums; }
+.home .plus {
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 50%;
+  padding: 0;
+  background: #F1D8C3;
+  color: #8B5E4A;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
+}
+.home .icon-btn {
+  position: absolute;
+  top: 16px;
+  width: 30px;
+  height: 27px;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  overflow: visible;
+  background: none;
+  box-shadow: 0 2px 4px rgba(90, 50, 30, .3);
+}
+.home .icon-btn img { width: 100%; height: 100%; border-radius: 9px; display: block; }
+.home #giftBtn { left: 244px; }
+.home #mailBtn { left: 281px; }
+.home #settingsBtn { left: 318px; }
+.home .gift.ready { background: none; }
+
+.home .games {
+  position: absolute;
+  left: 18px;
+  top: 263px;
+  width: 323px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 74px;
+  gap: 4px;
+}
+.tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 3px 3px 0;
+  border: 2px solid #FFF7EE;
+  border-radius: 10px;
+  background: #FDEFE2;
+  box-shadow: 0 2px 0 rgba(110, 70, 50, .4);
+  font-family: var(--display);
+  transition: transform .1s;
+}
+.tile:active { transform: scale(.96); }
+.tile img { width: 100%; height: 50px; object-fit: cover; border-radius: 7px; display: block; }
+.tile span {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1;
+  color: #6E4A3A;
+  white-space: nowrap;
+}
+.soon-tag {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  font-style: normal;
+  font-size: 9px;
+  font-weight: 800;
+  color: #8B3F4F;
+  background: #FCCBC4;
+  border-radius: 6px;
+  padding: 0 4px;
+}
+
+.home .nav {
+  position: absolute;
+  left: 15px;
+  top: 583px;
+  width: 331px;
+  height: 46px;
+  margin: 0;
+  padding: 3px;
+  border: 0;
+  border-radius: 16px;
+  background: #FBEEDE;
+  box-shadow: 0 3px 6px rgba(80, 45, 30, .35);
+  display: flex;
+  gap: 2px;
+}
+.home .nav button {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #6E4A3A;
+}
+.home .nav button img { height: 22px; display: block; }
+.home .nav button.active { background: #FCCBC4; color: #6E4A3A; font-weight: 800; }
+
 /* ---------- Playing a game ---------- */
 #gameCanvas, #aquariumCanvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; cursor: pointer; }
 .back { position: absolute; top: 14px; left: 14px; }
