@@ -1,24 +1,29 @@
-// Fishy Merge: drop sea friends into the tank. When two of the same kind touch,
-// they merge into the next one: tiny fish → clownfish → pufferfish → seahorse
-// → turtle → jellyfish. The jellyfish is the final, biggest friend and doesn't merge.
-// The game ends when the tank stays filled past the dashed line.
+// Fishy Merge: the tank is a grid full of sea friends. Tap a fish, then tap its
+// twin, and they merge into the next one: tiny fish → clownfish → pufferfish →
+// seahorse → turtle → jellyfish. New fish keep swimming in, faster and faster;
+// when there's no room left, the game ends.
+// Making a jellyfish opens a gift: the Fish Maker (fishmaker.js), where players
+// design their own fish. Saved fish swim around in the background.
 window.BW = window.BW || {};
 BW.games = BW.games || {};
 
 BW.games.fish = (() => {
-  const K = BW.kit, W = K.W, INK = K.INK, TAU = K.TAU;
-  const LEFT = 16, RIGHT = 344, FLOOR = 600, DANGER = 165, HOLD_Y = 128;
-  const GRAVITY = 1200, BOUNCE = 0.1, SUBSTEPS = 4;
+  const K = BW.kit, W = K.W, H = K.H, INK = K.INK, TAU = K.TAU;
+  const COLS = 5, ROWS = 6, CELL = 66;
+  const X0 = (W - COLS * CELL) / 2, Y0 = 132;
+  const FLOOR = 600;
+  const START_FISH = 14;
 
-  //            tiny   clown  puffer seahorse turtle jelly
-  const RADIUS = [14, 20, 26, 33, 41, 50];
+  //               tiny clown puffer seahorse turtle jelly
   const POINTS = [0, 2, 6, 15, 35, 80];
-  const LAST = RADIUS.length - 1;
+  const LAST = POINTS.length - 1;
   const NAMES = ['Tiny fish', 'Clownfish', 'Pufferfish', 'Seahorse', 'Turtle', 'Jellyfish'];
 
-  function randomDrop() {
+  function sizeOf(type) { return 17 + type * 2.6; }
+
+  function randomType() {
     const r = Math.random();
-    return r < 0.5 ? 0 : r < 0.85 ? 1 : 2;
+    return r < 0.65 ? 0 : r < 0.95 ? 1 : 2;
   }
 
   // Each sea friend is drawn in a space where its body has radius 20
@@ -134,192 +139,264 @@ BW.games.fish = (() => {
     ctx.restore();
   }
 
+  function drawGift(ctx, x, y, t) {
+    const bob = Math.sin(t * 5) * 5, wob = Math.sin(t * 9) * 0.06;
+    ctx.save(); ctx.translate(x, y + bob); ctx.rotate(wob);
+    ctx.lineWidth = 3; ctx.strokeStyle = INK; ctx.lineJoin = 'round';
+    // bow loops
+    ctx.fillStyle = '#F7C548';
+    ctx.beginPath(); ctx.ellipse(-14, -46, 14, 9, -0.5, 0, TAU); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(14, -46, 14, 9, 0.5, 0, TAU); ctx.fill(); ctx.stroke();
+    // box and lid
+    ctx.fillStyle = '#FF7FAF';
+    K.roundRect(ctx, -44, -20, 88, 66, 8); ctx.fill(); ctx.stroke();
+    K.roundRect(ctx, -50, -40, 100, 24, 8); ctx.fill(); ctx.stroke();
+    // ribbon
+    ctx.fillStyle = '#F7C548';
+    ctx.fillRect(-9, -39, 18, 22); ctx.fillRect(-9, -19, 18, 64);
+    ctx.strokeRect(-9, -40, 18, 24); ctx.strokeRect(-9, -20, 18, 66);
+    ctx.beginPath(); ctx.arc(0, -42, 7, 0, TAU); ctx.fill(); ctx.stroke();
+    ctx.restore();
+    K.star(ctx, x - 64, y - 30 + bob, 8 + Math.sin(t * 7) * 2, '#FFFFFF');
+    K.star(ctx, x + 66, y + 10 - bob, 6 + Math.cos(t * 7) * 2, '#FFFFFF');
+  }
+
   function start(canvas, options) {
-    let state, fishes, aim, keyDir, held, next, cooldown, score, danger, armed, t = 0;
+    let state, grid, selected, spawnIn, interval, merges, score, ghosts, gift, t = 0;
     const fx = K.sparkles();
-    const bubbles = Array.from({ length: 10 }, () => ({ x: Math.random() * W, y: Math.random() * 640, r: 2 + Math.random() * 4, s: 20 + Math.random() * 30 }));
+    const swimmers = [];
+    const bubbles = Array.from({ length: 10 }, () => ({ x: Math.random() * W, y: Math.random() * H, r: 2 + Math.random() * 4, s: 20 + Math.random() * 30 }));
+
+    function addSwimmer(design) {
+      swimmers.push({ design, x: Math.random() * W, y: 150 + Math.random() * 380, speed: 18 + Math.random() * 20, dir: Math.random() < 0.5 ? 1 : -1, phase: Math.random() * TAU });
+      if (swimmers.length > 8) swimmers.shift();
+    }
+    (BW.store.data.myFish || []).slice(-8).forEach(addSwimmer);
+
+    function cellXY(i) { return [X0 + (i % COLS) * CELL + CELL / 2, Y0 + Math.floor(i / COLS) * CELL + CELL / 2]; }
+    function cellAt(x, y) {
+      const c = Math.floor((x - X0) / CELL), r = Math.floor((y - Y0) / CELL);
+      return c < 0 || c >= COLS || r < 0 || r >= ROWS ? -1 : r * COLS + c;
+    }
+    function empties() { return grid.reduce((list, f, i) => (f ? list : list.concat(i)), []); }
+
+    function addFish(type) {
+      const free = empties();
+      if (!free.length) return false;
+      const i = free[Math.floor(Math.random() * free.length)];
+      grid[i] = { type, grow: 0, pop: 0 };
+      return true;
+    }
 
     function reset() {
       state = 'ready';
-      fishes = [];
-      aim = W / 2;
-      keyDir = 0;
-      held = randomDrop();
-      next = randomDrop();
-      cooldown = 0;
+      grid = new Array(COLS * ROWS).fill(null);
+      selected = -1;
+      merges = 0;
       score = 0;
-      danger = 0;
-      armed = false;
+      ghosts = [];
+      gift = null;
+      interval = spawnIn = 2.2;
       fx.clear();
+      for (let i = 0; i < START_FISH; i++) addFish(i < 4 ? 0 : randomType());
+      grid.forEach(f => { if (f) f.grow = 1; });
     }
 
-    function clampAim(x) { return Math.max(LEFT + RADIUS[held] + 2, Math.min(RIGHT - RADIUS[held] - 2, x)); }
-
-    function drop() {
-      if (state !== 'play' || cooldown > 0) return;
-      const r = RADIUS[held];
-      fishes.push({ type: held, x: clampAim(aim), y: HOLD_Y, vx: 0, vy: 0, r, age: 0, pop: 0, tilt: 0 });
-      held = next;
-      next = randomDrop();
-      cooldown = 0.5;
-    }
-
-    function physics(h) {
-      for (const f of fishes) {
-        f.vy += GRAVITY * h;
-        f.vx *= 0.995;
-        f.x += f.vx * h;
-        f.y += f.vy * h;
-        if (f.x - f.r < LEFT) { f.x = LEFT + f.r; f.vx = Math.abs(f.vx) * BOUNCE; }
-        if (f.x + f.r > RIGHT) { f.x = RIGHT - f.r; f.vx = -Math.abs(f.vx) * BOUNCE; }
-        if (f.y + f.r > FLOOR) { f.y = FLOOR - f.r; f.vy = -Math.abs(f.vy) * BOUNCE; f.vx *= 0.97; }
+    function tap(x, y) {
+      if (state === 'over' || state === 'maker') return;
+      if (state === 'ready') { state = 'play'; return; }
+      if (state === 'gift') { if (gift.t > 0.6) openGift(); return; }
+      const i = cellAt(x, y);
+      const f = i >= 0 ? grid[i] : null;
+      if (!f) { selected = -1; return; }
+      if (selected < 0 || selected === i) {
+        selected = selected === i ? -1 : i;
+        f.pop = 0.5;
+        return;
       }
-      const born = [];
-      for (let i = 0; i < fishes.length; i++) {
-        const a = fishes[i];
-        if (a.gone) continue;
-        for (let j = i + 1; j < fishes.length; j++) {
-          const b = fishes[j];
-          if (b.gone) continue;
-          const dx = b.x - a.x, dy = b.y - a.y;
-          const d = Math.hypot(dx, dy) || 0.01, overlap = a.r + b.r - d;
-          if (overlap <= 0) continue;
-          if (a.type === b.type && a.type < LAST) { merge(a, b, born); break; }
-          const nx = dx / d, ny = dy / d;
-          const ma = a.r * a.r, mb = b.r * b.r, total = ma + mb;
-          a.x -= nx * overlap * mb / total; a.y -= ny * overlap * mb / total;
-          b.x += nx * overlap * ma / total; b.y += ny * overlap * ma / total;
-          const vn = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
-          if (vn < 0) {
-            const j2 = -(1 + BOUNCE) * vn / (1 / ma + 1 / mb);
-            a.vx -= j2 / ma * nx; a.vy -= j2 / ma * ny;
-            b.vx += j2 / mb * nx; b.vy += j2 / mb * ny;
-          }
-        }
+      const s = grid[selected];
+      if (s.type !== f.type || f.type === LAST) { selected = i; f.pop = 0.5; return; }
+
+      // merge: the first fish swims into the second, which grows into the next kind
+      const [x0, y0] = cellXY(selected), [x1, y1] = cellXY(i);
+      ghosts.push({ x0, y0, x1, y1, type: s.type, t: 0, speed: 6, shrink: true });
+      grid[selected] = null;
+      selected = -1;
+      f.type++;
+      f.pop = 1;
+      merges++;
+      score += POINTS[f.type];
+      fx.add(x1, y1, '#FFFFFF', 10, 150);
+      fx.label(x1, y1 - 30, '+' + POINTS[f.type]);
+      if (f.type === LAST) {
+        fx.add(x1, y1, '#E3CCF2', 24, 260);
+        fx.add(x1, y1, '#F7C548', 16, 200);
+        state = 'gift';
+        gift = { cell: i, t: 0 };
       }
-      fishes = fishes.filter(f => !f.gone).concat(born);
     }
 
-    function merge(a, b, born) {
-      a.gone = b.gone = true;
-      const x = (a.x + b.x) / 2, y = (a.y + b.y) / 2;
-      const type = a.type + 1;
-      score += POINTS[type];
-      born.push({ type, x, y, vx: (a.vx + b.vx) / 2, vy: Math.min(a.vy, b.vy) / 2, r: RADIUS[type], age: 0.5, pop: 1, tilt: 0 });
-      fx.add(x, y, '#FFFFFF', 10, 150);
-      if (type === LAST) { fx.add(x, y, '#E3CCF2', 24, 260); fx.add(x, y, '#F7C548', 16, 200); }
-      fx.label(x, y - RADIUS[type] - 6, '+' + POINTS[type]);
+    function openGift() {
+      state = 'maker';
+      BW.fishMaker.open(design => {
+        addSwimmer(design);
+        // the jellyfish floats away happily, freeing its spot
+        const [x, y] = cellXY(gift.cell);
+        ghosts.push({ x0: x, y0: y, x1: x, y1: -80, type: LAST, t: 0, speed: 0.8, shrink: false });
+        grid[gift.cell] = null;
+        gift = null;
+        state = 'play';
+      });
     }
 
     function update(dt) {
       t += dt;
       fx.update(dt);
-      bubbles.forEach(b => { b.y -= b.s * dt; if (b.y < -10) { b.y = 650; b.x = Math.random() * W; } });
-      if (state === 'over') return;
-      if (keyDir) aim += keyDir * 260 * dt;
-      aim = clampAim(aim);
-      if (state === 'ready') return;
-      cooldown = Math.max(0, cooldown - dt);
-      const h = dt / SUBSTEPS;
-      for (let i = 0; i < SUBSTEPS; i++) physics(h);
-      let over = false;
-      for (const f of fishes) {
-        f.age += dt;
-        f.pop = Math.max(0, f.pop - dt * 5);
-        f.tilt += (Math.max(-0.5, Math.min(0.5, f.vx / 300)) - f.tilt) * 0.1;
-        if (f.age > 1 && f.y - f.r < DANGER) over = true;
+      bubbles.forEach(b => { b.y -= b.s * dt; if (b.y < -10) { b.y = H + 10; b.x = Math.random() * W; } });
+      swimmers.forEach(s => {
+        s.x += s.dir * s.speed * dt;
+        if (s.x > W + 40) s.dir = -1;
+        if (s.x < -40) s.dir = 1;
+      });
+      ghosts.forEach(g => { g.t += dt * g.speed; });
+      ghosts = ghosts.filter(g => g.t < 1);
+      grid.forEach(f => {
+        if (!f) return;
+        f.grow = Math.min(1, f.grow + dt * 4);
+        f.pop = Math.max(0, f.pop - dt * 3);
+      });
+      if (gift) gift.t += dt;
+      if (state !== 'play') return;
+      spawnIn -= dt;
+      if (spawnIn <= 0) {
+        if (!addFish(randomType())) {
+          state = 'over';
+          selected = -1;
+          options.onGameOver(score);
+          return;
+        }
+        interval = Math.max(0.45, 2.2 - merges * 0.02);
+        spawnIn = interval;
       }
-      danger = over ? danger + dt : Math.max(0, danger - dt * 2);
-      if (danger > 2) { state = 'over'; options.onGameOver(score); }
     }
 
     function drawBackground(ctx) {
-      const g = ctx.createLinearGradient(0, 0, 0, 640);
+      const g = ctx.createLinearGradient(0, 0, 0, H);
       g.addColorStop(0, '#BDE8F2'); g.addColorStop(0.5, '#7CCFD9'); g.addColorStop(1, '#4FB3C4');
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, 640);
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
       ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 1.5;
       bubbles.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TAU); ctx.stroke(); });
-      // sand and seaweed
+      // your own fish swim behind the tank
+      swimmers.forEach(s => {
+        ctx.save();
+        ctx.globalAlpha = 0.85;
+        ctx.translate(s.x, s.y + Math.sin(t * 1.5 + s.phase) * 8);
+        ctx.scale(s.dir, 1);
+        BW.fishMaker.draw(ctx, s.design, 16, t + s.phase);
+        ctx.restore();
+      });
       ctx.fillStyle = '#F3DDB3';
       ctx.beginPath(); ctx.moveTo(0, FLOOR);
       for (let x = 0; x <= W; x += 40) ctx.quadraticCurveTo(x + 20, FLOOR - 6, x + 40, FLOOR);
-      ctx.lineTo(W, 640); ctx.lineTo(0, 640); ctx.fill();
+      ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.fill();
       ctx.strokeStyle = '#4FA35A'; ctx.lineWidth = 5; ctx.lineCap = 'round';
-      [[30, 0], [52, 1.5], [312, 3], [330, 4.2]].forEach(([x, p]) => {
+      [[312, 3], [330, 4.2]].forEach(([x, p]) => {
         ctx.beginPath(); ctx.moveTo(x, FLOOR + 4);
         ctx.quadraticCurveTo(x + Math.sin(t * 1.5 + p) * 10, FLOOR - 30, x + Math.sin(t * 1.5 + p + 1) * 6, FLOOR - 56);
         ctx.stroke();
       });
-      // tank walls
-      ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.moveTo(LEFT - 2, DANGER - 20); ctx.lineTo(LEFT - 2, FLOOR); ctx.moveTo(RIGHT + 2, DANGER - 20); ctx.lineTo(RIGHT + 2, FLOOR); ctx.stroke();
-      // danger line
-      const warn = danger > 0;
-      ctx.strokeStyle = warn ? `rgba(226,75,74,${0.5 + 0.5 * Math.sin(t * 14)})` : 'rgba(255,255,255,.6)';
-      ctx.lineWidth = 3; ctx.setLineDash([10, 8]);
-      ctx.beginPath(); ctx.moveTo(LEFT, DANGER); ctx.lineTo(RIGHT, DANGER); ctx.stroke();
-      ctx.setLineDash([]);
     }
 
     function draw(ctx) {
       drawBackground(ctx);
-      for (const f of fishes) {
-        ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(f.tilt);
-        const s = 1 + f.pop * 0.25;
-        ctx.scale(s, s);
-        drawCreature(ctx, f.type, f.r, t);
-        ctx.restore();
+      const free = empties().length;
+      const crowded = state === 'play' && free <= 3;
+
+      // the grid of bubble spots
+      for (let i = 0; i < grid.length; i++) {
+        const [x, y] = cellXY(i);
+        ctx.beginPath(); ctx.arc(x, y, 29, 0, TAU);
+        ctx.fillStyle = 'rgba(255,255,255,.22)'; ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = crowded && !grid[i] ? `rgba(226,75,74,${0.5 + 0.5 * Math.sin(t * 12)})` : 'rgba(255,255,255,.5)';
+        ctx.stroke();
       }
-      // the friend holding the next fish
-      if (state !== 'over') {
-        const x = clampAim(aim);
-        if (state === 'play') {
-          ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = 2; ctx.setLineDash([4, 8]);
-          ctx.beginPath(); ctx.moveTo(x, HOLD_Y + RADIUS[held]); ctx.lineTo(x, FLOOR); ctx.stroke();
+
+      // hint: when a fish is picked, its twins get a sparkly ring
+      const pickedType = selected >= 0 ? grid[selected].type : -1;
+      for (let i = 0; i < grid.length; i++) {
+        const f = grid[i];
+        if (!f) continue;
+        const [x, y] = cellXY(i);
+        const bob = Math.sin(t * 2 + i) * 2;
+        if (i === selected) {
+          ctx.beginPath(); ctx.arc(x, y, 30, 0, TAU);
+          ctx.fillStyle = 'rgba(247,197,72,.35)'; ctx.fill();
+          ctx.lineWidth = 4; ctx.strokeStyle = '#F7C548'; ctx.stroke();
+        } else if (f.type === pickedType && f.type !== LAST) {
+          ctx.setLineDash([5, 5]); ctx.lineDashOffset = -t * 20;
+          ctx.beginPath(); ctx.arc(x, y, 29, 0, TAU);
+          ctx.lineWidth = 2.5; ctx.strokeStyle = '#FFFFFF'; ctx.stroke();
           ctx.setLineDash([]);
         }
-        ctx.save(); ctx.translate(x, 86); ctx.scale(0.85, 0.85);
-        BW.characters.draw(ctx, options.character, { flap: Math.sin(t * 4) * 0.1 });
+        ctx.save();
+        ctx.translate(x, y + bob - (i === selected ? 4 + Math.abs(Math.sin(t * 8)) * 3 : 0));
+        const s = f.grow * (1 + Math.sin(f.pop * Math.PI) * 0.3);
+        ctx.scale(s, s);
+        drawCreature(ctx, f.type, sizeOf(f.type), t);
         ctx.restore();
-        if (cooldown <= 0) { ctx.save(); ctx.translate(x, HOLD_Y); drawCreature(ctx, held, RADIUS[held], t); ctx.restore(); }
       }
+
+      ghosts.forEach(g => {
+        const e = g.t * g.t * (3 - 2 * g.t);
+        ctx.save();
+        ctx.translate(g.x0 + (g.x1 - g.x0) * e, g.y0 + (g.y1 - g.y0) * e);
+        const s = g.shrink ? 1 - g.t * 0.5 : 1;
+        ctx.scale(s, s);
+        drawCreature(ctx, g.type, sizeOf(g.type), t);
+        ctx.restore();
+      });
+
+      // your friend cheering from the sand
+      ctx.save(); ctx.translate(46, 586 + Math.abs(Math.sin(t * 3)) * -4); ctx.scale(1.1, 1.1);
+      BW.characters.draw(ctx, options.character, { flap: Math.sin(t * 6) * 0.15, dead: state === 'over' });
+      ctx.restore();
+
       fx.draw(ctx);
+
       if (state === 'ready') {
+        ctx.fillStyle = 'rgba(36,27,51,.35)'; ctx.fillRect(0, 0, W, H);
         K.title(ctx, 'Fishy Merge', 'Tap to start', options.getBest());
-        K.text(ctx, 'Match two to grow them!', W / 2, 240, 18);
+        K.text(ctx, 'Tap a fish, then tap its twin!', W / 2, 240, 18);
+        K.text(ctx, 'Make a jellyfish to win a gift', W / 2, 270, 16);
       } else {
         K.text(ctx, String(score), W / 2, 36, 40);
-        K.text(ctx, 'Next', W - 34, 20, 14);
-        ctx.save(); ctx.translate(W - 34, 44); drawCreature(ctx, next, 14, t); ctx.restore();
+        // next-fish timer
+        ctx.fillStyle = 'rgba(255,255,255,.6)';
+        K.roundRect(ctx, 80, 84, 200, 14, 7); ctx.fill();
+        ctx.fillStyle = crowded ? '#E24B4A' : '#9FC9F2';
+        const fill = state === 'play' ? 1 - spawnIn / interval : 0;
+        if (fill > 0.05) { K.roundRect(ctx, 80, 84, 200 * fill, 14, 7); ctx.fill(); }
+        ctx.lineWidth = 2.5; ctx.strokeStyle = INK;
+        K.roundRect(ctx, 80, 84, 200, 14, 7); ctx.stroke();
+        ctx.save(); ctx.translate(62, 91); drawCreature(ctx, 0, 11, t); ctx.restore();
+        K.text(ctx, free + ' free', 316, 91, 15);
+      }
+
+      if (state === 'gift') {
+        ctx.fillStyle = 'rgba(36,27,51,.55)'; ctx.fillRect(0, 0, W, H);
+        K.text(ctx, 'You made a jellyfish!', W / 2, 200, 28);
+        drawGift(ctx, W / 2, 340, t);
+        K.text(ctx, 'Tap the gift to open it', W / 2, 450, 20);
       }
     }
 
     reset();
     const engine = K.run(canvas, {
       update, draw,
-      down(x) {
-        if (state === 'over') return;
-        if (state === 'ready') { state = 'play'; armed = false; return; }
-        aim = x; armed = true;
-      },
-      move(x) { if (state !== 'over') aim = x; },
-      up(x) {
-        if (!armed) return;
-        armed = false; aim = x; drop();
-      },
+      down: tap,
       keydown(e) {
-        if (state === 'over') return;
-        if (e.code === 'ArrowLeft' || e.code === 'KeyA') keyDir = -1;
-        else if (e.code === 'ArrowRight' || e.code === 'KeyD') keyDir = 1;
-        else if (e.code === 'Space' || e.code === 'ArrowDown') {
-          e.preventDefault();
-          if (e.repeat) return;
-          if (state === 'ready') state = 'play'; else drop();
-        }
-      },
-      keyup(e) {
-        if ((e.code === 'ArrowLeft' || e.code === 'KeyA') && keyDir < 0) keyDir = 0;
-        if ((e.code === 'ArrowRight' || e.code === 'KeyD') && keyDir > 0) keyDir = 0;
+        if (state === 'ready' && (e.code === 'Space' || e.code === 'Enter')) { e.preventDefault(); state = 'play'; }
       }
     });
     return { restart: reset, stop: engine.stop };

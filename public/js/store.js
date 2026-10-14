@@ -1,4 +1,4 @@
-// Saved progress: coins, chosen character, best scores, daily gift.
+// Saved progress: coins, chosen character, best scores, daily gift, custom fish.
 // Lives in the browser's localStorage, so it stays after closing the page.
 window.BW = window.BW || {};
 
@@ -17,7 +17,8 @@ BW.store = (() => {
     character: 'bunny',
     unlocked: ['bunny', 'kitty', 'panda', 'chick'],
     best: {},
-    lastGift: ''
+    lastGift: '',
+    myFish: []
   }, load());
 
   // Carry over the best score from the old single-game version
@@ -32,6 +33,7 @@ BW.store = (() => {
     best(gameId) { return data.best[gameId] || 0; },
     setBest(gameId, score) { data.best[gameId] = score; save(); },
     setCharacter(id) { data.character = id; save(); },
-    claimGift(day) { data.lastGift = day; save(); }
+    claimGift(day) { data.lastGift = day; save(); },
+    addCustomFish(design) { data.myFish.push(design); save(); }
   };
 })();

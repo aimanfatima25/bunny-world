@@ -9,8 +9,8 @@
   const GAMES = [
     { id: 'flappy', name: 'Flappy Bunny', icon: 'ic-flappy', overTitle: 'Bonk!', medal: 'carrot', medals: [5, 15, 30], coinRate: 1,
       hint: 'Tap, click or press Space to hop' },
-    { id: 'fish', name: 'Fishy Merge', icon: 'ic-fish', overTitle: 'Tank full!', medal: 'shell', medals: [300, 1000, 2000], coinRate: 0.03,
-      hint: 'Aim, then let go to drop. Match two to grow!' },
+    { id: 'fish', name: 'Fishy Merge', icon: 'ic-fish', overTitle: 'Tank full!', medal: 'shell', medals: [300, 900, 1800], coinRate: 0.05,
+      hint: 'Tap a fish, then tap its twin to merge' },
     { id: 'carrot', name: 'Carrot Catch', icon: 'ic-carrot', overTitle: 'Oops!', medal: 'carrot', medals: [15, 40, 80], coinRate: 0.5,
       hint: 'Drag, move the mouse or use ← → to catch' },
     { id: 'memory', name: 'Memory Match', icon: 'ic-memory', overTitle: "Time's up!", medal: 'star', medals: [8, 16, 28], coinRate: 1,
@@ -225,6 +225,7 @@
 
   window.addEventListener('resize', resizeAll);
   window.addEventListener('keydown', e => {
+    if (BW.fishMaker.isOpen()) return;
     if (!$('giftPopup').hidden && (e.code === 'Escape' || e.code === 'Enter' || e.code === 'Space')) {
       e.preventDefault(); closeGift(); return;
     }

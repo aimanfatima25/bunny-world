@@ -275,6 +275,67 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
 .btn.ghost { background: var(--lilac); box-shadow: 0 4px 0 #8E80A3; }
 .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #A9560E; }
 
+/* ---------- Fish Maker ---------- */
+.maker {
+  background: var(--cream);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 16px 10px;
+  box-sizing: border-box;
+}
+.maker h2 { margin: 0; font-size: 24px; font-weight: 800; }
+#makerCanvas {
+  width: 200px;
+  height: 130px;
+  display: block;
+  background: #DDF1F6;
+  border: 2.5px solid var(--ink);
+  border-radius: 18px;
+}
+#fishName {
+  font-family: var(--display);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink);
+  background: #FFFFFF;
+  border: 2.5px solid var(--ink);
+  border-radius: 12px;
+  padding: 2px 12px;
+  width: 200px;
+  box-sizing: border-box;
+  text-align: center;
+  user-select: text;
+}
+#fishName:focus { outline: 3px solid var(--pink); outline-offset: 1px; }
+.maker-rows { width: 100%; display: flex; flex-direction: column; gap: 7px; margin: 4px 0 6px; }
+.mrow { display: flex; align-items: center; gap: 6px; }
+.mrow > span { width: 56px; flex: none; font-size: 14px; font-weight: 800; color: #5F5470; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+  background: #FFFFFF;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  padding: 0 9px;
+  line-height: 24px;
+}
+.chip[aria-checked="true"] { background: var(--pink); }
+.swatch {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  padding: 0;
+}
+.swatch[aria-checked="true"] { box-shadow: 0 0 0 3px var(--cream), 0 0 0 5.5px var(--ink); }
+.maker .btn { border-color: var(--ink); }
+.maker-note { margin: 0; font-size: 13px; color: #5F5470; }
+
 .toast {
   position: absolute;
   left: 50%;

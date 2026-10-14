@@ -166,6 +166,16 @@
         </div>
       </section>
 
+      <!-- Fish Maker: the gift for making a jellyfish -->
+      <section class="screen maker" id="maker" hidden>
+        <h2>Your gift: make a fish!</h2>
+        <canvas id="makerCanvas"></canvas>
+        <input id="fishName" type="text" maxlength="12" placeholder="Name your fish" autocomplete="off" aria-label="Fish name">
+        <div class="maker-rows" id="makerRows"></div>
+        <button class="btn" id="makerSave" type="button">Save my fish</button>
+        <p class="maker-note">Fish you've made: <b id="makerCount">0</b></p>
+      </section>
+
       <!-- Daily gift pop-up -->
       <div class="panel dim" id="giftPopup" hidden>
         <div class="card">
@@ -183,6 +193,7 @@
 
   <script src="js/store.js"></script>
   <script src="js/characters.js"></script>
+  <script src="js/fishmaker.js"></script>
   <script src="js/games/kit.js"></script>
   <script src="js/games/flappy.js"></script>
   <script src="js/games/fish.js"></script>

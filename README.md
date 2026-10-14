@@ -13,7 +13,7 @@ Open `public/index.html` in a browser. That's it.
 | Game | How to play | Medals (bronze / silver / gold) |
 |---|---|---|
 | Flappy Bunny | Tap, Space, ↑ or W to hop through the carrots | 5 / 15 / 30 |
-| Fishy Merge | Aim and let go (or ← → and Space) to drop. Two of the same merge: tiny fish → clownfish → pufferfish → seahorse → turtle → jellyfish. Don't fill the tank past the line | 300 / 1000 / 2000 |
+| Fishy Merge | Tap a fish, then tap its twin: tiny fish → clownfish → pufferfish → seahorse → turtle → jellyfish. New fish keep arriving; if every spot is full, it's over. Each jellyfish = a gift: the Fish Maker, where you design and name your own fish. Your fish are saved and swim behind the tank | 300 / 900 / 1800 |
 | Carrot Catch | Drag, move the mouse or ← → to catch carrots in your basket. Golden carrots = 3. Rocks and dropped carrots cost a heart | 15 / 40 / 80 |
 | Memory Match | Flip two cards to find pairs. Clear the board for +10 seconds | 8 / 16 / 28 |
 | Bubble Pop | Tap bubbles before they float away. Coin bubbles = 3. Grumpy purple ones cost a heart | 25 / 60 / 120 |
@@ -32,6 +32,7 @@ flappy-bunny/
 │   └── js/
 │       ├── store.js         ← saving coins, best scores, chosen friend
 │       ├── characters.js    ← how each friend is drawn
+│       ├── fishmaker.js     ← Fish Maker gift: design, draw and save your own fish
 │       ├── app.js           ← home screen: friends, gift, game menu, game-over card
 │       └── games/
 │           ├── kit.js       ← shared game loop, input and drawing helpers
