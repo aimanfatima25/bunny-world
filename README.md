@@ -60,3 +60,12 @@ flappy-bunny/
 5. ⬜ Shop (9 more friends), wardrobe, stickers
 6. ⬜ Power-ups, themes and seasons, more games
 7. ⬜ Android app (Capacitor wrapping `public/`)
+
+## Deploying
+
+The same code goes live in two places, like the portfolio:
+
+- **Vercel**: import the GitHub repo. `vercel.json` tells Vercel the site is the `public/` folder (no build step)
+- **Coolify**: new resource from the GitHub repo, build pack **Dockerfile**, port **80**. The `Dockerfile` copies `public/` into a small nginx server (`nginx.conf`)
+
+Every push to `main` redeploys both.
