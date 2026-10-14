@@ -261,7 +261,45 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
   width: 360px;
   height: calc(100% - 376px);
   min-height: 264px;
-  background: url(img/ui/scene.webp) center bottom / cover no-repeat;
+  background: url(img/ui/scene-wall.webp) center bottom / cover no-repeat;
+  overflow: hidden;
+}
+/* only the chosen girl and the chosen animal sit on the ledge */
+.scene-girl {
+  position: absolute;
+  left: 58px;
+  bottom: 12px;
+  height: 192px;
+  filter: drop-shadow(0 3px 3px rgba(80, 45, 30, .35));
+}
+.scene-pet {
+  position: absolute;
+  left: 196px;
+  bottom: 14px;
+  height: 116px;
+  filter: drop-shadow(0 3px 3px rgba(80, 45, 30, .35));
+  transform-origin: 50% 100%;
+  animation: pet-bob 2.6s ease-in-out infinite;
+}
+@keyframes pet-bob {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  50% { transform: translateY(-3px) scale(1.02, .98); }
+}
+.ledge {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 32px;
+  border-top: 3px solid #C99A78;
+  background:
+    radial-gradient(circle at 6% 0, #FFF 0 4px, #FFC2D6 4px 5px, transparent 5.5px),
+    radial-gradient(circle at 31% 0, #FFF 0 3.5px, transparent 4px),
+    radial-gradient(circle at 74% 0, #FFF 0 4px, #FFC2D6 4px 5px, transparent 5.5px),
+    radial-gradient(circle at 95% 0, #FFF 0 3.5px, transparent 4px),
+    repeating-linear-gradient(90deg, transparent 0 88px, rgba(70, 40, 25, .25) 88px 90px),
+    linear-gradient(180deg, #B98463, #93644A);
+  box-shadow: 0 -2px 5px rgba(60, 35, 20, .3);
 }
 .home .avatar {
   position: absolute;
@@ -587,6 +625,24 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
 }
 .choose-count .coin { width: 15px; height: 15px; }
 
+.choose-switch {
+  flex: none;
+  display: flex;
+  gap: 6px;
+  padding: 5px 26px 6px;
+  background: #7A5038;
+}
+.choose-switch button {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 800;
+  color: #6E4A3A;
+  background: #FBEEDE;
+  border: 2px solid #E9CDBB;
+  border-radius: 12px;
+  padding: 2px 0;
+}
+.choose-switch button[aria-selected="true"] { background: #FCCBC4; border-color: #FFF6EC; }
 .choose-body { position: relative; flex: 1; min-height: 0; background: #7A5038; }
 .curtain {
   position: absolute;

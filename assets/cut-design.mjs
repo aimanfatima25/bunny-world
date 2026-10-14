@@ -36,7 +36,9 @@ const pieces = {
   'ui/nav-collection.webp': [608, 1540, 60, 52],
   'ui/nav-shop.webp': [776, 1540, 60, 52],
   // the cabin scene, used until a version without characters arrives
-  'ui/scene.webp': [0, 112, 941, 578]
+  'ui/scene.webp': [0, 112, 941, 578],
+  // just the cottage wall above the girls' heads, for the scene with the chosen girl and animal
+  'ui/scene-wall.webp': [230, 112, 376, 264]
 };
 
 for (const [name, [left, top, width, height]] of Object.entries(pieces)) {

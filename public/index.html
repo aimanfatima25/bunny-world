@@ -124,7 +124,11 @@
       <!-- Home screen -->
       <!-- Laid out to match Aiman's design (assets/design/home.webp), which is also 360 x 640 in shape -->
       <section class="screen home" id="hub">
-        <div class="scene" role="img" aria-label="Your girl and your animal friend at the cottage"></div>
+        <div class="scene" role="img" aria-label="Your girl and your animal friend at the cottage">
+          <img class="scene-girl" id="sceneGirl" alt="">
+          <img class="scene-pet" id="scenePet" alt="">
+          <div class="ledge" aria-hidden="true"></div>
+        </div>
 
         <header class="topbar">
           <button class="avatar" id="avatarBtn" type="button" aria-label="Your profile"><img src="img/ui/avatar.webp" alt=""></button>
@@ -178,6 +182,10 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12 H6 M11 6 L5 12 L11 18" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
           <div class="choose-count" aria-label="Collected"><svg class="coin" aria-hidden="true"><use href="#i-coin"/></svg><b id="chooseCount">0/0</b></div>
+        </div>
+        <div class="choose-switch" role="tablist" aria-label="Shop section">
+          <button type="button" role="tab" data-mode="girls">Girls</button>
+          <button type="button" role="tab" data-mode="animals">Animals &amp; Sea</button>
         </div>
         <div class="choose-body">
           <img class="curtain left" src="img/choose/curtain-left.webp" alt="">

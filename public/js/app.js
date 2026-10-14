@@ -82,8 +82,11 @@
     showGirl();
   }
 
+  // The chosen girl is the profile picture; she and the chosen animal sit on the cottage ledge
   function showGirl() {
     $('avatarBtn').querySelector('img').src = BW.friends.img(store.data.girl);
+    $('sceneGirl').src = `img/cutouts/girls/${store.data.girl}.webp`;
+    $('scenePet').src = `img/cutouts/friends/${store.data.character}.webp`;
   }
 
   // ---------- games menu ----------
@@ -170,6 +173,7 @@
     const c = CHOOSE[chooseMode];
     $('chooseHeader').src = `img/choose/${c.header}.webp`;
     $('chooseTitle').textContent = c.title;
+    document.querySelectorAll('.choose-switch button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.mode === chooseMode)));
     cancelAnimationFrame(heroRaf);
     hub.hidden = true;
     $('shop').hidden = false;
@@ -459,6 +463,7 @@
   $('againBtn').addEventListener('click', playAgain);
   $('aquariumBtn').addEventListener('click', openAquarium);
   $('shopNav').addEventListener('click', () => openShop('girls'));
+  document.querySelectorAll('.choose-switch button').forEach(b => b.addEventListener('click', () => openShop(b.dataset.mode)));
   $('shopBack').addEventListener('click', closeShop);
   $('pickMain').addEventListener('click', pickMain);
   $('pickClose').addEventListener('click', closePick);
@@ -473,8 +478,8 @@
     $('playerName').focus();
   });
   $('aquariumBack').addEventListener('click', closeAquarium);
-  $('friendsNav').addEventListener('click', () => openShop('animals'));
-  $('avatarBtn').addEventListener('click', () => openShop('girls'));
+  $('friendsNav').addEventListener('click', () => toast('Playing with your friends is coming soon!'));
+  $('avatarBtn').addEventListener('click', () => toast('Your account page is coming soon!'));
   $('starPlus').addEventListener('click', () => toast('Play games to earn more stars!'));
   $('heartPlus').addEventListener('click', () => toast('Hearts are coming soon!'));
   $('mailBtn').addEventListener('click', () => toast('No new messages'));
