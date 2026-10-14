@@ -7,10 +7,18 @@ Plain HTML + CSS + JavaScript (canvas), no framework.
 
 Open `public/index.html` in a browser. That's it.
 
-- Pick a friend (bunny, kitty, panda or chick), then tap a game icon
-- Flappy Bunny: tap, click, Space, ↑ or W to hop. Esc goes back home
-- Each game gives 1 coin per point, plus a bonus for carrot medals (bronze 5, silver 15, gold 30)
+- Pick a friend (bunny, kitty, panda or chick), then tap a game icon. Esc goes back home
 - The gift button gives 50 free coins once a day
+
+| Game | How to play | Medals (bronze / silver / gold) |
+|---|---|---|
+| Flappy Bunny | Tap, Space, ↑ or W to hop through the carrots | 5 / 15 / 30 |
+| Fishy Merge | Aim and let go (or ← → and Space) to drop. Two of the same merge: tiny fish → clownfish → pufferfish → seahorse → turtle → jellyfish. Don't fill the tank past the line | 300 / 1000 / 2000 |
+| Carrot Catch | Drag, move the mouse or ← → to catch carrots in your basket. Golden carrots = 3. Rocks and dropped carrots cost a heart | 15 / 40 / 80 |
+| Memory Match | Flip two cards to find pairs. Clear the board for +10 seconds | 8 / 16 / 28 |
+| Bubble Pop | Tap bubbles before they float away. Coin bubbles = 3. Grumpy purple ones cost a heart | 25 / 60 / 120 |
+
+Coins after each game = score × the game's coin rate (in `app.js`) + 10 / 25 / 50 for a medal.
 
 Progress (coins, best scores, chosen friend) is saved in the browser.
 
@@ -26,22 +34,28 @@ flappy-bunny/
 │       ├── characters.js    ← how each friend is drawn
 │       ├── app.js           ← home screen: friends, gift, game menu, game-over card
 │       └── games/
-│           └── flappy.js    ← Flappy Bunny
+│           ├── kit.js       ← shared game loop, input and drawing helpers
+│           ├── flappy.js    ← Flappy Bunny
+│           ├── fish.js      ← Fishy Merge
+│           ├── carrot.js    ← Carrot Catch
+│           ├── memory.js    ← Memory Match
+│           └── bubble.js    ← Bubble Pop
 └── README.md
 ```
 
 ### Adding a new game
 
-Make `public/js/games/<name>.js` with `BW.games.<name> = { start(canvas, options) }`
-returning `{ restart, stop }` (see `flappy.js`), add a `<script>` tag for it in
-`index.html`, and remove `soon: true` from its entry in `GAMES` in `app.js`.
+1. Make `public/js/games/<name>.js` with `BW.games.<name> = { start(canvas, options) }`
+   returning `{ restart, stop }`. `BW.kit.run()` does the loop and input for you (see `bubble.js`, the simplest one)
+2. Add a `<script>` tag for it in `index.html`
+3. Draw its icon as a `<symbol>` in `index.html` and add it to `GAMES` in `app.js`
 
 ## Roadmap
 
 1. ✅ Flappy Bunny
 2. ✅ Home screen: coins, daily gift, 4 friends, game menu
-3. ⬜ Fishy Merge (merge fish up to a jellyfish)
+3. ✅ Fishy Merge, Carrot Catch, Memory Match, Bubble Pop
 4. ⬜ Leaderboard backend (Node.js server + SQLite), top 10 per game
 5. ⬜ Shop (9 more friends), wardrobe, stickers
-6. ⬜ Carrot Catch, Memory Match, Bubble Pop, power-ups, themes
+6. ⬜ Power-ups, themes and seasons, more games
 7. ⬜ Android app (Capacitor wrapping `public/`)

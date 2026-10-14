@@ -4,13 +4,21 @@
   const chars = BW.characters;
   const $ = id => document.getElementById(id);
 
+  // medals: scores needed for bronze, silver and gold
+  // coinRate: coins earned per point (games with big scores give less per point)
   const GAMES = [
-    { id: 'flappy', name: 'Flappy Bunny', icon: 'ic-flappy', hint: 'Tap, click or press Space to hop' },
-    { id: 'fish', name: 'Fishy Merge', icon: 'ic-fish', soon: true },
-    { id: 'carrot', name: 'Carrot Catch', icon: 'ic-carrot', soon: true },
-    { id: 'memory', name: 'Memory Match', icon: 'ic-memory', soon: true },
-    { id: 'bubble', name: 'Bubble Pop', icon: 'ic-bubble', soon: true }
+    { id: 'flappy', name: 'Flappy Bunny', icon: 'ic-flappy', overTitle: 'Bonk!', medal: 'carrot', medals: [5, 15, 30], coinRate: 1,
+      hint: 'Tap, click or press Space to hop' },
+    { id: 'fish', name: 'Fishy Merge', icon: 'ic-fish', overTitle: 'Tank full!', medal: 'shell', medals: [300, 1000, 2000], coinRate: 0.03,
+      hint: 'Aim, then let go to drop. Match two to grow!' },
+    { id: 'carrot', name: 'Carrot Catch', icon: 'ic-carrot', overTitle: 'Oops!', medal: 'carrot', medals: [15, 40, 80], coinRate: 0.5,
+      hint: 'Drag, move the mouse or use ← → to catch' },
+    { id: 'memory', name: 'Memory Match', icon: 'ic-memory', overTitle: "Time's up!", medal: 'star', medals: [8, 16, 28], coinRate: 1,
+      hint: 'Tap two cards to find a pair' },
+    { id: 'bubble', name: 'Bubble Pop', icon: 'ic-bubble', overTitle: 'Pop!', medal: 'bubble', medals: [25, 60, 120], coinRate: 0.4,
+      hint: 'Tap bubbles. Skip the grumpy purple ones!' }
   ];
+  const MEDAL_BONUS = [10, 25, 50];
   const GIFT_COINS = 50;
   const HUB_HINT = 'Pick a friend, then tap a game';
   const LOCKED_FRIENDS = 9;
@@ -158,18 +166,20 @@
     heroRaf = requestAnimationFrame(heroLoop);
   }
 
-  // Coins: 1 per point, plus a bonus for each carrot medal.
+  // Coins: points x the game's coinRate, plus a bonus for each medal.
   function onGameOver(score) {
-    const id = current.id;
-    const isBest = score > store.best(id);
-    if (isBest) store.setBest(id, score);
-    const medal = score >= 30 ? ['Golden carrot!', 50] : score >= 15 ? ['Silver carrot!', 25] : score >= 5 ? ['Bronze carrot!', 10] : null;
-    const earned = score + (medal ? medal[1] : 0);
+    const g = current;
+    const isBest = score > store.best(g.id);
+    if (isBest) store.setBest(g.id, score);
+    let level = -1;
+    g.medals.forEach((need, i) => { if (score >= need) level = i; });
+    const earned = Math.floor(score * g.coinRate) + (level >= 0 ? MEDAL_BONUS[level] : 0);
     store.addCoins(earned);
 
+    $('overTitle').textContent = g.overTitle;
     $('score').textContent = score;
-    $('best').textContent = store.best(id);
-    $('badge').textContent = medal ? medal[0] : (isBest && score > 0 ? 'New best!' : '');
+    $('best').textContent = store.best(g.id);
+    $('badge').textContent = level >= 0 ? `${['Bronze', 'Silver', 'Golden'][level]} ${g.medal}!` : (isBest && score > 0 ? 'New best!' : '');
     $('earned').textContent = earned;
     setTimeout(() => {
       if (!game) return;
