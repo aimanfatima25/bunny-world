@@ -150,84 +150,130 @@
     heroRaf = requestAnimationFrame(heroLoop);
   }
 
-  // ---------- shop ----------
+  // ---------- Choose Your Girl / Choose Your Friend ----------
 
-  let armedBuy = null;
+  const CHOOSE = {
+    girls: {
+      title: 'Choose Your Girl', header: 'header-girl', groups: ['girls'],
+      tabs: [['all', 'All'], ['casual', 'Casual'], ['cozy', 'Cozy'], ['elegant', 'Elegant'], ['school', 'School'], ['fantasy', 'Fantasy']]
+    },
+    animals: {
+      title: 'Choose Your Friend', header: 'header-friend', groups: ['animals', 'sea'],
+      tabs: [['all', 'All'], ['mammals', 'Mammals'], ['birds', 'Birds'], ['reptiles', 'Reptiles'], ['sea', 'Sea Friends'], ['others', 'Others']]
+    }
+  };
+  let chooseMode = 'girls', chooseTab = 'all', picked = null;
 
-  function openShop() {
+  function openShop(mode) {
+    chooseMode = mode || 'animals';
+    chooseTab = 'all';
+    const c = CHOOSE[chooseMode];
+    $('chooseHeader').src = `img/choose/${c.header}.webp`;
+    $('chooseTitle').textContent = c.title;
     cancelAnimationFrame(heroRaf);
     hub.hidden = true;
     $('shop').hidden = false;
-    $('hint').textContent = 'Spend stars to unlock new friends';
+    $('hint').textContent = 'Tap a cubby to pick or unlock';
+    renderTabs();
     renderShop();
+    $('shopGrid').scrollTop = 0;
   }
 
   function closeShop() {
-    armedBuy = null;
+    closePick();
     $('shop').hidden = true;
     hub.hidden = false;
     $('hint').textContent = HUB_HINT;
     showCoins();
-    renderFriends();
     heroRaf = requestAnimationFrame(heroLoop);
   }
 
-  let shopTab = 'girls';
+  function chooseList() {
+    return BW.friends.list.filter(f => CHOOSE[chooseMode].groups.includes(f.group));
+  }
 
-  function renderShop() {
-    const friends = BW.friends;
-    $('shopCoins').textContent = store.data.coins.toLocaleString('en-US');
-    document.querySelectorAll('.shop-tabs button').forEach(t => {
-      t.setAttribute('aria-selected', String(t.dataset.tab === shopTab));
-    });
-    const grid = $('shopGrid');
-    grid.innerHTML = '';
-    friends.list.filter(f => f.group === shopTab).forEach(f => {
-      const owned = store.owns(f.id);
-      const card = document.createElement('div');
-      card.className = 'shop-card' + (owned ? ' owned' : '');
-      card.innerHTML = `<img src="${friends.img(f.id)}" alt=""><div class="shop-name"></div>`;
-      card.querySelector('.shop-name').textContent = f.name;
+  function isChosen(f) {
+    return f.group === 'girls' ? store.data.girl === f.id : store.data.character === f.id;
+  }
 
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'shop-btn';
-      btn.dataset.id = f.id;
-      if (store.data.character === f.id || store.data.girl === f.id) {
-        btn.textContent = 'With you';
-        btn.classList.add('playing');
-      } else if (owned) {
-        btn.textContent = 'Pick';
-        btn.addEventListener('click', () => { pickFriend(f.id); renderShop(); toast(`${f.name} is with you now!`); });
-      } else {
-        btn.innerHTML = icon('i-coin') + f.price;
-        btn.setAttribute('aria-label', `Buy ${f.name} for ${f.price} stars`);
-        if (store.data.coins < f.price) btn.classList.add('short');
-        if (armedBuy === f.id) { btn.textContent = 'Buy?'; btn.classList.add('confirm'); }
-        btn.addEventListener('click', () => buy(f));
-      }
-      card.appendChild(btn);
-      grid.appendChild(card);
+  function renderTabs() {
+    const box = $('chooseTabs');
+    box.innerHTML = '';
+    CHOOSE[chooseMode].tabs.forEach(([id, label]) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.setAttribute('role', 'tab');
+      b.setAttribute('aria-selected', String(id === chooseTab));
+      b.innerHTML = `<img src="img/choose/tab-${id}.webp" alt=""><span>${label}</span>`;
+      b.addEventListener('click', () => { chooseTab = id; renderTabs(); renderShop(); $('shopGrid').scrollTop = 0; });
+      box.appendChild(b);
     });
   }
 
-  // First tap asks "Buy?", second tap buys, so nobody buys by accident
-  function buy(f) {
-    if (store.data.coins < f.price) {
-      toast(`You need ${(f.price - store.data.coins).toLocaleString('en-US')} more stars`);
-      return;
+  function renderShop() {
+    const all = chooseList();
+    $('chooseCount').textContent = `${all.filter(f => store.owns(f.id)).length}/${all.length}`;
+    const grid = $('shopGrid');
+    grid.innerHTML = '';
+    all.filter(f => chooseTab === 'all' || f.cat === chooseTab).forEach(f => {
+      const owned = store.owns(f.id);
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'cubby' + (owned ? '' : ' locked') + (isChosen(f) ? ' chosen' : '') + (f.group === 'girls' ? ' girl' : '');
+      b.setAttribute('aria-label', f.name + (isChosen(f) ? ', chosen' : owned ? '' : `, ${f.price} stars`));
+      b.innerHTML = `<img src="${BW.friends.img(f.id)}" alt="">`
+        + (owned ? '' : `<span class="price">${icon('i-coin')}${f.price}</span>`)
+        + (isChosen(f) ? '<span class="heart">♥</span>' : '');
+      b.addEventListener('click', () => openPick(f));
+      grid.appendChild(b);
+    });
+  }
+
+  // The card that pops up for one character: choose them, or unlock them with stars
+  function openPick(f) {
+    picked = f;
+    const owned = store.owns(f.id), stars = store.data.coins;
+    $('pickImg').src = BW.friends.img(f.id);
+    $('pickName').textContent = f.name;
+    const main = $('pickMain');
+    main.className = 'pick-main';
+    if (isChosen(f)) {
+      $('pickNote').textContent = f.group === 'girls' ? 'This is you!' : 'Already playing with you';
+      main.textContent = 'Chosen ♥';
+      main.classList.add('done');
+    } else if (owned) {
+      $('pickNote').textContent = f.group === 'girls' ? 'Be this girl?' : 'Take this friend along?';
+      main.textContent = 'Choose';
+    } else {
+      $('pickNote').innerHTML = `You have ${icon('i-coin')} ${stars.toLocaleString('en-US')}`;
+      main.innerHTML = `Unlock for ${icon('i-coin')} ${f.price}`;
+      if (stars < f.price) main.classList.add('short');
     }
-    if (armedBuy !== f.id) {
-      armedBuy = f.id;
-      renderShop();
-      setTimeout(() => { if (armedBuy === f.id) { armedBuy = null; if (!$('shop').hidden) renderShop(); } }, 3000);
-      return;
+    $('pickSheet').hidden = false;
+    main.focus();
+  }
+
+  function closePick() {
+    picked = null;
+    $('pickSheet').hidden = true;
+  }
+
+  function pickMain() {
+    const f = picked;
+    if (!f || isChosen(f)) { closePick(); return; }
+    if (!store.owns(f.id)) {
+      if (store.data.coins < f.price) {
+        toast(`You need ${(f.price - store.data.coins).toLocaleString('en-US')} more stars`);
+        return;
+      }
+      store.buyFriend(f.id, f.price);
+      toast(`${f.name} unlocked!`);
+    } else {
+      toast(f.group === 'girls' ? `Hi ${f.name}!` : `${f.name} is with you now!`);
     }
-    armedBuy = null;
-    store.buyFriend(f.id, f.price);
     pickFriend(f.id);
+    closePick();
     renderShop();
-    toast(`${f.name} joined you!`);
   }
 
   // ---------- top 10 ----------
@@ -397,7 +443,7 @@
   window.addEventListener('keydown', e => {
     if (BW.fishMaker.isOpen()) return;
     if (aquarium && e.code === 'Escape') { closeAquarium(); return; }
-    if (!$('shop').hidden && e.code === 'Escape') { closeShop(); return; }
+    if (!$('shop').hidden) { if (e.code === 'Escape') { if (picked) closePick(); else closeShop(); } return; }
     if (!$('top').hidden) { if (e.code === 'Escape') closeTop(); return; }
     if (!$('giftPopup').hidden && (e.code === 'Escape' || e.code === 'Enter' || e.code === 'Space')) {
       e.preventDefault(); closeGift(); return;
@@ -412,11 +458,11 @@
   $('homeBtn').addEventListener('click', goHome);
   $('againBtn').addEventListener('click', playAgain);
   $('aquariumBtn').addEventListener('click', openAquarium);
-  $('shopNav').addEventListener('click', openShop);
+  $('shopNav').addEventListener('click', () => openShop('girls'));
   $('shopBack').addEventListener('click', closeShop);
-  document.querySelectorAll('.shop-tabs button').forEach(t => {
-    t.addEventListener('click', () => { shopTab = t.dataset.tab; armedBuy = null; renderShop(); $('shopGrid').scrollTop = 0; });
-  });
+  $('pickMain').addEventListener('click', pickMain);
+  $('pickClose').addEventListener('click', closePick);
+  $('pickSheet').addEventListener('click', e => { if (e.target === $('pickSheet')) closePick(); });
   $('topNav').addEventListener('click', () => openTop());
   $('topBack').addEventListener('click', closeTop);
   $('nameForm').addEventListener('submit', saveName);
@@ -427,8 +473,8 @@
     $('playerName').focus();
   });
   $('aquariumBack').addEventListener('click', closeAquarium);
-  $('friendsNav').addEventListener('click', openShop);
-  $('avatarBtn').addEventListener('click', () => { shopTab = 'girls'; openShop(); });
+  $('friendsNav').addEventListener('click', () => openShop('animals'));
+  $('avatarBtn').addEventListener('click', () => openShop('girls'));
   $('starPlus').addEventListener('click', () => toast('Play games to earn more stars!'));
   $('heartPlus').addEventListener('click', () => toast('Hearts are coming soon!'));
   $('mailBtn').addEventListener('click', () => toast('No new messages'));

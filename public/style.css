@@ -541,6 +541,219 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
 .shop-btn.playing { background: #97C459; box-shadow: none; cursor: default; }
 .shop-btn:active { transform: translateY(2px); box-shadow: none; }
 
+/* ---------- Choose Your Girl / Friend (Aiman's cabinet designs) ---------- */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.choose {
+  display: flex;
+  flex-direction: column;
+  color: #6E4A3A;
+  background: linear-gradient(180deg, #CFE8F5 0, #CFE8F5 60px, #B9DDB0 60px, #8DBB72 100%);
+}
+.choose-head { position: relative; flex: none; height: 72px; }
+.choose-head > img { width: 360px; height: 72px; display: block; object-fit: cover; }
+/* real buttons sit exactly on top of the ones painted in the design */
+.choose-back {
+  position: absolute;
+  left: 8px;
+  top: 11px;
+  width: 27px;
+  height: 27px;
+  padding: 0;
+  border: 2px solid #E9CDBB;
+  border-radius: 50%;
+  background: #FFF6EC;
+  color: #B8613F;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 3px rgba(90, 50, 30, .3);
+}
+.choose-back svg { width: 16px; height: 16px; }
+.choose-count {
+  position: absolute;
+  left: 286px;
+  top: 12px;
+  width: 54px;
+  height: 21px;
+  border-radius: 11px;
+  background: #FFF6EC;
+  box-shadow: 0 2px 3px rgba(90, 50, 30, .25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  font-size: 12px;
+  font-weight: 800;
+}
+.choose-count .coin { width: 15px; height: 15px; }
+
+.choose-body { position: relative; flex: 1; min-height: 0; background: #7A5038; }
+.curtain {
+  position: absolute;
+  top: -6px;
+  bottom: 0;
+  width: 30px;
+  height: calc(100% + 6px);
+  object-fit: cover;
+  z-index: 2;
+  pointer-events: none;
+}
+.curtain.left { left: 0; object-position: 20% top; }
+.curtain.right { right: 0; object-position: 80% top; }
+.cabinet {
+  position: absolute;
+  inset: 0 20px;
+  background: #6B4429;
+  border: 5px solid #A0714F;
+  border-top: 0;
+  box-shadow: inset 0 0 0 2px #4E2F1C;
+  overflow: hidden;
+}
+.cubbies {
+  height: 100%;
+  overflow-y: auto;
+  display: grid;
+  /* 4 big cubbies per row on phones; the cabinet scrolls when there are more friends */
+  grid-template-columns: repeat(4, 1fr);
+  align-content: start;
+  gap: 6px;
+  padding: 10px 14px 16px;
+  scrollbar-width: none;
+}
+.cubbies::-webkit-scrollbar { display: none; }
+.cubby {
+  position: relative;
+  aspect-ratio: 1 / 1.08;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: #4E2F1C;
+  box-shadow: inset 0 3px 4px rgba(0, 0, 0, .45);
+  overflow: hidden;
+}
+.cubby img {
+  position: absolute;
+  inset: 3px 3px 5px;
+  width: calc(100% - 6px);
+  height: calc(100% - 8px);
+  object-fit: cover;
+  border-radius: 4px;
+}
+.cubby.girl img { object-position: 50% 12%; }
+/* a strip of grass with a flower, like the design's cubbies */
+.cubby::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 6px;
+  background: radial-gradient(circle at 25% 40%, #FFF 0 1.5px, transparent 2px), linear-gradient(#7FAE5B, #5E8C40);
+}
+.cubby.locked img { filter: saturate(.45) brightness(.92); opacity: .85; }
+.cubby .price {
+  position: absolute;
+  left: 50%;
+  bottom: 5px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding: 0 3px;
+  border-radius: 6px;
+  background: #FFF6EC;
+  font-size: 11px;
+  font-weight: 800;
+  color: #6E4A3A;
+  z-index: 1;
+}
+.cubby .price svg { width: 12px; height: 12px; }
+.cubby.chosen { box-shadow: 0 0 0 2.5px #FF9FB2, 0 0 8px 2px rgba(255, 159, 178, .9); }
+.cubby .heart {
+  position: absolute;
+  right: 1px;
+  top: -1px;
+  font-size: 13px;
+  color: #FF7FAF;
+  text-shadow: 0 0 2px #FFF, 0 0 2px #FFF;
+  z-index: 1;
+}
+
+.choose-tabs {
+  flex: none;
+  display: flex;
+  gap: 3px;
+  padding: 5px 6px calc(6px + env(safe-area-inset-bottom));
+  background: #FBEEDE;
+  border-top: 2px solid #E9CDBB;
+  border-radius: 14px 14px 0 0;
+  box-shadow: 0 -3px 6px rgba(80, 45, 30, .25);
+}
+.choose-tabs button {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding: 3px 0 2px;
+  border: 1.5px solid #EED8C6;
+  border-radius: 10px;
+  background: #FFF7EE;
+  color: #6E4A3A;
+  font-size: 9.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.choose-tabs button img { width: 26px; height: 22px; object-fit: contain; mix-blend-mode: multiply; }
+.choose-tabs button[aria-selected="true"] { background: #FCCBC4; border-color: #E8A3A0; font-weight: 800; }
+
+.pick-sheet {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(60, 35, 25, .55);
+}
+.pick-card {
+  width: 230px;
+  padding: 14px 14px 12px;
+  border-radius: 20px;
+  background: #FFF7EE;
+  border: 3px solid #E9CDBB;
+  box-shadow: 0 6px 16px rgba(60, 35, 25, .4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  animation: pop .2s ease-out;
+}
+.pick-card img { width: 150px; height: 170px; object-fit: cover; object-position: 50% 15%; border-radius: 14px; border: 3px solid #FDE6D3; }
+.pick-card h3 { margin: 4px 0 0; font-size: 22px; font-weight: 800; color: #6E4A3A; }
+.pick-note { margin: 0; font-size: 13px; color: #9B7B6A; display: flex; align-items: center; gap: 3px; }
+.pick-note svg, .pick-main svg { width: 15px; height: 15px; }
+.pick-main {
+  margin-top: 6px;
+  min-width: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 17px;
+  font-weight: 800;
+  color: #6E4A3A;
+  background: #FCCBC4;
+  border: 2px solid #8B5E4A;
+  border-radius: 14px;
+  padding: 5px 16px;
+  box-shadow: 0 3px 0 #C98E86;
+}
+.pick-main.short { background: #F1E3D6; color: #9B7B6A; box-shadow: 0 3px 0 #D9B49D; }
+.pick-main.done { background: #DDF1D3; box-shadow: none; }
+.pick-close { border: 0; background: none; color: #9B7B6A; font-size: 13px; font-weight: 700; padding: 4px 10px; }
+
 /* ---------- Top 10 ---------- */
 .spacer { width: 40px; }
 .top-tabs { display: flex; justify-content: center; gap: 8px; padding: 0 14px 10px; }

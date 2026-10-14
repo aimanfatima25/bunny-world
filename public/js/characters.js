@@ -289,25 +289,29 @@ BW.characters = (() => {
     }
   };
 
-  // A friend without a drawn version: a round badge of their picture, about the same size
-  // as the drawn characters. It squishes a little when hopping and goes grey after a bonk.
-  function drawBadge(ctx, id, flap, dead) {
+  // A friend in the games: a round badge of their picture with a soft brown ring, about the
+  // size of the old drawn characters. It squishes a little when hopping and goes grey after a bonk.
+  function drawBadge(ctx, id, flap, dead, r) {
+    r = r || 19;
     const img = BW.friends.image(id);
-    const r = 18;
     ctx.scale(1 + flap * 0.15, 1 - flap * 0.15);
+    ctx.fillStyle = 'rgba(80, 45, 30, .18)';
+    ctx.beginPath(); ctx.ellipse(0, r * 0.9, r * 0.8, r * 0.22, 0, 0, TAU); ctx.fill();
     ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU);
-    ctx.fillStyle = '#FFF8F1'; ctx.fill();
+    ctx.fillStyle = '#FFF7EE'; ctx.fill();
     if (img.complete && img.naturalWidth) {
       ctx.save();
       ctx.clip();
       if (dead) ctx.filter = 'grayscale(1)';
       // the animal's face sits a little above the middle of each card
-      const w = r * 2.6, h = w * img.naturalHeight / img.naturalWidth;
+      const w = r * 2.5, h = w * img.naturalHeight / img.naturalWidth;
       ctx.drawImage(img, -w / 2, -h * 0.47, w, h);
       ctx.restore();
     }
-    ctx.lineWidth = 2.5; ctx.strokeStyle = INK;
+    ctx.lineWidth = r * 0.14; ctx.strokeStyle = '#FFF7EE';
     ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.stroke();
+    ctx.lineWidth = r * 0.07; ctx.strokeStyle = '#8B5E4A';
+    ctx.beginPath(); ctx.arc(0, 0, r + r * 0.09, 0, TAU); ctx.stroke();
   }
 
   // Mimi and Momo: two little mice with round ears and a curly tail
@@ -363,14 +367,15 @@ BW.characters = (() => {
       { id: 'momo', name: 'Momo Mouse', price: 500 },
       { id: 'unicorn', name: 'Star Unicorn', price: 800 }
     ],
-    // id can be a drawn character ('kitty') or a friend from friends.js ('cat', 'otter')
+    // id can be a drawn character ('kitty') or a friend from friends.js ('cat', 'otter');
+    // opts.r sets the size of a friend's picture badge
     draw(ctx, id, opts) {
       opts = opts || {};
       const friend = BW.friends && BW.friends.get(id);
       const key = friend ? friend.sprite : id;
       ctx.save();
       if (drawers[key]) drawers[key](ctx, opts.flap || 0, !!opts.dead);
-      else if (friend) drawBadge(ctx, friend.id, opts.flap || 0, !!opts.dead);
+      else if (friend) drawBadge(ctx, friend.id, opts.flap || 0, !!opts.dead, opts.r);
       else drawers.bunny(ctx, opts.flap || 0, !!opts.dead);
       ctx.restore();
     }

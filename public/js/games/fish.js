@@ -1,8 +1,8 @@
 // Fishy Merge: sea friends swim freely around the tank. Tap a fish, then tap its
-// twin, and they merge into the next one: tiny fish → clownfish → pufferfish →
-// seahorse → turtle → jellyfish. New fish keep swimming in, faster and faster;
+// twin, and they merge into the next one: goldie → clownfish → pufferfish →
+// betta → koi → axolotl (Aiman's sea friends). New fish keep swimming in, faster and faster;
 // when the tank is full, the game ends.
-// Making a jellyfish opens a gift: the Fish Maker (fishmaker.js), where players
+// Making an axolotl opens a gift: the Fish Maker (fishmaker.js), where players
 // design their own fish for their Aquarium.
 window.BW = window.BW || {};
 BW.games = BW.games || {};
@@ -13,10 +13,12 @@ BW.games.fish = (() => {
   const LEFT = 34, RIGHT = W - 34, TOP = 140, BOTTOM = 520;
   const START_FISH = 12, MAX_FISH = 24;
 
-  //               tiny clown puffer seahorse turtle jelly
+  //              goldie clown puffer betta koi axolotl
   const POINTS = [0, 2, 6, 15, 35, 80];
   const LAST = POINTS.length - 1;
-  const NAMES = ['Tiny fish', 'Clownfish', 'Pufferfish', 'Seahorse', 'Turtle', 'Jellyfish'];
+  // The merge chain uses Aiman's sea friends pictures (friends.js), smallest to biggest
+  const CHAIN = ['goldie', 'clownfish', 'puffer', 'betta', 'koi', 'axolotl'];
+  const NAMES = ['Goldie', 'Clownfish', 'Pufferfish', 'Betta', 'Koi', 'Axolotl'];
 
   function sizeOf(type) { return 17 + type * 2.6; }
 
@@ -25,116 +27,10 @@ BW.games.fish = (() => {
     return r < 0.65 ? 0 : r < 0.95 ? 1 : 2;
   }
 
-  // Each sea friend is drawn in a space where its body has radius 20
-  const creatures = [
-    function tinyFish(ctx) {
-      ctx.fillStyle = '#9FC9F2';
-      ctx.beginPath(); ctx.moveTo(-11, 0); ctx.lineTo(-22, -10); ctx.lineTo(-22, 10); ctx.closePath(); ctx.fill(); ctx.stroke();
-      ctx.beginPath(); ctx.ellipse(2, 0, 17, 14, 0, 0, TAU); ctx.fill(); ctx.stroke();
-      face(ctx, 9, -3, true);
-    },
-    function clownfish(ctx) {
-      ctx.fillStyle = '#F28C28';
-      ctx.beginPath(); ctx.moveTo(-11, 0); ctx.lineTo(-22, -11); ctx.lineTo(-22, 11); ctx.closePath(); ctx.fill(); ctx.stroke();
-      ctx.beginPath(); ctx.ellipse(2, 0, 18, 15, 0, 0, TAU); ctx.fill();
-      ctx.save(); ctx.clip();
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(-7, -16, 5, 32); ctx.fillRect(6, -16, 4.5, 32);
-      ctx.restore();
-      ctx.beginPath(); ctx.ellipse(2, 0, 18, 15, 0, 0, TAU); ctx.stroke();
-      face(ctx, 13, -3, true);
-    },
-    function pufferfish(ctx) {
-      ctx.fillStyle = '#F7C548';
-      for (let i = 0; i < 12; i++) {
-        const a = i * TAU / 12;
-        ctx.beginPath();
-        ctx.moveTo(Math.cos(a - 0.12) * 16, Math.sin(a - 0.12) * 16);
-        ctx.lineTo(Math.cos(a) * 22, Math.sin(a) * 22);
-        ctx.lineTo(Math.cos(a + 0.12) * 16, Math.sin(a + 0.12) * 16);
-        ctx.fill(); ctx.stroke();
-      }
-      ctx.beginPath(); ctx.arc(0, 0, 17, 0, TAU); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = INK;
-      ctx.beginPath(); ctx.arc(-6, -4, 2.6, 0, TAU); ctx.arc(6, -4, 2.6, 0, TAU); ctx.fill();
-      ctx.fillStyle = '#FFB3CB';
-      ctx.beginPath(); ctx.ellipse(-11, 3, 3, 2, 0, 0, TAU); ctx.ellipse(11, 3, 3, 2, 0, 0, TAU); ctx.fill();
-      ctx.beginPath(); ctx.arc(0, 5, 2.4, 0, TAU); ctx.stroke();
-    },
-    function seahorse(ctx) {
-      ctx.fillStyle = '#ED93B1';
-      // crown fin
-      ctx.beginPath(); ctx.moveTo(-8, -14); ctx.lineTo(-5, -22); ctx.lineTo(-1, -16); ctx.lineTo(3, -23); ctx.lineTo(6, -15); ctx.closePath(); ctx.fill(); ctx.stroke();
-      // curly tail
-      ctx.lineWidth *= 1.6;
-      ctx.beginPath(); ctx.arc(-11, 14, 6, -Math.PI / 2, Math.PI * 1.3); ctx.stroke();
-      ctx.lineWidth /= 1.6;
-      ctx.beginPath(); ctx.arc(0, 0, 17, 0, TAU); ctx.fill(); ctx.stroke();
-      // snout
-      ctx.beginPath(); ctx.ellipse(18, -2, 7, 4.5, 0.15, 0, TAU); ctx.fill(); ctx.stroke();
-      ctx.strokeStyle = '#D4537E';
-      ctx.beginPath(); ctx.moveTo(-9, 4); ctx.lineTo(-3, 5); ctx.moveTo(-8, 9); ctx.lineTo(-2, 10); ctx.stroke();
-      ctx.strokeStyle = INK;
-      face(ctx, 7, -5, false);
-    },
-    function turtle(ctx) {
-      ctx.fillStyle = '#C0DD97';
-      ctx.beginPath(); ctx.ellipse(-11, 12, 6, 4, 0.3, 0, TAU); ctx.fill(); ctx.stroke();
-      ctx.beginPath(); ctx.ellipse(10, 13, 6, 4, -0.3, 0, TAU); ctx.fill(); ctx.stroke();
-      ctx.beginPath(); ctx.arc(17, -2, 7, 0, TAU); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#97C459';
-      ctx.beginPath(); ctx.ellipse(-1, 0, 17, 15, 0, 0, TAU); ctx.fill(); ctx.stroke();
-      ctx.strokeStyle = '#3B6D11'; ctx.lineWidth *= 0.6;
-      ctx.beginPath();
-      ctx.moveTo(-6, -6); ctx.lineTo(4, -6); ctx.lineTo(8, 1); ctx.lineTo(4, 8); ctx.lineTo(-6, 8); ctx.lineTo(-10, 1); ctx.closePath();
-      ctx.moveTo(-6, -6); ctx.lineTo(-9, -13); ctx.moveTo(4, -6); ctx.lineTo(7, -13); ctx.moveTo(-10, 1); ctx.lineTo(-17, 1);
-      ctx.moveTo(4, 8); ctx.lineTo(7, 14); ctx.moveTo(-6, 8); ctx.lineTo(-9, 14);
-      ctx.stroke();
-      ctx.strokeStyle = INK; ctx.lineWidth /= 0.6;
-      ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(19, -4, 1.8, 0, TAU); ctx.fill();
-      ctx.fillStyle = '#FFB3CB'; ctx.beginPath(); ctx.ellipse(18, 1, 2, 1.3, 0, 0, TAU); ctx.fill();
-    },
-    function jellyfish(ctx, t) {
-      ctx.strokeStyle = '#AFA9EC'; ctx.lineCap = 'round';
-      const lw = ctx.lineWidth;
-      ctx.lineWidth = lw * 1.3;
-      for (let i = 0; i < 4; i++) {
-        const x = -10 + i * 6.7, w = Math.sin((t || 0) * 4 + i) * 3;
-        ctx.beginPath(); ctx.moveTo(x, 4); ctx.quadraticCurveTo(x + w - 3, 12, x + w, 21); ctx.stroke();
-      }
-      ctx.lineWidth = lw; ctx.strokeStyle = INK;
-      ctx.fillStyle = '#E3CCF2';
-      ctx.beginPath(); ctx.moveTo(-19, 5); ctx.bezierCurveTo(-19, -22, 19, -22, 19, 5);
-      ctx.quadraticCurveTo(13, 9, 6, 5); ctx.quadraticCurveTo(0, 9, -6, 5); ctx.quadraticCurveTo(-13, 9, -19, 5); ctx.closePath();
-      ctx.fill(); ctx.stroke();
-      ctx.fillStyle = 'rgba(255,255,255,.6)';
-      ctx.beginPath(); ctx.ellipse(-9, -9, 3, 5, 0.5, 0, TAU); ctx.fill();
-      ctx.fillStyle = INK;
-      ctx.beginPath(); ctx.arc(-5, -3, 2.3, 0, TAU); ctx.arc(5, -3, 2.3, 0, TAU); ctx.fill();
-      ctx.fillStyle = '#FFB3CB';
-      ctx.beginPath(); ctx.ellipse(-11, 1, 2.8, 1.7, 0, 0, TAU); ctx.ellipse(11, 1, 2.8, 1.7, 0, 0, TAU); ctx.fill();
-      ctx.beginPath(); ctx.moveTo(-2, 1); ctx.quadraticCurveTo(0, 3, 2, 1); ctx.stroke();
-    }
-  ];
-
-  function face(ctx, ex, ey, cheek) {
-    const lw = ctx.lineWidth;
-    ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(ex, ey, 2.4, 0, TAU); ctx.fill();
-    ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.arc(ex + 0.8, ey - 0.8, 0.8, 0, TAU); ctx.fill();
-    if (cheek) { ctx.fillStyle = '#FFB3CB'; ctx.beginPath(); ctx.ellipse(ex - 1, ey + 6, 2.6, 1.6, 0, 0, TAU); ctx.fill(); }
-    ctx.lineWidth = lw * 0.7; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(ex + 3, ey + 6); ctx.quadraticCurveTo(ex + 5, ey + 7.5, ex + 7, ey + 5.5); ctx.stroke();
-    ctx.lineWidth = lw;
-  }
-
-  // Draw sea friend `type` centred on (0, 0) with radius r. Also used by Memory Match.
+  // Each sea friend is a round picture badge; they bob gently as they swim
   function drawCreature(ctx, type, r, t) {
     ctx.save();
-    ctx.scale(r / 20, r / 20);
-    ctx.lineWidth = 2.4 * 20 / r;
-    ctx.lineJoin = 'round';
-    ctx.strokeStyle = INK;
-    creatures[type](ctx, t);
+    BW.characters.draw(ctx, CHAIN[type], { r, flap: Math.sin((t || 0) * 3 + type) * 0.04 });
     ctx.restore();
   }
 
@@ -226,7 +122,7 @@ BW.games.fish = (() => {
     function openGift() {
       state = 'maker';
       BW.fishMaker.open(() => {
-        // the jellyfish floats happily up and away, making room
+        // the axolotl floats happily up and away, making room
         const j = gift.fish;
         ghosts.push({ x0: j.x, y0: drawY(j), x1: j.x, y1: -80, type: LAST, face: j.face, t: 0, speed: 0.8, shrink: false });
         fish.splice(fish.indexOf(j), 1);
@@ -346,7 +242,7 @@ BW.games.fish = (() => {
         ctx.fillStyle = 'rgba(36,27,51,.35)'; ctx.fillRect(0, 0, W, H);
         K.title(ctx, 'Fishy Merge', 'Tap to start', options.getBest());
         K.text(ctx, 'Tap a fish, then tap its twin!', W / 2, 240, 18);
-        K.text(ctx, 'Make a jellyfish to win a gift', W / 2, 270, 16);
+        K.text(ctx, 'Make an axolotl to win a gift', W / 2, 270, 16);
       } else {
         K.text(ctx, String(score), W / 2, 36, 40);
         // how full the tank is
@@ -364,7 +260,7 @@ BW.games.fish = (() => {
 
       if (state === 'gift') {
         ctx.fillStyle = 'rgba(36,27,51,.55)'; ctx.fillRect(0, 0, W, H);
-        K.text(ctx, 'You made a jellyfish!', W / 2, 200, 28);
+        K.text(ctx, 'You made an axolotl!', W / 2, 200, 28);
         drawGift(ctx, W / 2, 340);
         K.text(ctx, 'Tap the gift to open it', W / 2, 450, 20);
       }

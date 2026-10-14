@@ -8,17 +8,24 @@ BW.games.memory = (() => {
   const K = BW.kit, W = K.W, H = K.H, INK = K.INK, TAU = K.TAU;
   const COLS = 4, CW = 72, CH = 92, GAP = 10;
   const X0 = (W - (COLS * CW + (COLS - 1) * GAP)) / 2, Y0 = 158;
-  const FACES = ['bunny', 'kitty', 'panda', 'chick', 'carrot', 'heart', 'star', 'fish'];
   const START_TIME = 60, CLEAR_BONUS = 10, PEEK = 0.75;
 
-  function drawFace(ctx, face, t) {
-    if (BW.characters.list.some(c => c.id === face)) {
-      ctx.translate(-2, 8); ctx.scale(1.15, 1.15);
-      BW.characters.draw(ctx, face);
-    } else if (face === 'carrot') K.carrot(ctx, 0, 2, 40, 0.5);
-    else if (face === 'heart') K.heart(ctx, 0, 0, 44, true);
-    else if (face === 'star') K.star(ctx, 0, 0, 22);
-    else if (face === 'fish') BW.games.fish.drawCreature(ctx, 1, 20, t);
+  // Each board uses 8 random animal friends (Aiman's pictures from friends.js)
+  function pickFaces() {
+    const animals = BW.friends.list.filter(f => f.group !== 'girls').map(f => f.id);
+    return K.shuffle(animals).slice(0, 8);
+  }
+
+  // The friend's picture fills the front of the card
+  function drawFace(ctx, face) {
+    const img = BW.friends.image(face);
+    if (!img.complete || !img.naturalWidth) return;
+    ctx.save();
+    K.roundRect(ctx, -CW / 2 + 4, -CH / 2 + 4, CW - 8, CH - 8, 9);
+    ctx.clip();
+    const w = CW - 8, h = w * img.naturalHeight / img.naturalWidth;
+    ctx.drawImage(img, -w / 2, -h / 2, w, h);
+    ctx.restore();
   }
 
   function start(canvas, options) {
@@ -26,7 +33,8 @@ BW.games.memory = (() => {
     const fx = K.sparkles();
 
     function deal() {
-      const faces = K.shuffle(FACES.concat(FACES));
+      const chosen = pickFaces();
+      const faces = K.shuffle(chosen.concat(chosen));
       cards = faces.map((face, i) => ({
         face,
         x: X0 + (i % COLS) * (CW + GAP),
@@ -109,7 +117,7 @@ BW.games.memory = (() => {
       ctx.fill();
       ctx.lineWidth = 3; ctx.strokeStyle = c.matched ? '#4FA35A' : INK; ctx.stroke();
       if (front) {
-        drawFace(ctx, c.face, t);
+        drawFace(ctx, c.face);
       } else {
         ctx.setLineDash([4, 4]); ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(255,255,255,.8)';
         K.roundRect(ctx, -CW / 2 + 8, -CH / 2 + 8, CW - 16, CH - 16, 7); ctx.stroke();
