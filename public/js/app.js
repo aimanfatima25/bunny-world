@@ -9,14 +9,16 @@
   const GAMES = [
     { id: 'flappy', name: 'Flappy Bunny', icon: 'ic-flappy', overTitle: 'Bonk!', medal: 'carrot', medals: [5, 15, 30], coinRate: 1,
       hint: 'Tap, click or press Space to hop' },
-    { id: 'fish', name: 'Fishy Merge', icon: 'ic-fish', overTitle: 'Tank full!', medal: 'shell', medals: [300, 900, 1800], coinRate: 0.05,
+    { id: 'fish', name: 'Merge the Fish', icon: 'ic-fish', overTitle: 'Tank full!', medal: 'shell', medals: [300, 900, 1800], coinRate: 0.05,
       hint: 'Tap a fish, then tap its twin to merge' },
     { id: 'carrot', name: 'Carrot Catch', icon: 'ic-carrot', overTitle: 'Oops!', medal: 'carrot', medals: [15, 40, 80], coinRate: 0.5,
       hint: 'Drag, move the mouse or use ← → to catch' },
-    { id: 'memory', name: 'Memory Match', icon: 'ic-memory', overTitle: "Time's up!", medal: 'star', medals: [8, 16, 28], coinRate: 1,
+    { id: 'catch', name: 'Catch the Fish', icon: 'ic-fish', overTitle: "Time's up!", medal: 'shell', medals: [15, 35, 60], coinRate: 1,
+      hint: 'Tap a fish to scoop it up with your net' },
+    { id: 'memory', name: 'Memory', icon: 'ic-memory', overTitle: "Time's up!", medal: 'star', medals: [8, 16, 28], coinRate: 1,
       hint: 'Tap two cards to find a pair' },
-    { id: 'bubble', name: 'Bubble Pop', icon: 'ic-bubble', overTitle: 'Pop!', medal: 'bubble', medals: [25, 60, 120], coinRate: 0.4,
-      hint: 'Tap bubbles. Skip the grumpy purple ones!' }
+    { id: 'bubble', name: 'Bubble Pop', icon: 'ic-bubble', overTitle: 'Pop!', medal: 'bubble', medals: [200, 600, 1500], coinRate: 0.05,
+      hint: 'Aim, then let go to shoot. Match 3 to pop!' }
   ];
   const MEDAL_BONUS = [10, 25, 50];
   const GIFT_COINS = 50;
@@ -94,7 +96,7 @@
 
   const TILES = [
     { label: 'Flappy Bunny', img: 'flappy', game: 'flappy' },
-    { label: 'Catch the Fish', img: 'catch', game: 'carrot' },
+    { label: 'Catch the Fish', img: 'catch', game: 'catch' },
     { label: 'Merge the Fish', img: 'merge', game: 'fish' },
     { label: 'Match 3', img: 'match3' },
     { label: 'Adventure', img: 'adventure' },

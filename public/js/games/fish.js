@@ -27,10 +27,17 @@ BW.games.fish = (() => {
     return r < 0.65 ? 0 : r < 0.95 ? 1 : 2;
   }
 
-  // Each sea friend is a round picture badge; they bob gently as they swim
+  // Each sea friend is their cut-out picture (like the Merge the Fish card), wiggling as it swims
   function drawCreature(ctx, type, r, t) {
+    const img = BW.friends.cutout(CHAIN[type]);
     ctx.save();
-    BW.characters.draw(ctx, CHAIN[type], { r, flap: Math.sin((t || 0) * 3 + type) * 0.04 });
+    ctx.rotate(Math.sin((t || 0) * 3 + type) * 0.06);
+    if (img.complete && img.naturalWidth) {
+      const w = r * 2.7, h = w * img.naturalHeight / img.naturalWidth;
+      ctx.drawImage(img, -w / 2, -h / 2, w, h);
+    } else {
+      BW.characters.draw(ctx, CHAIN[type], { r });
+    }
     ctx.restore();
   }
 
@@ -231,16 +238,11 @@ BW.games.fish = (() => {
         ctx.restore();
       });
 
-      // your friend cheering from the sand
-      ctx.save(); ctx.translate(156, 590 - Math.abs(Math.sin(t * 3)) * 4); ctx.scale(1.1, 1.1);
-      BW.characters.draw(ctx, options.character, { flap: Math.sin(t * 6) * 0.15, dead: state === 'over' });
-      ctx.restore();
-
       fx.draw(ctx);
 
       if (state === 'ready') {
         ctx.fillStyle = 'rgba(36,27,51,.35)'; ctx.fillRect(0, 0, W, H);
-        K.title(ctx, 'Fishy Merge', 'Tap to start', options.getBest());
+        K.title(ctx, 'Merge the Fish', 'Tap to start', options.getBest());
         K.text(ctx, 'Tap a fish, then tap its twin!', W / 2, 240, 18);
         K.text(ctx, 'Make an axolotl to win a gift', W / 2, 270, 16);
       } else {

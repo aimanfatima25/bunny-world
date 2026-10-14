@@ -17,7 +17,7 @@ const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const TOP = 10;
 
 // The games, and the highest score that's believable for each (anything above is rejected)
-const GAMES = { flappy: 1000, fish: 100000, carrot: 5000, memory: 1000, bubble: 5000 };
+const GAMES = { flappy: 1000, fish: 100000, carrot: 5000, memory: 1000, bubble: 200000, catch: 1000 };
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
 const db = new DatabaseSync(path.join(DATA_DIR, 'leaderboard.db'));

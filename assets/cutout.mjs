@@ -18,6 +18,8 @@ const jobs = [
 // how much the colour may change between neighbours and still be "background"; girls are
 // stricter because blonde hair is almost the same colour as their pastel backgrounds
 const STEP = { girls: 12, friends: 26 };
+// animals whose colours are very close to their backgrounds need a gentler setting
+const GENTLE = { 'croc.webp': 9, 'shark.webp': 12 };
 const DARK = 260;  // r+g+b below this is outline, never background
 
 for (const [from, to] of jobs) {
@@ -31,14 +33,17 @@ for (const [from, to] of jobs) {
     let head = 0, tail = 0;
     const sum = i => data[i * 3] + data[i * 3 + 1] + data[i * 3 + 2];
     const diff = (a, b) => Math.abs(data[a * 3] - data[b * 3]) + Math.abs(data[a * 3 + 1] - data[b * 3 + 1]) + Math.abs(data[a * 3 + 2] - data[b * 3 + 2]);
-    // seeds: the top and side edges (the bottom edge is usually grass or clothes)
-    for (let x = 0; x < W; x++) { bg[x] = 1; queue[tail++] = x; }
-    for (let y = 0; y < H * 0.75; y++) for (const x of [0, W - 1]) { const i = y * W + x; if (!bg[i]) { bg[i] = 1; queue[tail++] = i; } }
+    // seeds: the top and side edges; for animals also the bottom edge, so the grass and
+    // seaweed they sit in goes too (for girls the bottom edge is their clothes)
+    const girls = from.includes('girls');
+    const seed = i => { if (!bg[i]) { bg[i] = 1; queue[tail++] = i; } };
+    for (let x = 0; x < W; x++) { seed(x); if (!girls) seed((H - 1) * W + x); }
+    for (let y = 0; y < (girls ? H * 0.75 : H); y++) { seed(y * W); seed(y * W + W - 1); }
     while (head < tail) {
       const i = queue[head++], x = i % W, y = (i - x) / W;
       for (const j of [x > 0 ? i - 1 : -1, x < W - 1 ? i + 1 : -1, y > 0 ? i - W : -1, y < H - 1 ? i + W : -1]) {
         if (j < 0 || bg[j]) continue;
-        if (sum(j) < DARK || diff(i, j) > step) continue;
+        if (sum(j) < DARK || diff(i, j) > (GENTLE[file] || step)) continue;
         bg[j] = 1;
         queue[tail++] = j;
       }

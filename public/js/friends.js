@@ -72,6 +72,15 @@ BW.friends = (() => {
     image(id) {
       if (!images[id]) { images[id] = new Image(); images[id].src = this.img(id); }
       return images[id];
+    },
+    // The same picture without its card background (assets/cutout.mjs), for the games
+    cutout(id) {
+      const key = 'cut:' + id;
+      if (!images[key]) {
+        images[key] = new Image();
+        images[key].src = (id.startsWith('girl-') ? 'img/cutouts/girls/' : 'img/cutouts/friends/') + id + '.webp';
+      }
+      return images[key];
     }
   };
 })();
