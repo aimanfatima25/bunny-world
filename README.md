@@ -69,3 +69,12 @@ The same code goes live in two places, like the portfolio:
 - **Coolify**: new resource from the GitHub repo, build pack **Dockerfile**, port **80**. The `Dockerfile` copies `public/` into a small nginx server (`nginx.conf`)
 
 Every push to `main` redeploys both.
+
+## Android app
+
+The app is the same `public/` folder wrapped with [Capacitor](https://capacitorjs.com) (`capacitor.config.json`, app id `com.aimanfatima.bunnyworld`). The native project lives in `android/`.
+
+- `npm install` once
+- After changing the game: `npm run sync` (copies `public/` into the Android project)
+- `npm run android` opens it in Android Studio → **Build → Build App Bundle(s) / APK(s) → Build APK(s)**
+- Icon and splash: edit `assets/make-images.mjs`, then `node assets/make-images.mjs` and `npx capacitor-assets generate --android`

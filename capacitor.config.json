@@ -1,0 +1,9 @@
+{
+  "appId": "com.aimanfatima.bunnyworld",
+  "appName": "Bunny World",
+  "webDir": "public",
+  "backgroundColor": "#241B33",
+  "android": {
+    "backgroundColor": "#241B33"
+  }
+}
