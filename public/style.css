@@ -259,24 +259,26 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
   left: 0;
   top: 0;
   width: 360px;
-  height: calc(100% - 376px);
-  min-height: 264px;
+  /* the cottage takes the top 60% (Aiman's red line); the games scroll below it */
+  height: 60%;
+  min-height: 340px;
   background: url(img/ui/scene-wall.webp) center bottom / cover no-repeat;
   overflow: hidden;
 }
 /* only the chosen girl and the chosen animal sit on the ledge */
 .scene-girl {
   position: absolute;
-  left: 58px;
-  bottom: 12px;
-  height: 192px;
-  filter: drop-shadow(0 3px 3px rgba(80, 45, 30, .35));
+  left: 50%;
+  bottom: 16px;
+  height: calc(100% - 92px);
+  transform: translateX(-78%);
+  filter: drop-shadow(0 4px 4px rgba(80, 45, 30, .35));
 }
 .scene-pet {
   position: absolute;
-  left: 196px;
-  bottom: 14px;
-  height: 116px;
+  left: 50%;
+  bottom: 12px;
+  height: 30%;
   filter: drop-shadow(0 3px 3px rgba(80, 45, 30, .35));
   transform-origin: 50% 100%;
   animation: pet-bob 2.6s ease-in-out infinite;
@@ -368,9 +370,14 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
 
 .home .games {
   position: absolute;
-  left: 18px;
-  bottom: 69px;
-  width: 323px;
+  left: 0;
+  right: 0;
+  top: max(60%, 340px);
+  bottom: 62px;
+  overflow-y: auto;
+  scrollbar-width: none;
+  padding: 8px 18px 12px;
+  align-content: start;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-auto-rows: 74px;
@@ -401,6 +408,7 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
   color: #6E4A3A;
   white-space: nowrap;
 }
+.home .games::-webkit-scrollbar { display: none; }
 .soon-tag {
   position: absolute;
   top: 5px;

@@ -85,7 +85,7 @@
   // The chosen girl is the profile picture; she and the chosen animal sit on the cottage ledge
   function showGirl() {
     $('avatarBtn').querySelector('img').src = BW.friends.img(store.data.girl);
-    $('sceneGirl').src = `img/cutouts/girls/${store.data.girl}.webp`;
+    $('sceneGirl').src = `img/standing/${store.data.girl}.webp`;
     $('scenePet').src = `img/cutouts/friends/${store.data.character}.webp`;
   }
 
@@ -102,8 +102,7 @@
     { label: 'Memory', img: 'memory', game: 'memory' },
     { label: 'Decorate Room', img: 'room' },
     { label: 'Dress Up', img: 'dressup' },
-    { label: 'Garden', img: 'garden' },
-    { label: 'My Aquarium', img: 'aquarium', open: () => openAquarium() }
+    { label: 'Garden', img: 'garden' }
   ];
 
   function renderGames() {
@@ -394,7 +393,8 @@
     $('badge').textContent = level >= 0 ? `${['Bronze', 'Silver', 'Golden'][level]} ${g.medal}!` : (isBest && score > 0 ? 'New best!' : '');
     $('earned').textContent = earned;
     $('rankLine').textContent = '';
-    $('joinTop').hidden = !!store.data.playerName || score < 1;
+    $('joinTop').hidden = false;
+    $('joinTop').textContent = store.data.playerName ? 'See the Top 10' : 'Join the Top 10';
     if (store.data.playerName && score > 0) {
       BW.leaderboard.submit(g.id, score).then(r => {
         if (!r || current !== g) return;
@@ -460,14 +460,14 @@
   $('backBtn').addEventListener('click', goHome);
   $('homeBtn').addEventListener('click', goHome);
   $('againBtn').addEventListener('click', playAgain);
-  $('aquariumBtn').addEventListener('click', openAquarium);
   $('shopNav').addEventListener('click', () => openShop('girls'));
   document.querySelectorAll('.choose-switch button').forEach(b => b.addEventListener('click', () => openShop(b.dataset.mode)));
   $('shopBack').addEventListener('click', closeShop);
   $('pickMain').addEventListener('click', pickMain);
   $('pickClose').addEventListener('click', closePick);
   $('pickSheet').addEventListener('click', e => { if (e.target === $('pickSheet')) closePick(); });
-  $('topNav').addEventListener('click', () => openTop());
+  $('aquariumNav').addEventListener('click', openAquarium);
+  $('collectionNav').addEventListener('click', () => toast('Your collection is coming soon!'));
   $('topBack').addEventListener('click', closeTop);
   $('nameForm').addEventListener('submit', saveName);
   $('joinTop').addEventListener('click', () => {
