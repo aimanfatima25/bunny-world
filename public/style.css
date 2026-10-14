@@ -124,7 +124,16 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
   box-shadow: 0 3px 0 #A9560E;
 }
 
-.friends { display: flex; justify-content: center; gap: 10px; padding: 14px 0 16px; }
+.friends {
+  display: flex;
+  justify-content: safe center;
+  gap: 10px;
+  padding: 14px 16px 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.friends::-webkit-scrollbar { display: none; }
+.friend { flex: none; }
 .friend {
   width: 54px;
   height: 54px;
@@ -274,6 +283,63 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
 }
 .btn.ghost { background: var(--lilac); box-shadow: 0 4px 0 #8E80A3; }
 .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #A9560E; }
+
+/* ---------- Friend Shop ---------- */
+.shop {
+  background: var(--cream);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+}
+.shop-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 14px 10px;
+}
+.shop-top h2 { margin: 0; font-size: 24px; font-weight: 800; }
+.shop-grid {
+  flex: 1;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 4px 14px 16px;
+  align-content: start;
+}
+.shop-card {
+  background: var(--lilac);
+  border: 2.5px solid var(--ink);
+  border-radius: 16px;
+  padding: 6px 4px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.shop-card.owned { background: #DDF1F6; }
+.shop-card canvas { display: block; }
+.shop-name { font-size: 13px; font-weight: 800; line-height: 1.1; text-align: center; min-height: 28px; display: flex; align-items: center; }
+.shop-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 78px;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink);
+  background: var(--carrot);
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  padding: 1px 8px;
+  box-shadow: 0 3px 0 #A9560E;
+}
+.shop-btn svg { width: 16px; height: 16px; }
+.shop-btn.short { background: #E3DCEB; color: #5F5470; box-shadow: 0 3px 0 #8E80A3; }
+.shop-btn.confirm { background: var(--pink); box-shadow: 0 3px 0 var(--deep-pink); }
+.shop-btn.playing { background: #97C459; box-shadow: none; cursor: default; }
+.shop-btn:active { transform: translateY(2px); box-shadow: none; }
 
 /* ---------- Fish Maker ---------- */
 .maker {

@@ -21,7 +21,6 @@
   const MEDAL_BONUS = [10, 25, 50];
   const GIFT_COINS = 50;
   const HUB_HINT = 'Pick a friend, then tap a game';
-  const LOCKED_FRIENDS = 9;
 
   const stage = $('stage'), layer = $('layer');
   const hub = $('hub'), play = $('play'), over = $('over');
@@ -102,13 +101,16 @@
       b.addEventListener('click', () => pickFriend(c.id));
       box.appendChild(b);
     });
-    const more = document.createElement('button');
-    more.type = 'button';
-    more.className = 'friend locked';
-    more.setAttribute('aria-label', `${LOCKED_FRIENDS} more friends, coming to the shop`);
-    more.innerHTML = icon('i-lock') + '+' + LOCKED_FRIENDS;
-    more.addEventListener('click', () => toast('More friends are coming to the shop!'));
-    box.appendChild(more);
+    const locked = chars.list.filter(c => !store.owns(c.id)).length;
+    if (locked) {
+      const more = document.createElement('button');
+      more.type = 'button';
+      more.className = 'friend locked';
+      more.setAttribute('aria-label', `${locked} more friends in the shop`);
+      more.innerHTML = icon('i-shop') + '+' + locked;
+      more.addEventListener('click', openShop);
+      box.appendChild(more);
+    }
   }
 
   function pickFriend(id) {
@@ -164,6 +166,88 @@
     $('hint').textContent = HUB_HINT;
     showCoins();
     heroRaf = requestAnimationFrame(heroLoop);
+  }
+
+  // ---------- shop ----------
+
+  let armedBuy = null;
+
+  function openShop() {
+    cancelAnimationFrame(heroRaf);
+    hub.hidden = true;
+    $('shop').hidden = false;
+    $('hint').textContent = 'Spend coins to unlock new friends';
+    renderShop();
+  }
+
+  function closeShop() {
+    armedBuy = null;
+    $('shop').hidden = true;
+    hub.hidden = false;
+    $('hint').textContent = HUB_HINT;
+    showCoins();
+    renderFriends();
+    heroRaf = requestAnimationFrame(heroLoop);
+  }
+
+  function renderShop() {
+    $('shopCoins').textContent = store.data.coins.toLocaleString('en-US');
+    const grid = $('shopGrid');
+    grid.innerHTML = '';
+    chars.list.forEach(c => {
+      const owned = store.owns(c.id);
+      const card = document.createElement('div');
+      card.className = 'shop-card' + (owned ? ' owned' : '');
+      const canvas = document.createElement('canvas');
+      card.appendChild(canvas);
+      const ctx = fitCanvas(canvas, 70, 70);
+      ctx.translate(33, 44); ctx.scale(1.05, 1.05);
+      chars.draw(ctx, c.id);
+      const name = document.createElement('div');
+      name.className = 'shop-name';
+      name.textContent = c.name;
+      card.appendChild(name);
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'shop-btn';
+      if (store.data.character === c.id) {
+        btn.textContent = 'Playing';
+        btn.classList.add('playing');
+      } else if (owned) {
+        btn.textContent = 'Pick';
+        btn.addEventListener('click', () => { pickFriend(c.id); renderShop(); });
+      } else {
+        btn.innerHTML = icon('i-coin') + c.price;
+        btn.setAttribute('aria-label', `Buy ${c.name} for ${c.price} coins`);
+        if (store.data.coins < c.price) btn.classList.add('short');
+        btn.addEventListener('click', () => buy(c));
+      }
+      card.appendChild(btn);
+      grid.appendChild(card);
+    });
+  }
+
+  // First tap asks "Buy?", second tap buys, so nobody buys by accident
+  function buy(c) {
+    if (store.data.coins < c.price) {
+      toast(`You need ${(c.price - store.data.coins).toLocaleString('en-US')} more coins`);
+      return;
+    }
+    if (armedBuy !== c.id) {
+      armedBuy = c.id;
+      renderShop();
+      const again = [...$('shopGrid').querySelectorAll('.shop-btn')][chars.list.indexOf(c)];
+      again.textContent = 'Buy?';
+      again.classList.add('confirm');
+      setTimeout(() => { if (armedBuy === c.id) { armedBuy = null; if (!$('shop').hidden) renderShop(); } }, 3000);
+      return;
+    }
+    armedBuy = null;
+    store.buyFriend(c.id, c.price);
+    pickFriend(c.id);
+    renderShop();
+    toast(`${c.name} joined you!`);
   }
 
   // ---------- aquarium ----------
@@ -248,6 +332,7 @@
   window.addEventListener('keydown', e => {
     if (BW.fishMaker.isOpen()) return;
     if (aquarium && e.code === 'Escape') { closeAquarium(); return; }
+    if (!$('shop').hidden && e.code === 'Escape') { closeShop(); return; }
     if (!$('giftPopup').hidden && (e.code === 'Escape' || e.code === 'Enter' || e.code === 'Space')) {
       e.preventDefault(); closeGift(); return;
     }
@@ -261,6 +346,8 @@
   $('homeBtn').addEventListener('click', goHome);
   $('againBtn').addEventListener('click', playAgain);
   $('aquariumBtn').addEventListener('click', openAquarium);
+  $('shopNav').addEventListener('click', openShop);
+  $('shopBack').addEventListener('click', closeShop);
   $('aquariumBack').addEventListener('click', closeAquarium);
   document.querySelectorAll('.nav [data-soon]').forEach(b => {
     b.addEventListener('click', () => toast(`${b.dataset.soon} is coming soon!`));

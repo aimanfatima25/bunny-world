@@ -140,7 +140,7 @@
           <nav class="nav">
             <button type="button" class="active" aria-current="page"><svg><use href="#i-home"/></svg>Home</button>
             <button type="button" id="aquariumBtn"><svg><use href="#i-fish"/></svg>Aquarium</button>
-            <button type="button" data-soon="The shop"><svg><use href="#i-shop"/></svg>Shop</button>
+            <button type="button" id="shopNav"><svg><use href="#i-shop"/></svg>Shop</button>
             <button type="button" data-soon="Stickers"><svg><use href="#i-star"/></svg>Stickers</button>
             <button type="button" data-soon="The top 10"><svg><use href="#i-trophy"/></svg>Top 10</button>
           </nav>
@@ -166,6 +166,16 @@
             </div>
           </div>
         </div>
+      </section>
+
+      <!-- Friend Shop: unlock new characters with coins -->
+      <section class="screen shop" id="shop" hidden>
+        <header class="shop-top">
+          <button class="round-btn" id="shopBack" type="button" aria-label="Back to home"><svg><use href="#i-home"/></svg></button>
+          <h2>Friend Shop</h2>
+          <div class="pill coins" aria-label="Coins"><svg class="coin"><use href="#i-coin"/></svg><b id="shopCoins">0</b></div>
+        </header>
+        <div class="shop-grid" id="shopGrid"></div>
       </section>
 
       <!-- My Aquarium: all the fish made in the Fish Maker -->

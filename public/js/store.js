@@ -34,6 +34,15 @@ BW.store = (() => {
     setBest(gameId, score) { data.best[gameId] = score; save(); },
     setCharacter(id) { data.character = id; save(); },
     claimGift(day) { data.lastGift = day; save(); },
-    addCustomFish(design) { data.myFish.push(design); save(); }
+    addCustomFish(design) { data.myFish.push(design); save(); },
+    owns(id) { return data.unlocked.includes(id); },
+    // returns false when there aren't enough coins
+    buyFriend(id, price) {
+      if (data.coins < price || data.unlocked.includes(id)) return false;
+      data.coins -= price;
+      data.unlocked.push(id);
+      save();
+      return true;
+    }
   };
 })();
