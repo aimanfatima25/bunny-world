@@ -4,3 +4,4 @@ node_modules/
 android/app/build/
 .DS_Store
 Thumbs.db
+*.apk
