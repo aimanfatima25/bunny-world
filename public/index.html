@@ -142,7 +142,7 @@
             <button type="button" id="aquariumBtn"><svg><use href="#i-fish"/></svg>Aquarium</button>
             <button type="button" id="shopNav"><svg><use href="#i-shop"/></svg>Shop</button>
             <button type="button" data-soon="Stickers"><svg><use href="#i-star"/></svg>Stickers</button>
-            <button type="button" data-soon="The top 10"><svg><use href="#i-trophy"/></svg>Top 10</button>
+            <button type="button" id="topNav"><svg><use href="#i-trophy"/></svg>Top 10</button>
           </nav>
         </div>
       </section>
@@ -160,6 +160,8 @@
             </div>
             <div class="badge" id="badge"></div>
             <div class="earned"><svg class="coin"><use href="#i-coin"/></svg>+<span id="earned">0</span></div>
+            <div class="rank-line" id="rankLine"></div>
+            <button class="link-btn" id="joinTop" type="button" hidden>Join the Top 10</button>
             <div class="buttons">
               <button class="btn ghost" id="homeBtn" type="button">Home</button>
               <button class="btn" id="againBtn" type="button">Play again</button>
@@ -176,6 +178,22 @@
           <div class="pill coins" aria-label="Coins"><svg class="coin"><use href="#i-coin"/></svg><b id="shopCoins">0</b></div>
         </header>
         <div class="shop-grid" id="shopGrid"></div>
+      </section>
+
+      <!-- Top 10: the leaderboard for each game -->
+      <section class="screen shop" id="top" hidden>
+        <header class="shop-top">
+          <button class="round-btn" id="topBack" type="button" aria-label="Back to home"><svg><use href="#i-home"/></svg></button>
+          <h2>Top 10</h2>
+          <span class="spacer" aria-hidden="true"></span>
+        </header>
+        <div class="top-tabs" id="topTabs" role="tablist" aria-label="Pick a game"></div>
+        <ol class="top-list" id="topList"></ol>
+        <form class="top-name" id="nameForm">
+          <label for="playerName">Your name</label>
+          <input id="playerName" type="text" maxlength="12" autocomplete="off" placeholder="Pick a name">
+          <button class="btn" type="submit">Save</button>
+        </form>
       </section>
 
       <!-- My Aquarium: all the fish made in the Fish Maker -->
@@ -212,6 +230,7 @@
   <script src="js/store.js"></script>
   <script src="js/characters.js"></script>
   <script src="js/fishmaker.js"></script>
+  <script src="js/leaderboard.js"></script>
   <script src="js/games/kit.js"></script>
   <script src="js/games/flappy.js"></script>
   <script src="js/games/fish.js"></script>

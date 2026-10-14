@@ -78,3 +78,11 @@ The app is the same `public/` folder wrapped with [Capacitor](https://capacitorj
 - After changing the game: `npm run sync` (copies `public/` into the Android project)
 - `npm run android` opens it in Android Studio → **Build → Build App Bundle(s) / APK(s) → Build APK(s)**
 - Icon and splash: edit `assets/make-images.mjs`, then `node assets/make-images.mjs` and `npx capacitor-assets generate --android`
+
+## Leaderboard server
+
+`server/` is a tiny Node.js server (no packages: built-in `http` and `node:sqlite`) that keeps each player's best score per game.
+
+- Run locally: `cd server && node server.js` (port 3000; the game on `localhost:8765` uses it automatically)
+- `GET /api/scores/<game>?player=<id>` → top 10, `POST /api/scores` `{ game, name, score, player }`
+- Live at `https://api.aimanfatima.com`: a second Coolify app from this repo with base directory `/server`, Dockerfile build, port 3000 and a persistent volume mounted at `/data`

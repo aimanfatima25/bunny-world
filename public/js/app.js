@@ -250,6 +250,84 @@
     toast(`${c.name} joined you!`);
   }
 
+  // ---------- top 10 ----------
+
+  let topGame = GAMES[0].id;
+
+  function openTop(gameId) {
+    if (gameId) topGame = gameId;
+    cancelAnimationFrame(heroRaf);
+    hub.hidden = true;
+    $('top').hidden = false;
+    $('hint').textContent = 'The best players of each game';
+    $('playerName').value = store.data.playerName || '';
+    renderTopTabs();
+    loadTop();
+  }
+
+  function closeTop() {
+    $('top').hidden = true;
+    hub.hidden = false;
+    $('hint').textContent = HUB_HINT;
+    heroRaf = requestAnimationFrame(heroLoop);
+  }
+
+  function renderTopTabs() {
+    const box = $('topTabs');
+    box.innerHTML = '';
+    GAMES.forEach(g => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'top-tab';
+      b.setAttribute('role', 'tab');
+      b.setAttribute('aria-selected', String(g.id === topGame));
+      b.setAttribute('aria-label', g.name);
+      b.title = g.name;
+      b.innerHTML = icon(g.icon);
+      b.addEventListener('click', () => { topGame = g.id; renderTopTabs(); loadTop(); });
+      box.appendChild(b);
+    });
+  }
+
+  async function loadTop() {
+    const list = $('topList');
+    const asked = topGame;
+    const g = GAMES.find(x => x.id === asked);
+    list.innerHTML = `<li class="top-msg">Loading ${g.name}…</li>`;
+    const rows = await BW.leaderboard.top(asked);
+    if (asked !== topGame || $('top').hidden) return;
+    if (!rows) { list.innerHTML = '<li class="top-msg">Can\'t reach the Top 10 right now. Check your internet.</li>'; return; }
+    if (!rows.length) { list.innerHTML = `<li class="top-msg">No scores yet. Be the first!</li>`; return; }
+    list.innerHTML = '';
+    rows.forEach((r, i) => {
+      const li = document.createElement('li');
+      li.className = 'top-row' + (r.you ? ' you' : '') + (i < 3 ? ' medal-' + (i + 1) : '');
+      const place = document.createElement('span');
+      place.className = 'top-place';
+      place.textContent = i + 1;
+      const name = document.createElement('span');
+      name.className = 'top-player';
+      name.textContent = r.name + (r.you ? ' (you)' : '');
+      const score = document.createElement('b');
+      score.textContent = r.score.toLocaleString('en-US');
+      li.append(place, name, score);
+      list.appendChild(li);
+    });
+  }
+
+  // Saving a name also sends every best score you already have
+  async function saveName(e) {
+    e.preventDefault();
+    const name = $('playerName').value.replace(/[^\p{L}\p{N} ]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 12);
+    if (!name) { toast('Type a name first'); return; }
+    $('playerName').value = name;
+    $('playerName').blur();
+    store.setName(name);
+    toast(`Hi ${name}!`);
+    await Promise.all(GAMES.map(g => BW.leaderboard.submit(g.id, store.best(g.id))));
+    loadTop();
+  }
+
   // ---------- aquarium ----------
 
   let aquarium = null;
@@ -286,6 +364,14 @@
     $('best').textContent = store.best(g.id);
     $('badge').textContent = level >= 0 ? `${['Bronze', 'Silver', 'Golden'][level]} ${g.medal}!` : (isBest && score > 0 ? 'New best!' : '');
     $('earned').textContent = earned;
+    $('rankLine').textContent = '';
+    $('joinTop').hidden = !!store.data.playerName || score < 1;
+    if (store.data.playerName && score > 0) {
+      BW.leaderboard.submit(g.id, score).then(r => {
+        if (!r || current !== g) return;
+        $('rankLine').textContent = r.rank <= 10 ? `#${r.rank} in the Top 10!` : `You're #${r.rank} on the leaderboard`;
+      });
+    }
     setTimeout(() => {
       if (!game) return;
       over.hidden = false;
@@ -333,6 +419,7 @@
     if (BW.fishMaker.isOpen()) return;
     if (aquarium && e.code === 'Escape') { closeAquarium(); return; }
     if (!$('shop').hidden && e.code === 'Escape') { closeShop(); return; }
+    if (!$('top').hidden) { if (e.code === 'Escape') closeTop(); return; }
     if (!$('giftPopup').hidden && (e.code === 'Escape' || e.code === 'Enter' || e.code === 'Space')) {
       e.preventDefault(); closeGift(); return;
     }
@@ -348,6 +435,15 @@
   $('aquariumBtn').addEventListener('click', openAquarium);
   $('shopNav').addEventListener('click', openShop);
   $('shopBack').addEventListener('click', closeShop);
+  $('topNav').addEventListener('click', () => openTop());
+  $('topBack').addEventListener('click', closeTop);
+  $('nameForm').addEventListener('submit', saveName);
+  $('joinTop').addEventListener('click', () => {
+    const id = current.id;
+    goHome();
+    openTop(id);
+    $('playerName').focus();
+  });
   $('aquariumBack').addEventListener('click', closeAquarium);
   document.querySelectorAll('.nav [data-soon]').forEach(b => {
     b.addEventListener('click', () => toast(`${b.dataset.soon} is coming soon!`));

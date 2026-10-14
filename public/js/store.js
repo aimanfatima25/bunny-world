@@ -18,7 +18,8 @@ BW.store = (() => {
     unlocked: ['bunny', 'kitty', 'panda', 'chick'],
     best: {},
     lastGift: '',
-    myFish: []
+    myFish: [],
+    playerName: ''
   }, load());
 
   // Carry over the best score from the old single-game version
@@ -36,6 +37,15 @@ BW.store = (() => {
     claimGift(day) { data.lastGift = day; save(); },
     addCustomFish(design) { data.myFish.push(design); save(); },
     owns(id) { return data.unlocked.includes(id); },
+    setName(name) { data.playerName = name; save(); },
+    // A random id for this device, so the leaderboard keeps one best score per player
+    playerId() {
+      if (!data.playerId) {
+        data.playerId = (crypto.randomUUID ? crypto.randomUUID() : 'p-' + Date.now().toString(36) + Math.random().toString(36).slice(2)).toLowerCase();
+        save();
+      }
+      return data.playerId;
+    },
     // returns false when there aren't enough coins
     buyFriend(id, price) {
       if (data.coins < price || data.unlocked.includes(id)) return false;
