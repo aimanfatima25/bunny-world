@@ -11,8 +11,6 @@
       hint: 'Tap, click or press Space to hop' },
     { id: 'fish', name: 'Merge the Fish', icon: 'ic-fish', overTitle: 'Tank full!', medal: 'shell', medals: [300, 900, 1800], coinRate: 0.05,
       hint: 'Tap a fish, then tap its twin to merge' },
-    { id: 'carrot', name: 'Carrot Catch', icon: 'ic-carrot', overTitle: 'Oops!', medal: 'carrot', medals: [15, 40, 80], coinRate: 0.5,
-      hint: 'Drag, move the mouse or use ← → to catch' },
     { id: 'catch', name: 'Catch the Fish', icon: 'ic-fish', overTitle: "Time's up!", medal: 'shell', medals: [15, 35, 60], coinRate: 1,
       hint: 'Tap a fish to scoop it up with your net' },
     { id: 'memory', name: 'Memory', icon: 'ic-memory', overTitle: "Time's up!", medal: 'star', medals: [8, 16, 28], coinRate: 1,
@@ -105,7 +103,6 @@
     { label: 'Decorate Room', img: 'room' },
     { label: 'Dress Up', img: 'dressup' },
     { label: 'Garden', img: 'garden' },
-    { label: 'Collect Friends', img: 'friends', open: () => openShop() },
     { label: 'My Aquarium', img: 'aquarium', open: () => openAquarium() }
   ];
 

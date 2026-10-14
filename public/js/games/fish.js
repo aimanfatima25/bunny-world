@@ -27,18 +27,9 @@ BW.games.fish = (() => {
     return r < 0.65 ? 0 : r < 0.95 ? 1 : 2;
   }
 
-  // Each sea friend is their cut-out picture (like the Merge the Fish card), wiggling as it swims
+  // Each sea friend is drawn in the soft style of the Merge the Fish card (sea.js)
   function drawCreature(ctx, type, r, t) {
-    const img = BW.friends.cutout(CHAIN[type]);
-    ctx.save();
-    ctx.rotate(Math.sin((t || 0) * 3 + type) * 0.06);
-    if (img.complete && img.naturalWidth) {
-      const w = r * 2.7, h = w * img.naturalHeight / img.naturalWidth;
-      ctx.drawImage(img, -w / 2, -h / 2, w, h);
-    } else {
-      BW.characters.draw(ctx, CHAIN[type], { r });
-    }
-    ctx.restore();
+    BW.sea.draw(ctx, CHAIN[type], r, (t || 0) + type);
   }
 
   function start(canvas, options) {

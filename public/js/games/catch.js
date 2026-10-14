@@ -37,7 +37,7 @@ BW.games.catch = (() => {
         dir: fromLeft ? 1 : -1,
         speed: (55 + Math.random() * 50) * (1 + busy * 0.9) * (id === 'koi' ? 1.4 : 1),
         phase: Math.random() * TAU,
-        size: id === 'koi' ? 34 : 28
+        size: id === 'koi' ? 30 : 24
       });
     }
 
@@ -94,15 +94,12 @@ BW.games.catch = (() => {
     }
 
     function drawFish(f) {
-      const img = BW.friends.cutout(f.id);
-      if (!img.complete || !img.naturalWidth) return;
       ctx.save();
       ctx.translate(f.x, fishY(f));
       const s = f.caught ? 1 - f.caught : 1;
-      ctx.scale(-f.dir * s, s);
-      ctx.rotate(Math.sin(t * 6 + f.phase) * 0.08);
-      const w = f.size * 2.4, h = w * img.naturalHeight / img.naturalWidth;
-      ctx.drawImage(img, -w / 2, -h / 2, w, h);
+      ctx.scale(f.dir * s, s);
+      ctx.rotate(Math.sin(t * 6 + f.phase) * 0.06);
+      BW.sea.draw(ctx, f.id, f.size, t + f.phase);
       ctx.restore();
     }
 

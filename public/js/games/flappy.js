@@ -7,7 +7,7 @@ window.BW = window.BW || {};
 BW.games = BW.games || {};
 
 BW.games.flappy = (() => {
-  const W = 360, H = 640, GROUND = 588;
+  const W = 360, H = 640, GROUND = 588, TAU = Math.PI * 2;
   const PILLAR_W = 66, SPACING = 215;
 
   function start(canvas, options) {
@@ -108,9 +108,9 @@ BW.games.flappy = (() => {
       ctx.fillStyle = '#A8835F';
       ctx.fillRect(x - 4 * s, base - 40 * s, 8 * s, 40 * s);
       ctx.fillStyle = '#9CC77A';
-      ctx.beginPath();
-      ctx.arc(x, base - 58 * s, 24 * s, 0, 7); ctx.arc(x - 20 * s, base - 44 * s, 18 * s, 0, 7); ctx.arc(x + 20 * s, base - 46 * s, 19 * s, 0, 7);
-      ctx.fill();
+      [[0, -58, 24], [-20, -44, 18], [20, -46, 19]].forEach(([dx, dy, r]) => {
+        ctx.beginPath(); ctx.arc(x + dx * s, base + dy * s, r * s, 0, TAU); ctx.fill();
+      });
       ctx.fillStyle = 'rgba(255,255,255,.25)';
       ctx.beginPath(); ctx.arc(x - 8 * s, base - 66 * s, 9 * s, 0, 7); ctx.fill();
     }
@@ -190,21 +190,65 @@ BW.games.flappy = (() => {
       ctx.restore();
     }
 
+    // The flying bunny from the Flappy Bunny card: plump, pink-white, ears streaming back,
+    // fluffy tail, and little wings on her back
+    function flyingBunny(beat, dead) {
+      const LINE = '#5B4650';
+      ctx.lineWidth = 2; ctx.strokeStyle = LINE; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      const fur = ctx.createRadialGradient(4, -10, 2, 0, 0, 26);
+      fur.addColorStop(0, '#FFFFFF'); fur.addColorStop(1, '#FBDCE5');
+      // far wing and far ear, behind everything
+      ctx.save(); ctx.translate(-6, -11); wing(beat - 0.35); ctx.restore();
+      ctx.save(); ctx.translate(9, -16); ctx.rotate(-1.2 + beat * 0.15);
+      ctx.fillStyle = '#F6D3DD'; ctx.beginPath(); ctx.ellipse(0, -10, 5, 12, 0, 0, TAU); ctx.fill(); ctx.stroke();
+      ctx.restore();
+      // tail, feet, body
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath(); ctx.arc(-20, -2, 6, 0, TAU); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = fur;
+      ctx.beginPath(); ctx.ellipse(-12, 12, 8, 4, 0.3, 0, TAU); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(0, 0, 20, 14, -0.1, 0, TAU); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(13, 10, 5, 3.5, -0.4, 0, TAU); ctx.fill(); ctx.stroke();
+      // head
+      ctx.beginPath(); ctx.arc(14, -8, 13, 0, TAU); ctx.fill(); ctx.stroke();
+      // near ear streaming back
+      ctx.save(); ctx.translate(12, -18); ctx.rotate(-0.95 + beat * 0.2);
+      ctx.fillStyle = fur; ctx.beginPath(); ctx.ellipse(0, -11, 5.5, 13, 0, 0, TAU); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#F7B8C8'; ctx.beginPath(); ctx.ellipse(0, -11, 2.4, 8.5, 0, 0, TAU); ctx.fill();
+      ctx.restore();
+      // face
+      if (dead) {
+        ctx.beginPath(); ctx.moveTo(17, -12); ctx.lineTo(22, -7); ctx.moveTo(22, -12); ctx.lineTo(17, -7); ctx.stroke();
+      } else {
+        ctx.fillStyle = '#3A2E36'; ctx.beginPath(); ctx.arc(19.5, -9.5, 2.5, 0, TAU); ctx.fill();
+        ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.arc(20.4, -10.4, 0.9, 0, TAU); ctx.fill();
+      }
+      ctx.fillStyle = 'rgba(255,140,170,.55)'; ctx.beginPath(); ctx.ellipse(16, -3, 4, 2.4, 0, 0, TAU); ctx.fill();
+      ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.moveTo(23, -5); ctx.quadraticCurveTo(24.5, -3.5, 26, -5); ctx.stroke();
+      // near wing on her back, in front of the body
+      ctx.save(); ctx.translate(-4, -9); ctx.scale(0.9, 0.9); wing(beat); ctx.restore();
+    }
+
     function drawPlayer() {
       const tilt = state === 'ready' ? 0 : Math.max(-0.45, Math.min(bunny.vy / 700, 1.2));
       const flapping = state === 'play' && bunny.vy < 0;
       const beat = state === 'over' ? 0.4 : Math.sin(t * (flapping ? 30 : 10)) * 0.45;
       ctx.save(); ctx.translate(bunny.x, bunny.y); ctx.rotate(tilt);
-      const img = BW.friends && BW.friends.get(options.character) ? BW.friends.cutout(options.character) : null;
-      if (img && img.complete && img.naturalWidth) {
-        ctx.save(); ctx.translate(-6, -8); wing(beat - 0.2); ctx.restore();
-        const w = 58, h = w * img.naturalHeight / img.naturalWidth;
-        if (state === 'over') ctx.filter = 'grayscale(.6)';
-        ctx.drawImage(img, -w / 2, -h * 0.55, w, h);
-        ctx.filter = 'none';
-        ctx.save(); ctx.translate(-2, -4); ctx.scale(0.85, 0.85); wing(beat + 0.15); ctx.restore();
+      if (options.character === 'bunny' || !(BW.friends && BW.friends.get(options.character))) {
+        ctx.scale(1.3, 1.3);
+        flyingBunny(beat, state === 'over');
       } else {
-        BW.characters.draw(ctx, options.character, { flap: flapping ? -0.35 : 0, dead: state === 'over' });
+        // other friends: their picture, with the wings on their back
+        const img = BW.friends.cutout(options.character);
+        ctx.save(); ctx.translate(-14, -2); wing(beat - 0.3); ctx.restore();
+        if (img.complete && img.naturalWidth) {
+          const w = 54, h = w * img.naturalHeight / img.naturalWidth;
+          if (state === 'over') ctx.filter = 'grayscale(.6)';
+          ctx.drawImage(img, -w / 2, -h / 2, w, h);
+          ctx.filter = 'none';
+        }
+        ctx.save(); ctx.translate(-12, 2); ctx.scale(0.85, 0.85); wing(beat); ctx.restore();
       }
       ctx.restore();
     }
