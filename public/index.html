@@ -173,9 +173,14 @@
       <section class="screen shop" id="shop" hidden>
         <header class="shop-top">
           <button class="round-btn" id="shopBack" type="button" aria-label="Back to home"><svg><use href="#i-home"/></svg></button>
-          <h2>Friend Shop</h2>
-          <div class="pill coins" aria-label="Coins"><svg class="coin"><use href="#i-coin"/></svg><b id="shopCoins">0</b></div>
+          <h2>Friends</h2>
+          <div class="pill coins" aria-label="Stars"><svg class="coin"><use href="#i-coin"/></svg><b id="shopCoins">0</b></div>
         </header>
+        <div class="shop-tabs" role="tablist" aria-label="Kind of friend">
+          <button type="button" role="tab" data-tab="girls">Girls</button>
+          <button type="button" role="tab" data-tab="animals">Animals</button>
+          <button type="button" role="tab" data-tab="sea">Sea friends</button>
+        </div>
         <div class="shop-grid" id="shopGrid"></div>
       </section>
 
@@ -227,6 +232,7 @@
   <div class="hint" id="hint"></div>
 
   <script src="js/store.js"></script>
+  <script src="js/friends.js"></script>
   <script src="js/characters.js"></script>
   <script src="js/fishmaker.js"></script>
   <script src="js/leaderboard.js"></script>

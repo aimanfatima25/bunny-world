@@ -28,8 +28,13 @@
 
   // ---------- sizing ----------
 
+  // Everything is designed 360 wide. On a phone that's taller than 9:16 the layer
+  // simply gets taller (the home scene stretches); on a wider screen it's centred.
   function fitLayer() {
-    scale = stage.clientWidth / 360;
+    const w = stage.clientWidth, h = stage.clientHeight;
+    scale = Math.min(w / 360, h / 640);
+    layer.style.height = (h / scale) + 'px';
+    layer.style.left = ((w - 360 * scale) / 2) + 'px';
     layer.style.transform = `scale(${scale})`;
   }
 
@@ -70,8 +75,15 @@
   function heroLoop() {}
   function renderFriends() {}
 
+  // Picks a girl (shown as your profile picture) or an animal (plays with you in the games)
   function pickFriend(id) {
-    store.setCharacter(id);
+    if (id.startsWith('girl-')) store.setGirl(id);
+    else store.setCharacter(id);
+    showGirl();
+  }
+
+  function showGirl() {
+    $('avatarBtn').querySelector('img').src = BW.friends.img(store.data.girl);
   }
 
   // ---------- games menu ----------
@@ -160,38 +172,39 @@
     heroRaf = requestAnimationFrame(heroLoop);
   }
 
+  let shopTab = 'girls';
+
   function renderShop() {
+    const friends = BW.friends;
     $('shopCoins').textContent = store.data.coins.toLocaleString('en-US');
+    document.querySelectorAll('.shop-tabs button').forEach(t => {
+      t.setAttribute('aria-selected', String(t.dataset.tab === shopTab));
+    });
     const grid = $('shopGrid');
     grid.innerHTML = '';
-    chars.list.forEach(c => {
-      const owned = store.owns(c.id);
+    friends.list.filter(f => f.group === shopTab).forEach(f => {
+      const owned = store.owns(f.id);
       const card = document.createElement('div');
       card.className = 'shop-card' + (owned ? ' owned' : '');
-      const canvas = document.createElement('canvas');
-      card.appendChild(canvas);
-      const ctx = fitCanvas(canvas, 70, 70);
-      ctx.translate(33, 44); ctx.scale(1.05, 1.05);
-      chars.draw(ctx, c.id);
-      const name = document.createElement('div');
-      name.className = 'shop-name';
-      name.textContent = c.name;
-      card.appendChild(name);
+      card.innerHTML = `<img src="${friends.img(f.id)}" alt=""><div class="shop-name"></div>`;
+      card.querySelector('.shop-name').textContent = f.name;
 
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'shop-btn';
-      if (store.data.character === c.id) {
-        btn.textContent = 'Playing';
+      btn.dataset.id = f.id;
+      if (store.data.character === f.id || store.data.girl === f.id) {
+        btn.textContent = 'With you';
         btn.classList.add('playing');
       } else if (owned) {
         btn.textContent = 'Pick';
-        btn.addEventListener('click', () => { pickFriend(c.id); renderShop(); });
+        btn.addEventListener('click', () => { pickFriend(f.id); renderShop(); toast(`${f.name} is with you now!`); });
       } else {
-        btn.innerHTML = icon('i-coin') + c.price;
-        btn.setAttribute('aria-label', `Buy ${c.name} for ${c.price} stars`);
-        if (store.data.coins < c.price) btn.classList.add('short');
-        btn.addEventListener('click', () => buy(c));
+        btn.innerHTML = icon('i-coin') + f.price;
+        btn.setAttribute('aria-label', `Buy ${f.name} for ${f.price} stars`);
+        if (store.data.coins < f.price) btn.classList.add('short');
+        if (armedBuy === f.id) { btn.textContent = 'Buy?'; btn.classList.add('confirm'); }
+        btn.addEventListener('click', () => buy(f));
       }
       card.appendChild(btn);
       grid.appendChild(card);
@@ -199,25 +212,22 @@
   }
 
   // First tap asks "Buy?", second tap buys, so nobody buys by accident
-  function buy(c) {
-    if (store.data.coins < c.price) {
-      toast(`You need ${(c.price - store.data.coins).toLocaleString('en-US')} more stars`);
+  function buy(f) {
+    if (store.data.coins < f.price) {
+      toast(`You need ${(f.price - store.data.coins).toLocaleString('en-US')} more stars`);
       return;
     }
-    if (armedBuy !== c.id) {
-      armedBuy = c.id;
+    if (armedBuy !== f.id) {
+      armedBuy = f.id;
       renderShop();
-      const again = [...$('shopGrid').querySelectorAll('.shop-btn')][chars.list.indexOf(c)];
-      again.textContent = 'Buy?';
-      again.classList.add('confirm');
-      setTimeout(() => { if (armedBuy === c.id) { armedBuy = null; if (!$('shop').hidden) renderShop(); } }, 3000);
+      setTimeout(() => { if (armedBuy === f.id) { armedBuy = null; if (!$('shop').hidden) renderShop(); } }, 3000);
       return;
     }
     armedBuy = null;
-    store.buyFriend(c.id, c.price);
-    pickFriend(c.id);
+    store.buyFriend(f.id, f.price);
+    pickFriend(f.id);
     renderShop();
-    toast(`${c.name} joined you!`);
+    toast(`${f.name} joined you!`);
   }
 
   // ---------- top 10 ----------
@@ -404,6 +414,9 @@
   $('aquariumBtn').addEventListener('click', openAquarium);
   $('shopNav').addEventListener('click', openShop);
   $('shopBack').addEventListener('click', closeShop);
+  document.querySelectorAll('.shop-tabs button').forEach(t => {
+    t.addEventListener('click', () => { shopTab = t.dataset.tab; armedBuy = null; renderShop(); $('shopGrid').scrollTop = 0; });
+  });
   $('topNav').addEventListener('click', () => openTop());
   $('topBack').addEventListener('click', closeTop);
   $('nameForm').addEventListener('submit', saveName);
@@ -415,7 +428,7 @@
   });
   $('aquariumBack').addEventListener('click', closeAquarium);
   $('friendsNav').addEventListener('click', openShop);
-  $('avatarBtn').addEventListener('click', () => toast('Picking your girl is coming soon!'));
+  $('avatarBtn').addEventListener('click', () => { shopTab = 'girls'; openShop(); });
   $('starPlus').addEventListener('click', () => toast('Play games to earn more stars!'));
   $('heartPlus').addEventListener('click', () => toast('Hearts are coming soon!'));
   $('mailBtn').addEventListener('click', () => toast('No new messages'));

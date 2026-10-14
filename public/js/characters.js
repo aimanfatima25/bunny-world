@@ -289,6 +289,27 @@ BW.characters = (() => {
     }
   };
 
+  // A friend without a drawn version: a round badge of their picture, about the same size
+  // as the drawn characters. It squishes a little when hopping and goes grey after a bonk.
+  function drawBadge(ctx, id, flap, dead) {
+    const img = BW.friends.image(id);
+    const r = 18;
+    ctx.scale(1 + flap * 0.15, 1 - flap * 0.15);
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU);
+    ctx.fillStyle = '#FFF8F1'; ctx.fill();
+    if (img.complete && img.naturalWidth) {
+      ctx.save();
+      ctx.clip();
+      if (dead) ctx.filter = 'grayscale(1)';
+      // the animal's face sits a little above the middle of each card
+      const w = r * 2.6, h = w * img.naturalHeight / img.naturalWidth;
+      ctx.drawImage(img, -w / 2, -h * 0.47, w, h);
+      ctx.restore();
+    }
+    ctx.lineWidth = 2.5; ctx.strokeStyle = INK;
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.stroke();
+  }
+
   // Mimi and Momo: two little mice with round ears and a curly tail
   function drawMouse(ctx, flap, dead, fur, extra) {
     ctx.lineWidth = 2.5; ctx.strokeStyle = INK; ctx.lineCap = 'round';
@@ -342,10 +363,15 @@ BW.characters = (() => {
       { id: 'momo', name: 'Momo Mouse', price: 500 },
       { id: 'unicorn', name: 'Star Unicorn', price: 800 }
     ],
+    // id can be a drawn character ('kitty') or a friend from friends.js ('cat', 'otter')
     draw(ctx, id, opts) {
       opts = opts || {};
+      const friend = BW.friends && BW.friends.get(id);
+      const key = friend ? friend.sprite : id;
       ctx.save();
-      (drawers[id] || drawers.bunny)(ctx, opts.flap || 0, !!opts.dead);
+      if (drawers[key]) drawers[key](ctx, opts.flap || 0, !!opts.dead);
+      else if (friend) drawBadge(ctx, friend.id, opts.flap || 0, !!opts.dead);
+      else drawers.bunny(ctx, opts.flap || 0, !!opts.dead);
       ctx.restore();
     }
   };

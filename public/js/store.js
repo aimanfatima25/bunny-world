@@ -15,12 +15,27 @@ BW.store = (() => {
   const data = Object.assign({
     coins: 0,
     character: 'bunny',
-    unlocked: ['bunny', 'kitty', 'panda', 'chick'],
+    unlocked: ['bunny', 'cat', 'panda', 'chick'],
     best: {},
     lastGift: '',
     myFish: [],
-    playerName: ''
+    playerName: '',
+    girl: 'girl-1'
   }, load());
+
+  // Friends were replaced by Aiman's picture animals (friends.js). Keep the ones that still
+  // exist (two were renamed) and give back the stars for the ones that are gone.
+  const RENAMED = { kitty: 'cat', dog: 'puppy' };
+  const GONE = { frog: 100, parrot: 200, wolf: 300, mimi: 500, momo: 500, unicorn: 800 };
+  const before = JSON.stringify([data.unlocked, data.character]);
+  data.unlocked = data.unlocked.map(id => RENAMED[id] || id).filter(id => {
+    if (id in GONE) { data.coins += GONE[id]; return false; }
+    return true;
+  });
+  ['bunny', 'cat', 'panda', 'chick', 'girl-1', 'girl-2', 'girl-4'].forEach(id => { if (!data.unlocked.includes(id)) data.unlocked.push(id); });
+  data.character = RENAMED[data.character] || data.character;
+  if (!data.unlocked.includes(data.character)) data.character = 'bunny';
+  if (JSON.stringify([data.unlocked, data.character]) !== before) save();
 
   // Carry over the best score from the old single-game version
   try {
@@ -34,6 +49,7 @@ BW.store = (() => {
     best(gameId) { return data.best[gameId] || 0; },
     setBest(gameId, score) { data.best[gameId] = score; save(); },
     setCharacter(id) { data.character = id; save(); },
+    setGirl(id) { data.girl = id; save(); },
     claimGift(day) { data.lastGift = day; save(); },
     addCustomFish(design) { data.myFish.push(design); save(); },
     owns(id) { return data.unlocked.includes(id); },

@@ -36,7 +36,7 @@ const pieces = {
   'ui/nav-collection.webp': [608, 1540, 60, 52],
   'ui/nav-shop.webp': [776, 1540, 60, 52],
   // the cabin scene, used until a version without characters arrives
-  'ui/scene.webp': [0, 0, 941, 690]
+  'ui/scene.webp': [0, 112, 941, 578]
 };
 
 for (const [name, [left, top, width, height]] of Object.entries(pieces)) {

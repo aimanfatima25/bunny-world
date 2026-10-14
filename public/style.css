@@ -54,6 +54,21 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
   height: 640px;
   transform-origin: 0 0;
 }
+
+/* Phones: fill the whole screen, no frame. app.js makes #layer as tall as the phone
+   and the home screen stretches the cottage scene to use the extra height. */
+@media (max-width: 700px), (pointer: coarse) and (orientation: portrait) {
+  body { padding: 0; gap: 0; }
+  #stage {
+    width: 100vw;
+    height: 100dvh;
+    aspect-ratio: auto;
+    border-radius: 0;
+    box-shadow: none;
+    background: #8F604A;
+  }
+  .hint { display: none; }
+}
 .screen { position: absolute; inset: 0; }
 .hint { font-size: 14px; color: var(--muted); }
 
@@ -244,8 +259,9 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
   left: 0;
   top: 0;
   width: 360px;
-  height: 264px;
-  background: url(img/ui/scene.webp) center / cover no-repeat;
+  height: calc(100% - 376px);
+  min-height: 264px;
+  background: url(img/ui/scene.webp) center bottom / cover no-repeat;
 }
 .home .avatar {
   position: absolute;
@@ -260,7 +276,7 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
   background: #FBEFE3;
   box-shadow: 0 2px 5px rgba(90, 50, 30, .35);
 }
-.home .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.home .avatar img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 22%; transform: scale(1.35); transform-origin: 50% 30%; display: block; }
 .home .pill {
   position: absolute;
   top: 18px;
@@ -315,7 +331,7 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
 .home .games {
   position: absolute;
   left: 18px;
-  top: 263px;
+  bottom: 69px;
   width: 323px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -363,7 +379,7 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
 .home .nav {
   position: absolute;
   left: 15px;
-  top: 583px;
+  bottom: 11px;
   width: 331px;
   height: 46px;
   margin: 0;
@@ -391,7 +407,9 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
 .home .nav button.active { background: #FCCBC4; color: #6E4A3A; font-weight: 800; }
 
 /* ---------- Playing a game ---------- */
-#gameCanvas, #aquariumCanvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; cursor: pointer; }
+/* games are drawn in a 360 x 640 world, centred on taller phones */
+#play, #aquarium { background: linear-gradient(180deg, #A9785D, #8F604A); }
+#gameCanvas, #aquariumCanvas { position: absolute; left: 0; top: 50%; display: block; width: 360px; height: 640px; transform: translateY(-50%); cursor: pointer; }
 .back { position: absolute; top: 14px; left: 14px; }
 
 /* ---------- Cards that pop up over the screen ---------- */
@@ -477,8 +495,30 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
   align-items: center;
   gap: 2px;
 }
-.shop-card.owned { background: #DDF1F6; }
+.shop-card.owned { background: #FFF7EE; }
+/* Friends page in the cottage colours from Aiman's design */
+.shop { color: #6E4A3A; background: #FBEEDE; }
+.shop .shop-card { background: #FDE6D3; border-color: #D9B49D; box-shadow: 0 2px 0 rgba(110, 70, 50, .3); }
+.shop .shop-card.owned { background: #FFF7EE; }
+.shop .shop-btn { color: #6E4A3A; border-color: #8B5E4A; }
+.shop .shop-btn.short { background: #F1E3D6; color: #9B7B6A; box-shadow: 0 3px 0 #D9B49D; }
+.shop .shop-btn.playing { background: #FCCBC4; color: #6E4A3A; }
+.shop .round-btn, .shop .pill { border-color: #8B5E4A; color: #6E4A3A; }
 .shop-card canvas { display: block; }
+.shop-card img { width: 92%; aspect-ratio: 300 / 340; object-fit: cover; border-radius: 10px; display: block; }
+.shop-card:not(.owned) img { filter: saturate(.75); }
+.shop-tabs { display: flex; gap: 8px; padding: 0 14px 10px; }
+.shop-tabs button {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 800;
+  color: #6E4A3A;
+  background: #FBEEDE;
+  border: 2px solid #E9CDBB;
+  border-radius: 12px;
+  padding: 3px 0;
+}
+.shop-tabs button[aria-selected="true"] { background: #FCCBC4; border-color: #6E4A3A; }
 .shop-name { font-size: 13px; font-weight: 800; line-height: 1.1; text-align: center; min-height: 28px; display: flex; align-items: center; }
 .shop-btn {
   display: flex;
