@@ -86,7 +86,7 @@
   function showGirl() {
     $('avatarBtn').querySelector('img').src = BW.friends.img(store.data.girl);
     $('sceneGirl').src = `img/standing/${store.data.girl}.webp`;
-    $('scenePet').src = `img/cutouts/friends/${store.data.character}.webp`;
+    $('scenePet').src = BW.friends.cutout(store.data.character).src;
   }
 
   // ---------- games menu ----------
@@ -221,7 +221,7 @@
       const owned = store.owns(f.id);
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = 'cubby' + (owned ? '' : ' locked') + (isChosen(f) ? ' chosen' : '') + (f.group === 'girls' ? ' girl' : '');
+      b.className = 'cubby' + (owned ? '' : ' locked') + (isChosen(f) ? ' chosen' : '') + (f.group === 'girls' ? ' girl' : '') + (BW.friends.hasBody(f.id) ? ' body' : '');
       b.setAttribute('aria-label', f.name + (isChosen(f) ? ', chosen' : owned ? '' : `, ${f.price} stars`));
       b.innerHTML = `<img src="${BW.friends.img(f.id)}" alt="">`
         + (owned ? '' : `<span class="price">${icon('i-coin')}${f.price}</span>`)
@@ -236,6 +236,7 @@
     picked = f;
     const owned = store.owns(f.id), stars = store.data.coins;
     $('pickImg').src = BW.friends.img(f.id);
+    $('pickImg').classList.toggle('body', BW.friends.hasBody(f.id));
     $('pickName').textContent = f.name;
     const main = $('pickMain');
     main.className = 'pick-main';

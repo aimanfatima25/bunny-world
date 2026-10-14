@@ -235,15 +235,17 @@ BW.games.flappy = (() => {
       const flapping = state === 'play' && bunny.vy < 0;
       const beat = state === 'over' ? 0.4 : Math.sin(t * (flapping ? 30 : 10)) * 0.45;
       ctx.save(); ctx.translate(bunny.x, bunny.y); ctx.rotate(tilt);
-      if (options.character === 'bunny' || !(BW.friends && BW.friends.get(options.character))) {
+      if (!(BW.friends && BW.friends.get(options.character))) {
         ctx.scale(1.3, 1.3);
         flyingBunny(beat, state === 'over');
       } else {
-        // other friends: their picture, with the wings on their back
+        // your animal's own picture, with the wings on their back
         const img = BW.friends.cutout(options.character);
         ctx.save(); ctx.translate(-14, -2); wing(beat - 0.3); ctx.restore();
         if (img.complete && img.naturalWidth) {
-          const w = 54, h = w * img.naturalHeight / img.naturalWidth;
+          // fit the picture in a 54 x 54 box, whatever its shape
+          const k = 54 / Math.max(img.naturalWidth, img.naturalHeight);
+          const w = img.naturalWidth * k, h = img.naturalHeight * k;
           if (state === 'over') ctx.filter = 'grayscale(.6)';
           ctx.drawImage(img, -w / 2, -h / 2, w, h);
           ctx.filter = 'none';

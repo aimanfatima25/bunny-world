@@ -679,6 +679,8 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
   display: grid;
   /* 4 big cubbies per row on phones; the cabinet scrolls when there are more friends */
   grid-template-columns: repeat(4, 1fr);
+  /* rows keep the cubbies' full height instead of squeezing them into the cabinet */
+  grid-auto-rows: max-content;
   align-content: start;
   gap: 6px;
   padding: 10px 14px 16px;
@@ -704,6 +706,8 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
   border-radius: 4px;
 }
 .cubby.girl img { object-position: 50% 12%; }
+/* full-body animals stand whole on a soft cream wall, never cropped */
+.cubby.body img { object-fit: contain; padding: 6px 4px 8px; box-sizing: border-box; background: radial-gradient(circle at 50% 40%, #FFF8EF, #F6E3CF); }
 /* a strip of grass with a flower, like the design's cubbies */
 .cubby::after {
   content: '';
@@ -795,6 +799,7 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
   animation: pop .2s ease-out;
 }
 .pick-card img { width: 150px; height: 170px; object-fit: cover; object-position: 50% 15%; border-radius: 14px; border: 3px solid #FDE6D3; }
+.pick-card img.body { object-fit: contain; padding: 12px; box-sizing: border-box; background: radial-gradient(circle at 50% 40%, #FFF8EF, #F6E3CF); }
 .pick-card h3 { margin: 4px 0 0; font-size: 22px; font-weight: 800; color: #6E4A3A; }
 .pick-note { margin: 0; font-size: 13px; color: #9B7B6A; display: flex; align-items: center; gap: 3px; }
 .pick-note svg, .pick-main svg { width: 15px; height: 15px; }

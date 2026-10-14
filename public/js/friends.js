@@ -1,9 +1,9 @@
 // All the girls and animal friends players can collect, using Aiman's own pictures
-// (img/girls/girl-<n>.webp and img/friends/<id>.webp). Players pick one girl and one animal.
+// (img/girls/girl-<n>.webp, img/animals/<id>.webp full-body animals, img/friends/<id>.webp cards).
+// Players pick one girl and one animal.
 //   group:  'girls', 'animals' or 'sea'
 //   price:  stars to unlock (0 = a starter friend everyone has)
 //   cat:    the category tab on the Choose pages (set below)
-// In the games, the chosen animal appears as a round badge of their picture.
 window.BW = window.BW || {};
 
 BW.friends = (() => {
@@ -11,24 +11,36 @@ BW.friends = (() => {
     'Lily', 'Coco', 'Ruby', 'Bella', 'Latte', 'Peach', 'Bree', 'Jasmine', 'Zoe', 'Hana', 'Mocha'];
   const GIRL_PRICES = [0, 0, 150, 0, 200, 250, 200, 250, 300, 250, 300, 350, 300, 400, 350, 400, 450, 400, 450, 500, 500, 600];
 
+  // [id, name, stars, tab] in the sheet's order; bunny, kitty, panda and chick are free
+  const ANIMALS = [
+    ['bunny', 'Bunny', 0], ['puppy', 'Puppy', 150], ['cat', 'Kitty', 0], ['bear', 'Teddy Bear', 200],
+    ['chick', 'Chick', 0, 'birds'], ['panda', 'Panda', 0], ['duck', 'Duckling', 150, 'birds'],
+    ['penguin', 'Penguin', 200, 'birds'], ['sheep', 'Sheep', 200], ['squirrel', 'Squirrel', 200],
+    ['fox', 'Fox', 300], ['raccoon', 'Raccoon', 250], ['deer', 'Deer', 300], ['hedgehog', 'Hedgehog', 200],
+    ['alpaca', 'Alpaca', 300], ['goat', 'Goat', 200], ['cow', 'Cow', 250], ['piggy', 'Piggy', 200],
+    ['otter', 'Otter', 250], ['seal', 'Grey Otter', 200], ['capybara', 'Capybara', 250],
+    ['shihtzu', 'Shih Tzu', 300], ['husky', 'Husky', 300], ['ginger', 'Ginger Kitty', 200], ['fluffy', 'Fluffy Kitty', 250],
+    ['tuxedo', 'Tuxedo Kitty', 250], ['lop', 'Lop Bunny', 200], ['cocoa-lop', 'Cocoa Bunny', 200], ['snow-bunny', 'Snow Bunny', 200],
+    ['chinchilla', 'Chinchilla', 300], ['hamster', 'Hamster', 150], ['flower-capy', 'Flower Capy', 350],
+    ['turtle', 'Turtle', 150, 'reptiles'], ['lizard', 'Lizard', 250, 'reptiles'], ['chipmunk', 'Chipmunk', 200],
+    ['red-panda', 'Red Panda', 400], ['ferret', 'Ferret', 250], ['skunk', 'Skunk', 300], ['fennec', 'Fennec Fox', 350],
+    ['lamb', 'Lamb', 250], ['sloth', 'Sloth', 350], ['berry-hog', 'Berry Hedgehog', 300], ['chick-capy', 'Capy & Chick', 400],
+    ['owl', 'Owl', 300, 'birds'], ['snowbird', 'Snowbird', 150, 'birds'], ['crow', 'Crow', 200, 'birds'],
+    ['bow-chick', 'Bow Chick', 150, 'birds'], ['sparrow', 'Sparrow', 150, 'birds'], ['dove', 'Dove', 200, 'birds'],
+    ['pigeon', 'Pigeon', 150, 'birds'], ['flamingo', 'Flamingo', 400, 'birds'], ['cockatoo', 'Cockatoo', 350, 'birds'],
+    ['budgie', 'Budgie', 250, 'birds'], ['java', 'Java Sparrow', 250, 'birds'], ['king-capy', 'King Capy', 500],
+    ['leaf-capy', 'Leafy Capy', 300], ['scarf-capy', 'Cozy Capy', 350], ['yuzu-capy', 'Yuzu Capy', 350],
+    ['sleepy-capy', 'Sleepy Capy', 350], ['crown-capy', 'Flower Crown Capy', 400], ['bunny-capy', 'Bunny Hood Capy', 450],
+    ['frog-capy', 'Froggy Capy', 450], ['duck-capy', 'Ducky Capy', 450], ['sunny-capy', 'Sunflower Capy', 400],
+    ['queen-capy', 'Queen Capy', 500]
+  ];
+
   const list = [
     // girls (one is "you"; Mia, Luna and Honey are free)
     ...GIRL_NAMES.map((name, i) => ({ id: `girl-${i + 1}`, name, group: 'girls', price: GIRL_PRICES[i] })),
-    // animals
-    { id: 'bunny', name: 'Bunny', group: 'animals', price: 0 },
-    { id: 'cat', name: 'Kitty', group: 'animals', price: 0 },
-    { id: 'panda', name: 'Panda', group: 'animals', price: 0 },
-    { id: 'chick', name: 'Chick', group: 'animals', price: 0 },
-    { id: 'puppy', name: 'Puppy', group: 'animals', price: 150 },
-    { id: 'turtle', name: 'Turtle', group: 'animals', price: 150 },
-    { id: 'penguin', name: 'Penguin', group: 'animals', price: 200 },
-    { id: 'seal', name: 'Seal', group: 'animals', price: 200 },
-    { id: 'hedgehog', name: 'Hedgehog', group: 'animals', price: 200 },
-    { id: 'capybara', name: 'Capybara', group: 'animals', price: 250 },
-    { id: 'otter', name: 'Otter', group: 'animals', price: 250 },
-    { id: 'raccoon', name: 'Raccoon', group: 'animals', price: 250 },
-    { id: 'fox', name: 'Fox', group: 'animals', price: 300 },
-    { id: 'deer', name: 'Deer', group: 'animals', price: 300 },
+    // animals: Aiman's full-body animal sheet (img/animals/<id>.webp, cut by assets/cut-animals.mjs)
+    ...ANIMALS.map(([id, name, price, cat]) => ({ id, name, group: 'animals', price, cat, body: true })),
+    // older card-only animals, until they get full-body pictures too
     { id: 'octopus', name: 'Octopus', group: 'animals', price: 350 },
     { id: 'croc', name: 'Croc & Duckie', group: 'animals', price: 350 },
     { id: 'lion', name: 'Lion', group: 'animals', price: 400 },
@@ -53,12 +65,12 @@ BW.friends = (() => {
   const GIRL_CATS = ['cozy', 'elegant', 'casual', 'cozy', 'casual', 'casual', 'school', 'elegant', 'cozy', 'casual', 'fantasy',
     'elegant', 'cozy', 'fantasy', 'school', 'cozy', 'fantasy', 'school', 'elegant', 'casual', 'cozy', 'casual'];
   const ANIMAL_CATS = {
-    chick: 'birds', penguin: 'birds', turtle: 'reptiles', croc: 'reptiles', shark: 'sea', octopus: 'sea',
+    croc: 'reptiles', shark: 'sea', octopus: 'sea',
     axolotl: 'others', 'happy-axolotl': 'others', 'sleepy-axolotl': 'others'
   };
   list.forEach(f => {
     if (f.group === 'girls') f.cat = GIRL_CATS[Number(f.id.slice(5)) - 1];
-    else f.cat = ANIMAL_CATS[f.id] || (f.group === 'sea' ? 'sea' : 'mammals');
+    else f.cat = f.cat || ANIMAL_CATS[f.id] || (f.group === 'sea' ? 'sea' : 'mammals');
   });
 
   const byId = Object.fromEntries(list.map(f => [f.id, f]));
@@ -67,14 +79,21 @@ BW.friends = (() => {
   return {
     list,
     get(id) { return byId[id]; },
-    img(id) { return id.startsWith('girl-') ? `img/girls/${id}.webp` : `img/friends/${id}.webp`; },
+    img(id) {
+      if (id.startsWith('girl-')) return `img/girls/${id}.webp`;
+      return byId[id] && byId[id].body ? `img/animals/${id}.webp` : `img/friends/${id}.webp`;
+    },
+    // true for animals with a clean full-body picture (shown whole, never cropped)
+    hasBody(id) { return !!(byId[id] && byId[id].body); },
     // The picture as an <img>, loaded once and reused (for drawing on canvases)
     image(id) {
       if (!images[id]) { images[id] = new Image(); images[id].src = this.img(id); }
       return images[id];
     },
-    // The same picture without its card background (assets/cutout.mjs), for the games
+    // The animal without any background, for home and the games: the full-body picture,
+    // or for older card-only friends the card with its background removed (assets/cutout.mjs)
     cutout(id) {
+      if (this.hasBody(id)) return this.image(id);
       const key = 'cut:' + id;
       if (!images[key]) {
         images[key] = new Image();

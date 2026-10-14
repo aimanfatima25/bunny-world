@@ -303,9 +303,16 @@ BW.characters = (() => {
       ctx.save();
       ctx.clip();
       if (dead) ctx.filter = 'grayscale(1)';
-      // the animal's face sits a little above the middle of each card
-      const w = r * 2.5, h = w * img.naturalHeight / img.naturalWidth;
-      ctx.drawImage(img, -w / 2, -h * 0.47, w, h);
+      if (BW.friends.hasBody(id)) {
+        // a full-body animal fits whole inside the circle
+        const k = r * 1.7 / Math.max(img.naturalWidth, img.naturalHeight);
+        const w = img.naturalWidth * k, h = img.naturalHeight * k;
+        ctx.drawImage(img, -w / 2, -h / 2 + r * 0.05, w, h);
+      } else {
+        // the animal's face sits a little above the middle of each card
+        const w = r * 2.5, h = w * img.naturalHeight / img.naturalWidth;
+        ctx.drawImage(img, -w / 2, -h * 0.47, w, h);
+      }
       ctx.restore();
     }
     ctx.lineWidth = r * 0.14; ctx.strokeStyle = '#FFF7EE';

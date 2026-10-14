@@ -267,7 +267,8 @@ BW.games.bubble = (() => {
       // your animal friend beside the wand, holding the next bubble
       const img = BW.friends && BW.friends.get(options.character) ? BW.friends.cutout(options.character) : null;
       if (img && img.complete && img.naturalWidth) {
-        const w = 104, h = w * img.naturalHeight / img.naturalWidth;
+        const k = 100 / Math.max(img.naturalWidth, img.naturalHeight);
+        const w = img.naturalWidth * k, h = img.naturalHeight * k;
         ctx.drawImage(img, 18, H - 40 - h * 0.92 + Math.sin(t * 2.5) * 2, w, h);
       } else {
         ctx.save(); ctx.translate(70, 560); ctx.scale(1.6, 1.6); BW.characters.draw(ctx, options.character); ctx.restore();

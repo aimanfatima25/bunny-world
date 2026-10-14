@@ -23,10 +23,11 @@ I'm Aiman (beginner developer, Pakistan; I like short plain explanations and pic
 - Shop = my "Choose Your Girl / Choose Your Friend" cabinet designs with category tabs (girls: casual/cozy/elegant/school/fantasy; animals: mammals/birds/reptiles/sea/others). Data in `public/js/friends.js` (22 girls, 31 animals, prices), saving in `public/js/store.js` (localStorage).
 - Games (`public/js/games/`): Flappy Bunny (drawn flying bunny with wings), Catch the Fish (net), Merge the Fish (merge chain → axolotl gives the Fish Maker gift), Bubble Pop (bubble shooter), Memory. Sea creatures are drawn in `public/js/sea.js`. Coming-soon cards: Match 3, Adventure, Decorate Room, Dress Up, Garden.
 - Aquarium page (`public/js/aquarium.js`) like its card; Fish Maker (`public/js/fishmaker.js`).
-- Image tools in `assets/` (`cut-design.mjs`, `cut-friends.mjs`, `cut-girls-full.mjs`, `cut-choose.mjs`, `cutout.mjs`, `make-images.mjs` for app icon/splash) — run with `node assets/<file>`.
+- Animals: my full-body animal sheet (`assets/design/friends/animals-full.webp`, 65 animals) is cut by `assets/cut-animals.mjs` into clean transparent pictures in `public/img/animals/` (soft edges, no white rim). These are used whole everywhere: home scene, Shop cubbies, Flappy Bunny (with wings), Bubble Pop. Names, prices and tabs are the `ANIMALS` list in `public/js/friends.js` (sheet order). Octopus, croc, lion, tiger and shark still use old card pictures.
+- Image tools in `assets/` (`cut-design.mjs`, `cut-friends.mjs`, `cut-animals.mjs`, `cut-girls-full.mjs`, `cut-choose.mjs`, `cutout.mjs`, `make-images.mjs` for app icon/splash) — run with `node assets/<file>`.
 
 **Not finished / ideas**
-- My animal at home is still a half picture → I'll send full-body animals on white background.
+- Lion, tiger, croc, octopus and shark still need full-body pictures (white background) like the animal sheet. The standing girls' edges could get the same soft cleanup as the animals.
 - Leaderboard server (`server/`, Node + built-in SQLite) is written but NOT deployed (needs Coolify app with base dir `/server`, port 3000, volume `/data`, domain `http://api.aimanfatima.com`, DNS + tunnel route). Top 10 page exists (opened from the game-over card).
 - Hearts have no purpose yet. Music to add later. Dress-up design (my "Pastel Kawaii Dress-Up Room.png" in Downloads) for later.
 
