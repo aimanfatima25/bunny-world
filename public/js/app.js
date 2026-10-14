@@ -166,6 +166,27 @@
     heroRaf = requestAnimationFrame(heroLoop);
   }
 
+  // ---------- aquarium ----------
+
+  let aquarium = null;
+
+  function openAquarium() {
+    cancelAnimationFrame(heroRaf);
+    hub.hidden = true;
+    $('aquarium').hidden = false;
+    $('hint').textContent = 'Tap a fish to make it flip';
+    aquarium = BW.aquarium.start($('aquariumCanvas'));
+  }
+
+  function closeAquarium() {
+    if (aquarium) aquarium.stop();
+    aquarium = null;
+    $('aquarium').hidden = true;
+    hub.hidden = false;
+    $('hint').textContent = HUB_HINT;
+    heroRaf = requestAnimationFrame(heroLoop);
+  }
+
   // Coins: points x the game's coinRate, plus a bonus for each medal.
   function onGameOver(score) {
     const g = current;
@@ -226,6 +247,7 @@
   window.addEventListener('resize', resizeAll);
   window.addEventListener('keydown', e => {
     if (BW.fishMaker.isOpen()) return;
+    if (aquarium && e.code === 'Escape') { closeAquarium(); return; }
     if (!$('giftPopup').hidden && (e.code === 'Escape' || e.code === 'Enter' || e.code === 'Space')) {
       e.preventDefault(); closeGift(); return;
     }
@@ -238,6 +260,8 @@
   $('backBtn').addEventListener('click', goHome);
   $('homeBtn').addEventListener('click', goHome);
   $('againBtn').addEventListener('click', playAgain);
+  $('aquariumBtn').addEventListener('click', openAquarium);
+  $('aquariumBack').addEventListener('click', closeAquarium);
   document.querySelectorAll('.nav [data-soon]').forEach(b => {
     b.addEventListener('click', () => toast(`${b.dataset.soon} is coming soon!`));
   });

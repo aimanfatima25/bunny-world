@@ -216,13 +216,13 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
   align-items: center;
   font-size: 12px;
   font-weight: 600;
-  padding: 2px 8px;
+  padding: 2px 4px;
 }
 .nav button svg { width: 24px; height: 24px; }
 .nav button.active { color: var(--deep-pink); font-weight: 800; }
 
 /* ---------- Playing a game ---------- */
-#gameCanvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; cursor: pointer; }
+#gameCanvas, #aquariumCanvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; cursor: pointer; }
 .back { position: absolute; top: 14px; left: 14px; }
 
 /* ---------- Cards that pop up over the screen ---------- */
