@@ -280,13 +280,14 @@ BW.games.flappy = (() => {
     function frame(now) {
       const dt = Math.min((now - last) / 1000, 1 / 30);
       last = now;
-      update(dt); draw();
+      if (!BW.kit.paused) update(dt);
+      draw();
       raf = requestAnimationFrame(frame);
     }
 
-    function onPointer(e) { e.preventDefault(); hop(); }
+    function onPointer(e) { e.preventDefault(); if (!BW.kit.paused) hop(); }
     function onKey(e) {
-      if (state === 'over') return;
+      if (state === 'over' || BW.kit.paused) return;
       if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') { e.preventDefault(); hop(); }
     }
 

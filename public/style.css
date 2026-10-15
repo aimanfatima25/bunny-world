@@ -493,6 +493,7 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
 .earned { display: flex; align-items: center; gap: 4px; font-size: 20px; font-weight: 800; color: #F7C548; }
 .earned.big { font-size: 28px; }
 .earned.big .coin { width: 30px; height: 30px; }
+.pause-note { margin: 0 0 4px; font-size: 15px; color: var(--muted); }
 .gift-big { width: 56px; height: 56px; color: var(--pink); }
 .buttons { display: flex; gap: 10px; margin-top: 6px; }
 .btn {

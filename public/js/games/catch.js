@@ -1,6 +1,8 @@
 // Catch the Fish: like its card picture. Sea friends swim across the water; tap one to
-// scoop it up with your net. Koi are worth 5, prickly pufferfish cost 3 if you catch them.
-// You have 45 seconds; it gets busier as you go.
+// scoop it up with your net. Koi are worth 5, prickly pufferfish cost 3 if you catch them,
+// and sharks and crocodiles cost 5 points and 3 seconds. You have 45 seconds; it gets
+// faster and busier as you go, with more sharks and crocs near the end.
+// Stars: 2 for every 6 fish caught (app.js), so it reports { fish } at game over.
 window.BW = window.BW || {};
 BW.games = BW.games || {};
 
@@ -8,9 +10,10 @@ BW.games.catch = (() => {
   const K = BW.kit, W = K.W, H = K.H, TAU = K.TAU;
   const TIME = 45;
   const FISH = ['clownfish', 'goldie', 'bluefish', 'goldfish', 'angelfish', 'betta', 'blackfish'];
+  const DANGER = ['shark', 'croc'];
 
   function start(canvas, options) {
-    let state, fish, spawnIn, score, timeLeft, net, shake, t = 0;
+    let state, fish, spawnIn, score, caught, timeLeft, net, shake, t = 0;
     const fx = K.sparkles();
     const bg = BW.aquarium.scene();
 
@@ -19,6 +22,7 @@ BW.games.catch = (() => {
       fish = [];
       spawnIn = 0.3;
       score = 0;
+      caught = 0;
       timeLeft = TIME;
       net = null;
       shake = 0;
@@ -27,17 +31,24 @@ BW.games.catch = (() => {
 
     function spawn() {
       const roll = Math.random();
-      const id = roll < 0.12 ? 'puffer' : roll < 0.2 ? 'koi' : FISH[Math.floor(Math.random() * FISH.length)];
+      const busy = state === 'play' ? 1 - timeLeft / TIME : 0;
+      // sharks and crocs: 1 in 10 at the start, 1 in 4 by the end
+      const danger = 0.1 + busy * 0.15;
+      const id = roll < danger ? DANGER[Math.floor(Math.random() * 2)]
+        : roll < danger + 0.12 ? 'puffer'
+        : roll < danger + 0.2 ? 'koi'
+        : FISH[Math.floor(Math.random() * FISH.length)];
+      const big = DANGER.includes(id);
       const fromLeft = Math.random() < 0.5;
-      const busy = 1 - timeLeft / TIME;
       fish.push({
         id,
         x: fromLeft ? -40 : W + 40,
         y: 140 + Math.random() * 360,
         dir: fromLeft ? 1 : -1,
-        speed: (55 + Math.random() * 50) * (1 + busy * 0.9) * (id === 'koi' ? 1.4 : 1),
+        speed: (70 + Math.random() * 60) * (1 + busy * 1.1) * (id === 'koi' ? 1.4 : big ? 0.8 : 1),
         phase: Math.random() * TAU,
-        size: id === 'koi' ? 30 : 24
+        size: id === 'koi' ? 30 : big ? 28 : 24,
+        danger: big
       });
     }
 
@@ -55,7 +66,14 @@ BW.games.catch = (() => {
       });
       if (!best) return;
       best.caught = 0.01;
-      if (best.id === 'puffer') {
+      if (best.danger) {
+        // chomp! sharks and crocs cost points and time
+        score = Math.max(0, score - 5);
+        timeLeft = Math.max(0, timeLeft - 3);
+        shake = 0.5;
+        fx.label(best.x, fishY(best) - 34, '-5  -3s');
+        fx.add(best.x, fishY(best), '#F28C8C', 14, 180);
+      } else if (best.id === 'puffer') {
         score = Math.max(0, score - 3);
         shake = 0.35;
         fx.label(best.x, fishY(best) - 30, '-3');
@@ -63,6 +81,7 @@ BW.games.catch = (() => {
       } else {
         const pts = best.id === 'koi' ? 5 : 1;
         score += pts;
+        caught++;
         fx.label(best.x, fishY(best) - 30, '+' + pts);
         fx.add(best.x, fishY(best), '#FFFFFF', 10, 150);
         if (pts > 1) fx.add(best.x, fishY(best), '#F9D77E', 14, 200);
@@ -87,10 +106,10 @@ BW.games.catch = (() => {
       spawnIn -= dt;
       if (spawnIn <= 0) {
         spawn();
-        spawnIn = Math.max(0.28, 0.9 - (1 - timeLeft / TIME) * 0.6) * (0.6 + Math.random() * 0.8);
+        spawnIn = Math.max(0.22, 0.8 - (1 - timeLeft / TIME) * 0.6) * (0.6 + Math.random() * 0.8);
       }
       timeLeft -= dt;
-      if (timeLeft <= 0) { timeLeft = 0; state = 'over'; options.onGameOver(score); }
+      if (timeLeft <= 0) { timeLeft = 0; state = 'over'; options.onGameOver(score, { fish: caught }); }
     }
 
     function drawFish(f) {
@@ -138,8 +157,14 @@ BW.games.catch = (() => {
         K.title(ctx, 'Catch the Fish', 'Tap to start', options.getBest());
         K.text(ctx, 'Tap fish to scoop them up!', W / 2, 240, 18);
         K.text(ctx, 'Koi = 5   Pufferfish = -3', W / 2, 270, 16);
+        K.text(ctx, 'Sharks & crocs = -5 and -3s!', W / 2, 296, 16);
+        K.text(ctx, 'Every 6 fish = 2 stars', W / 2, 322, 16);
       } else {
         K.text(ctx, String(score), W / 2, 40, 38);
+        // fish caught so far, and the stars they're worth
+        K.text(ctx, `${caught} fish`, 340, 30, 15, 'right');
+        K.star(ctx, 304, 51, 8, '#F9D77E');
+        K.text(ctx, String(Math.floor(caught / 6) * 2), 340, 51, 15, 'right');
         // time bar
         ctx.fillStyle = 'rgba(255,255,255,.6)'; K.roundRect(ctx, 70, 70, 220, 12, 6); ctx.fill();
         ctx.fillStyle = timeLeft < 10 ? '#F28C8C' : '#F9D77E';

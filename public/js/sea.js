@@ -184,6 +184,98 @@ BW.sea = (() => {
       ctx.beginPath(); ctx.ellipse(-4, 2, 3, 1.8, 0, 0, TAU); ctx.ellipse(13, 2, 3, 1.8, 0, 0, TAU); ctx.fill();
       ctx.strokeStyle = LINE; ctx.lineWidth = 1.2;
       ctx.beginPath(); ctx.moveTo(2.5, 1.5); ctx.quadraticCurveTo(4.5, 3.5, 6.5, 1.5); ctx.stroke();
+    },
+    // a chubby baby shark: soft blue-grey with a cream belly and a cheeky toothy grin
+    shark(ctx, t) {
+      const wag = Math.sin(t * 7) * 0.22;
+      ctx.lineWidth = 1.6; ctx.strokeStyle = LINE; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      // crescent tail
+      ctx.save(); ctx.translate(-20, -1); ctx.rotate(wag);
+      ctx.fillStyle = '#8FAAC4';
+      ctx.beginPath(); ctx.moveTo(3, 0);
+      ctx.quadraticCurveTo(-6, -6, -12, -16); ctx.quadraticCurveTo(-7, -2, -12, 12); ctx.quadraticCurveTo(-5, 4, 3, 0);
+      ctx.fill(); ctx.stroke();
+      ctx.restore();
+      // back fin
+      ctx.fillStyle = '#8FAAC4';
+      ctx.beginPath(); ctx.moveTo(-8, -11); ctx.quadraticCurveTo(-4, -26, 6, -24); ctx.quadraticCurveTo(0, -18, 4, -11);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      // body
+      ctx.fillStyle = shade(ctx, '#E4EEF7', '#A8C0D6', 22);
+      ctx.beginPath(); ctx.ellipse(0, 0, 23, 13, 0, 0, TAU); ctx.fill();
+      ctx.save(); ctx.beginPath(); ctx.ellipse(0, 0, 23, 13, 0, 0, TAU); ctx.clip();
+      ctx.fillStyle = '#FFF8EE';
+      ctx.beginPath(); ctx.ellipse(4, 9, 20, 9, 0, 0, TAU); ctx.fill();
+      ctx.strokeStyle = 'rgba(91,70,80,.35)'; ctx.lineWidth = 1;
+      [-4, -1, 2].forEach(x => { ctx.beginPath(); ctx.moveTo(x, -4); ctx.quadraticCurveTo(x - 1.5, 0, x, 4); ctx.stroke(); });
+      ctx.restore();
+      ctx.strokeStyle = LINE; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.ellipse(0, 0, 23, 13, 0, 0, TAU); ctx.stroke();
+      // side fin
+      ctx.save(); ctx.translate(-1, 7); ctx.rotate(0.7 + Math.sin(t * 6) * 0.25);
+      ctx.fillStyle = '#B3C8DC'; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.ellipse(-3, 0, 5, 2.4, 0, 0, TAU); ctx.fill(); ctx.stroke();
+      ctx.restore();
+      // eye, blush and a grin with little teeth
+      ctx.fillStyle = '#3A2E36'; ctx.beginPath(); ctx.arc(12, -3, 2.6, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.arc(12.9, -3.9, 0.9, 0, TAU); ctx.fill();
+      ctx.strokeStyle = LINE; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(9, -7.5); ctx.lineTo(14.5, -6); ctx.stroke();
+      ctx.fillStyle = 'rgba(255,140,170,.55)'; ctx.beginPath(); ctx.ellipse(10, 2.5, 3.2, 1.8, 0, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#7A4A5A';
+      ctx.beginPath(); ctx.moveTo(10, 4); ctx.quadraticCurveTo(16, 11, 22.5, 2.5); ctx.quadraticCurveTo(16, 5.5, 10, 4); ctx.fill();
+      ctx.fillStyle = '#FFFFFF';
+      [[12.8, 4.9], [16, 5.3], [19.2, 4.6]].forEach(([x, y]) => {
+        ctx.beginPath(); ctx.moveTo(x - 1.5, y - 0.5); ctx.lineTo(x + 1.5, y - 0.6); ctx.lineTo(x, y + 2.4); ctx.closePath(); ctx.fill();
+      });
+      ctx.beginPath(); ctx.moveTo(10, 4); ctx.quadraticCurveTo(16, 11, 22.5, 2.5); ctx.stroke();
+    },
+    // a round little crocodile paddling along: sage green, bumpy back, long smiley snout
+    croc(ctx, t) {
+      const kick = Math.sin(t * 7);
+      ctx.lineWidth = 1.6; ctx.strokeStyle = LINE; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      const green = '#8DBF7A', dark = '#6FA35E';
+      // swishing tail
+      ctx.save(); ctx.translate(-16, 2); ctx.rotate(kick * 0.18);
+      ctx.fillStyle = green;
+      ctx.beginPath(); ctx.moveTo(2, -7); ctx.quadraticCurveTo(-14, -6, -24, 2); ctx.quadraticCurveTo(-12, 5, 2, 7); ctx.closePath();
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = dark;
+      [-6, -12, -18].forEach(x => { ctx.beginPath(); ctx.moveTo(x - 2, -4.5 - x * 0.12); ctx.lineTo(x, -8 - x * 0.12); ctx.lineTo(x + 2, -4.5 - x * 0.12); ctx.fill(); });
+      ctx.restore();
+      // paddling legs
+      ctx.fillStyle = green;
+      [[-10, 9, 0], [8, 10, 2]].forEach(([x, y, p]) => {
+        ctx.save(); ctx.translate(x, y); ctx.rotate(Math.sin(t * 7 + p) * 0.45);
+        ctx.beginPath(); ctx.ellipse(0, 3, 3.4, 5, 0, 0, TAU); ctx.fill(); ctx.stroke();
+        ctx.restore();
+      });
+      // back bumps
+      ctx.fillStyle = dark;
+      [-11, -4, 3].forEach(x => { ctx.beginPath(); ctx.arc(x, -10, 3.4, Math.PI, 0); ctx.fill(); ctx.stroke(); });
+      // body
+      ctx.fillStyle = shade(ctx, '#D8EFC8', green, 18);
+      ctx.beginPath(); ctx.ellipse(-3, 1, 17, 11, 0, 0, TAU); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#F4EBC8';
+      ctx.beginPath(); ctx.ellipse(-2, 7, 12, 4, 0, 0, TAU); ctx.fill();
+      // long snout with a row of little teeth
+      ctx.fillStyle = shade(ctx, '#D8EFC8', green, 14);
+      ctx.beginPath(); ctx.moveTo(8, -6); ctx.quadraticCurveTo(28, -7, 31, -1); ctx.quadraticCurveTo(31, 5, 24, 5);
+      ctx.lineTo(9, 6); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#FFFFFF';
+      for (let x = 13; x <= 25; x += 4) {
+        ctx.beginPath(); ctx.moveTo(x - 1.4, 5.2); ctx.lineTo(x + 1.4, 5.2); ctx.lineTo(x, 7.6); ctx.closePath(); ctx.fill();
+      }
+      ctx.strokeStyle = LINE; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(11, 2.5); ctx.quadraticCurveTo(20, 4.5, 28, 1); ctx.stroke();
+      ctx.fillStyle = '#5B4650';
+      ctx.beginPath(); ctx.arc(28, -3, 0.9, 0, TAU); ctx.fill();
+      // big eye on a bump
+      ctx.fillStyle = green; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(9, -8, 5, Math.PI * 0.95, Math.PI * 2.05); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#3A2E36'; ctx.beginPath(); ctx.arc(9.5, -7.5, 2.4, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.arc(10.3, -8.3, 0.8, 0, TAU); ctx.fill();
+      ctx.fillStyle = 'rgba(255,140,170,.55)'; ctx.beginPath(); ctx.ellipse(6, -0.5, 3, 1.7, 0, 0, TAU); ctx.fill();
     }
   };
   kinds['happy-axolotl'] = kinds.axolotl;

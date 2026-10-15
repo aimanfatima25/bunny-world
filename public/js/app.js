@@ -6,13 +6,16 @@
 
   // medals: scores needed for bronze, silver and gold
   // coinRate: coins earned per point (games with big scores give less per point)
+  // stars(info): a game's own star rule instead, from what it reports at game over
   const GAMES = [
     { id: 'flappy', name: 'Flappy Bunny', icon: 'ic-flappy', overTitle: 'Bonk!', medal: 'carrot', medals: [5, 15, 30], coinRate: 1,
       hint: 'Tap, click or press Space to hop' },
     { id: 'fish', name: 'Merge the Fish', icon: 'ic-fish', overTitle: 'Tank full!', medal: 'shell', medals: [300, 900, 1800], coinRate: 0.05,
       hint: 'Tap a fish, then tap its twin to merge' },
-    { id: 'catch', name: 'Catch the Fish', icon: 'ic-fish', overTitle: "Time's up!", medal: 'shell', medals: [15, 35, 60], coinRate: 1,
-      hint: 'Tap a fish to scoop it up with your net' },
+    { id: 'catch', name: 'Catch the Fish', icon: 'ic-fish', overTitle: "Time's up!", medal: 'shell', medals: [15, 35, 60],
+      // 2 stars for every 6 fish caught, and no medal bonus
+      stars: info => Math.floor(info.fish / 6) * 2,
+      hint: 'Catch fish with your net, but not sharks or crocs!' },
     { id: 'memory', name: 'Memory', icon: 'ic-memory', overTitle: "Time's up!", medal: 'star', medals: [8, 16, 28], coinRate: 1,
       hint: 'Tap two cards to find a pair' },
     { id: 'bubble', name: 'Bubble Pop', icon: 'ic-bubble', overTitle: 'Pop!', medal: 'bubble', medals: [200, 600, 1500], coinRate: 0.05,
@@ -139,7 +142,22 @@
     });
   }
 
+  // The home button during a game pauses it first: Resume or go Home
+  function pauseGame() {
+    if (!game) return;
+    if (!over.hidden) { goHome(); return; }
+    BW.kit.paused = true;
+    $('pause').hidden = false;
+    $('resumeBtn').focus();
+  }
+
+  function resumeGame() {
+    BW.kit.paused = false;
+    $('pause').hidden = true;
+  }
+
   function goHome() {
+    resumeGame();
     if (game) game.stop();
     game = null;
     current = null;
@@ -378,14 +396,14 @@
     heroRaf = requestAnimationFrame(heroLoop);
   }
 
-  // Coins: points x the game's coinRate, plus a bonus for each medal.
-  function onGameOver(score) {
+  // Coins: points x the game's coinRate, plus a bonus for each medal (or the game's own stars rule).
+  function onGameOver(score, info) {
     const g = current;
     const isBest = score > store.best(g.id);
     if (isBest) store.setBest(g.id, score);
     let level = -1;
     g.medals.forEach((need, i) => { if (score >= need) level = i; });
-    const earned = Math.floor(score * g.coinRate) + (level >= 0 ? MEDAL_BONUS[level] : 0);
+    const earned = g.stars ? g.stars(info || {}) : Math.floor(score * g.coinRate) + (level >= 0 ? MEDAL_BONUS[level] : 0);
     store.addCoins(earned);
 
     $('overTitle').textContent = g.overTitle;
@@ -453,12 +471,20 @@
       e.preventDefault(); closeGift(); return;
     }
     if (!game) return;
-    if (e.code === 'Escape') { goHome(); return; }
+    if (!$('pause').hidden) {
+      if (e.code === 'Escape') { e.preventDefault(); resumeGame(); }
+      return;
+    }
+    if (e.code === 'Escape') { pauseGame(); return; }
     if (!over.hidden && (e.code === 'Space' || e.code === 'Enter')) { e.preventDefault(); playAgain(); }
   });
   $('giftBtn').addEventListener('click', openGift);
   $('giftOk').addEventListener('click', closeGift);
-  $('backBtn').addEventListener('click', goHome);
+  $('backBtn').addEventListener('click', pauseGame);
+  // leaving the app (another tab, phone home button) pauses the game too
+  document.addEventListener('visibilitychange', () => { if (document.hidden && game && $('pause').hidden) pauseGame(); });
+  $('resumeBtn').addEventListener('click', resumeGame);
+  $('pauseHome').addEventListener('click', goHome);
   $('homeBtn').addEventListener('click', goHome);
   $('againBtn').addEventListener('click', playAgain);
   $('shopNav').addEventListener('click', () => openShop('girls'));

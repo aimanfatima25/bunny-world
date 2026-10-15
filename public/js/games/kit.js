@@ -11,6 +11,7 @@ BW.kit = (() => {
   // Runs a game on a canvas. handlers: update(dt), draw(ctx), and optional
   // down(x, y), move(x, y), up(x, y), keydown(e), keyup(e).
   // Returns { stop } which removes every listener.
+  // While BW.kit.paused is true the game is frozen: no moving, no taps, just the last picture.
   function run(canvas, handlers) {
     const ctx = canvas.getContext('2d');
     let raf = 0, last = performance.now();
@@ -28,18 +29,19 @@ BW.kit = (() => {
     }
     function down(e) {
       e.preventDefault();
+      if (api.paused) return;
       try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
       const p = pos(e);
       if (handlers.down) handlers.down(p.x, p.y);
     }
-    function move(e) { const p = pos(e); if (handlers.move) handlers.move(p.x, p.y); }
-    function up(e) { const p = pos(e); if (handlers.up) handlers.up(p.x, p.y); }
-    function keydown(e) { if (handlers.keydown) handlers.keydown(e); }
-    function keyup(e) { if (handlers.keyup) handlers.keyup(e); }
+    function move(e) { if (api.paused) return; const p = pos(e); if (handlers.move) handlers.move(p.x, p.y); }
+    function up(e) { if (api.paused) return; const p = pos(e); if (handlers.up) handlers.up(p.x, p.y); }
+    function keydown(e) { if (!api.paused && handlers.keydown) handlers.keydown(e); }
+    function keyup(e) { if (!api.paused && handlers.keyup) handlers.keyup(e); }
     function frame(now) {
       const dt = Math.min((now - last) / 1000, 1 / 30);
       last = now;
-      handlers.update(dt);
+      if (!api.paused) handlers.update(dt);
       handlers.draw(ctx);
       raf = requestAnimationFrame(frame);
     }
@@ -176,5 +178,8 @@ BW.kit = (() => {
     return arr;
   }
 
-  return { W, H, INK, CREAM, TAU, run, text, title, roundRect, heart, hearts, carrot, coin, star, sparkles, shuffle };
+  // the toolkit itself; app.js sets BW.kit.paused when the pause card is open
+  const api = { paused: false };
+
+  return Object.assign(api, { W, H, INK, CREAM, TAU, run, text, title, roundRect, heart, hearts, carrot, coin, star, sparkles, shuffle });
 })();

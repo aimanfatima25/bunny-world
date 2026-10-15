@@ -153,7 +153,17 @@
       <!-- A game is playing -->
       <section class="screen" id="play" hidden>
         <canvas id="gameCanvas"></canvas>
-        <button class="round-btn back" id="backBtn" type="button" aria-label="Back to home"><svg><use href="#i-home"/></svg></button>
+        <button class="round-btn back" id="backBtn" type="button" aria-label="Pause"><svg><use href="#i-home"/></svg></button>
+        <div class="panel dim" id="pause" hidden>
+          <div class="card">
+            <h2>Paused</h2>
+            <p class="pause-note">Take a little break!</p>
+            <div class="buttons">
+              <button class="btn ghost" id="pauseHome" type="button">Home</button>
+              <button class="btn" id="resumeBtn" type="button">Resume</button>
+            </div>
+          </div>
+        </div>
         <div class="panel" id="over" hidden>
           <div class="card">
             <h2 id="overTitle">Bonk!</h2>
