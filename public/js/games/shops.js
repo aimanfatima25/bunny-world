@@ -1,7 +1,11 @@
 // The three cooking shops, drawn from Aiman's shop designs (img/shops/<id>.webp, 941 x 1671).
 // Every place is a box [x, y, width, height] in the design picture's own pixels:
-//   pic:   the food picture (used in order bubbles, on the tray and in the recipe book)
-//   tap:   where you tap it (the food and its name label)
+//   pic:     the food picture (used on the menu board, bins, tray, bubbles and recipe bar)
+//   tap:     where you tap it on the shop picture (the front screen)
+//   wall:    the part of the shop shown behind the customers in the kitchen view
+//   station: the cooking spot cut from the design (rice cooker, stove, mixer)
+//   cook:    ingredients that must cook on the station first ('*' = everything)
+//   plate:   what you build the order on: a sushi 'plate', a ramen 'bowl' or a gift 'box'
 // cook.js turns each shop into a game (BW.games.sushi / ramen / cake).
 window.BW = window.BW || {};
 
@@ -25,6 +29,10 @@ BW.shops = (() => {
     sushi: {
       id: 'sushi', title: 'Sushi Shop', pill: '#FAE3BE',
       ui: ui({}),
+      wall: [130, 130, 680, 461],
+      station: { name: 'Rice Cooker', pic: [158, 598, 122, 186], verb: 'Cooking' },
+      cook: ['rice'],
+      plate: 'plate',
       counter: 846,                    // customers stand behind the counter top
       ingredients: {
         rice: { name: 'Rice', pic: [28, 1243, 116, 72], tap: [16, 1236, 142, 112] },
@@ -51,6 +59,10 @@ BW.shops = (() => {
 
     ramen: {
       id: 'ramen', title: 'Ramen Shop', pill: '#F9E7C8',
+      wall: [130, 160, 680, 461],
+      station: { name: 'Stove', pic: [318, 600, 284, 214], verb: 'Boiling' },
+      cook: ['noodles'],
+      plate: 'bowl',
       ui: ui({ recipes: [16, 437, 116, 120], trophies: [812, 318, 116, 116], decor: [812, 443, 116, 118],
         map: [48, 1468, 170, 140], start: [302, 1412, 336, 216], stats: [722, 1468, 170, 140] }),
       counter: 868,
@@ -72,10 +84,13 @@ BW.shops = (() => {
       }
     },
 
-    // Cake & Sweets: everything is ready on the shelves, so customers order 1 to 3 treats
-    // and you put them on the tray.
+    // Cake & Sweets: customers order 1 to 3 treats; each one is baked at the mixer, then boxed.
     cake: {
       id: 'cake', title: 'Cake & Sweets', pill: '#FAE4C4', boxed: true,
+      wall: [130, 150, 680, 461],
+      station: { name: 'Mixer', pic: [596, 590, 104, 100], verb: 'Baking' },
+      cook: '*',
+      plate: 'box',
       ui: ui({ upgrade: [16, 298, 116, 120], recipes: [16, 432, 116, 122], shop: [16, 568, 116, 124],
         trophies: [812, 312, 116, 122], decor: [812, 437, 116, 122],
         map: [32, 1476, 172, 140], start: [296, 1470, 348, 174], stats: [736, 1476, 172, 140] }),

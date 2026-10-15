@@ -24,7 +24,7 @@
     ...[['sushi', 'Sushi Shop', 'sushi'], ['ramen', 'Ramen Shop', 'bowl'], ['cake', 'Cake & Sweets', 'cake']].map(([id, name, medal]) => ({
       id, name, overTitle: 'Shop closed!', medal, medals: [4, 9, 15], ownPause: true,
       stars: info => Math.floor(info.served / 3) * 2,
-      hint: id === 'cake' ? 'Tap the treats they want, then the tray' : 'Tap ingredients, then the tray. Recipes help!'
+      hint: id === 'cake' ? 'Bake the treats they want, box them, tap the tray' : 'Cook, add the toppings, then tap the tray to serve'
     }))
   ];
   const MEDAL_BONUS = [10, 25, 50];
