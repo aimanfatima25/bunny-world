@@ -1,4 +1,7 @@
 // Flappy Bunny: hop through the carrot pillars.
+// When it opens it asks how you want to play: tap to hop, or (motion.js) let the bunny
+// follow your hand or your eyes on the front camera, or the tilt of your phone. With a
+// motion control there's no gravity: the bunny flies to where you point it.
 // Every game has the same shape: start(canvas, options) returns { restart, stop }.
 //   options.character   which friend to draw
 //   options.getBest()   best score so far (shown on the start screen)
@@ -14,6 +17,15 @@ BW.games.flappy = (() => {
     const ctx = canvas.getContext('2d');
     let state, bunny, pillars, score, groundX, clouds, flash;
     let t = 0, raf = 0, last = performance.now();
+    // how you play: null (not picked yet), 'tap', 'hand', 'eyes' or 'tilt'
+    let control = null, motion = null, message = '', seenFor = 0, lostFor = 0, aim = 0.5;
+    const TOP_Y = 40, LOW_Y = GROUND - 30;     // where a motion-controlled bunny can fly
+
+    // the choices on the first screen: [control, label, little picture]
+    const CHOICES = [['tap', 'Tap to hop', '👆']];
+    if (BW.motion && BW.motion.can.camera) CHOICES.push(['hand', 'Hand wave', '✋'], ['eyes', 'Eye motion', '👀']);
+    if (BW.motion && BW.motion.can.tilt) CHOICES.push(['tilt', 'Tilt phone', '📱']);
+    const choiceBox = i => [50, 236 + i * 64, 260, 52];
 
     function resize() {
       const r = canvas.getBoundingClientRect();
@@ -24,7 +36,8 @@ BW.games.flappy = (() => {
     }
 
     function reset() {
-      state = 'ready';
+      state = control ? 'ready' : 'choose';
+      seenFor = 0;
       bunny = { x: 110, y: 300, vy: 0, r: 13 };
       pillars = [];
       score = 0;
@@ -42,11 +55,34 @@ BW.games.flappy = (() => {
       pillars.push({ x, top, g, passed: false });
     }
 
+    function begin() { state = 'play'; addPillar(W + 40); }
+
     function hop() {
       if (state === 'over') return;
-      if (state === 'ready') { state = 'play'; addPillar(W + 40); }
+      if (state === 'ready') begin();
       bunny.vy = -420;
     }
+
+    // picking how to play; camera and tilt ask for permission first
+    async function choose(kind) {
+      if (kind === 'tap') { control = 'tap'; state = 'ready'; return; }
+      state = 'loading';
+      message = kind === 'tilt' ? 'Getting the tilt sensor...' : 'Starting the camera...';
+      try {
+        const m = await BW.motion.start(kind);
+        if (stopped) { m.stop(); return; }
+        motion = m;
+        control = kind;
+        state = 'ready';
+        seenFor = 0;
+      } catch (e) {
+        if (stopped) return;
+        control = 'tap';
+        state = 'ready';
+        message = `${e.message}. Playing with taps!`;
+      }
+    }
+    let stopped = false;
 
     function end() {
       state = 'over';
@@ -57,15 +93,34 @@ BW.games.flappy = (() => {
     function update(dt) {
       t += dt;
       clouds.forEach(c => { c.x -= 12 * c.s * dt; if (c.x < -80) { c.x = W + 40; c.y = 60 + Math.random() * 220; } });
-      if (state === 'ready') { bunny.y = 300 + Math.sin(t * 4) * 8; groundX = (groundX - 90 * dt) % 24; return; }
+      if (state === 'choose' || state === 'loading') { bunny.y = 200 + Math.sin(t * 4) * 8; groundX = (groundX - 90 * dt) % 24; return; }
+      if (state === 'ready') {
+        bunny.y = 300 + Math.sin(t * 4) * 8; groundX = (groundX - 90 * dt) % 24;
+        // hand / eyes: start once you've been seen for a moment (eyes: that's the middle)
+        if (motion && control !== 'tilt') {
+          seenFor = motion.seen ? seenFor + dt : 0;
+          if (seenFor > 0.8) { if (motion.calibrate) motion.calibrate(); aim = 0.5; begin(); }
+        }
+        return;
+      }
       if (state === 'over') {
         if (bunny.y < GROUND - bunny.r) { bunny.vy += 1500 * dt; bunny.y = Math.min(bunny.y + bunny.vy * dt, GROUND - bunny.r); }
         flash = Math.max(0, flash - dt * 3);
         return;
       }
       const v = speed();
-      bunny.vy = Math.min(bunny.vy + 1450 * dt, 620);
-      bunny.y += bunny.vy * dt;
+      if (motion) {
+        // fly smoothly to where your hand / eyes / phone point
+        lostFor = motion.seen ? 0 : lostFor + dt;
+        if (motion.seen) aim += (motion.value - aim) * Math.min(1, dt * 12);
+        const target = TOP_Y + aim * (LOW_Y - TOP_Y);
+        const step = (target - bunny.y) * Math.min(1, dt * 9);
+        bunny.vy = step / dt;
+        bunny.y += step;
+      } else {
+        bunny.vy = Math.min(bunny.vy + 1450 * dt, 620);
+        bunny.y += bunny.vy * dt;
+      }
       groundX = (groundX - v * dt) % 24;
       far += v * 0.25 * dt;
       pillars.forEach(p => {
@@ -231,7 +286,7 @@ BW.games.flappy = (() => {
     }
 
     function drawPlayer() {
-      const tilt = state === 'ready' ? 0 : Math.max(-0.45, Math.min(bunny.vy / 700, 1.2));
+      const tilt = state !== 'play' && state !== 'over' ? 0 : Math.max(-0.45, Math.min(bunny.vy / 700, 1.2));
       const flapping = state === 'play' && bunny.vy < 0;
       const beat = state === 'over' ? 0.4 : Math.sin(t * (flapping ? 30 : 10)) * 0.45;
       ctx.save(); ctx.translate(bunny.x, bunny.y); ctx.rotate(tilt);
@@ -262,18 +317,68 @@ BW.games.flappy = (() => {
       ctx.fillStyle = '#FFF8F1'; ctx.fillText(str, x, y);
     }
 
+    // the first screen: big cream buttons, one for each way to play
+    function drawChooser() {
+      ctx.fillStyle = 'rgba(60, 40, 30, .25)'; ctx.fillRect(0, 0, W, H);
+      text('Flappy Bunny', W / 2, 120, 44);
+      text('How do you want to play?', W / 2, 200, 20);
+      CHOICES.forEach(([id, label, icon], i) => {
+        const [x, y, w, h] = choiceBox(i);
+        ctx.fillStyle = 'rgba(110,74,58,.35)'; roundRect(x + 2, y + 4, w, h, 18); ctx.fill();
+        ctx.fillStyle = '#FFF6EA'; ctx.strokeStyle = OUTLINE; ctx.lineWidth = 3;
+        roundRect(x, y, w, h, 18); ctx.fill(); ctx.stroke();
+        ctx.font = `28px 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(icon, x + 36, y + h / 2 + 1);
+        ctx.font = `800 21px 'Baloo 2', 'Trebuchet MS', sans-serif`; ctx.textAlign = 'left';
+        ctx.fillStyle = OUTLINE; ctx.fillText(label, x + 70, y + h / 2 + 2);
+      });
+    }
+
+    // the little camera picture (mirrored, like a mirror) with a dot on what it's following
+    function drawCamera() {
+      if (!motion || !motion.video) return;
+      const v = motion.video, x = W - 98, y = 14, w = 84, h = 63;
+      ctx.save();
+      roundRect(x, y, w, h, 10); ctx.clip();
+      ctx.translate(x + w, y); ctx.scale(-1, 1);
+      if (v.readyState >= 2) ctx.drawImage(v, 0, 0, w, h);
+      ctx.restore();
+      ctx.lineWidth = 3; ctx.strokeStyle = motion.seen ? '#8EC25E' : '#F28C8C';
+      roundRect(x, y, w, h, 10); ctx.stroke();
+      if (motion.seen && motion.point) {
+        ctx.fillStyle = '#FF7FAF'; ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(x + motion.point.x * w, y + motion.point.y * h, 5, 0, TAU); ctx.fill(); ctx.stroke();
+      }
+    }
+
     function draw() {
       drawSky();
       pillars.forEach(drawPillar);
       drawGround();
-      drawPlayer();
-      if (state === 'ready') {
+      if (state !== 'choose') drawPlayer();
+      if (state === 'choose') drawChooser();
+      else if (state === 'loading') {
         text('Flappy Bunny', W / 2, 150, 46);
-        text('Tap to hop', W / 2, 400, 26);
-        text('Best ' + options.getBest(), W / 2, 440, 20);
+        text(message, W / 2, 400, 20);
+        text('Allow it when your phone asks', W / 2, 432, 16);
+      } else if (state === 'ready') {
+        text('Flappy Bunny', W / 2, 150, 46);
+        const how = {
+          tap: ['Tap to hop', ''],
+          hand: [motion && motion.seen ? 'Keep your hand up...' : 'Show your hand', 'Move it up and down to fly'],
+          eyes: [motion && motion.seen ? 'Look at the bunny...' : 'Look at the screen', 'Look up and down to fly'],
+          tilt: ['Tap to start', 'Tilt your phone to fly']
+        }[control];
+        text(how[0], W / 2, 400, 26);
+        if (how[1]) text(how[1], W / 2, 434, 17);
+        if (message && control === 'tap') text(message, W / 2, 470, 15);
+        text('Best ' + options.getBest(), W / 2, how[1] ? 470 + (message && control === 'tap' ? 30 : 0) : 440, 20);
       } else if (state === 'play') {
         text(String(score), W / 2, 70, 56);
+        if (motion && lostFor > 0.4) text(control === 'hand' ? "Can't see your hand!" : "Can't see you!", W / 2, 130, 20);
       }
+      drawCamera();
       if (flash > 0) { ctx.fillStyle = `rgba(255,255,255,${flash * 0.7})`; ctx.fillRect(0, 0, W, H); }
     }
 
@@ -285,10 +390,25 @@ BW.games.flappy = (() => {
       raf = requestAnimationFrame(frame);
     }
 
-    function onPointer(e) { e.preventDefault(); if (!BW.kit.paused) hop(); }
+    function onPointer(e) {
+      e.preventDefault();
+      if (BW.kit.paused || state === 'loading') return;
+      if (state === 'choose') {
+        const r = canvas.getBoundingClientRect();
+        const x = (e.clientX - r.left) * W / r.width, y = (e.clientY - r.top) * H / r.height;
+        CHOICES.forEach(([id], i) => {
+          const [bx, by, bw, bh] = choiceBox(i);
+          if (x >= bx && x <= bx + bw && y >= by && y <= by + bh) choose(id);
+        });
+        return;
+      }
+      if (control === 'tilt' && state === 'ready') { motion.calibrate(); aim = 0.5; begin(); return; }
+      if (control === 'tap') hop();
+    }
     function onKey(e) {
       if (state === 'over' || BW.kit.paused) return;
-      if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') { e.preventDefault(); hop(); }
+      if (state === 'choose' && (e.code === 'Space' || e.code === 'Enter')) { e.preventDefault(); choose('tap'); return; }
+      if (control === 'tap' && (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW')) { e.preventDefault(); hop(); }
     }
 
     canvas.addEventListener('pointerdown', onPointer);
@@ -301,6 +421,8 @@ BW.games.flappy = (() => {
     return {
       restart: reset,
       stop() {
+        stopped = true;
+        if (motion) motion.stop();
         cancelAnimationFrame(raf);
         canvas.removeEventListener('pointerdown', onPointer);
         window.removeEventListener('keydown', onKey);

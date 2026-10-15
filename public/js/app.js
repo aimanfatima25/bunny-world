@@ -9,7 +9,7 @@
   // stars(info): a game's own star rule instead, from what it reports at game over
   const GAMES = [
     { id: 'flappy', name: 'Flappy Bunny', icon: 'ic-flappy', overTitle: 'Bonk!', medal: 'carrot', medals: [5, 15, 30], coinRate: 1,
-      hint: 'Tap, click or press Space to hop' },
+      hint: 'Tap to hop, or fly with your hand, eyes or phone tilt' },
     { id: 'fish', name: 'Merge the Fish', icon: 'ic-fish', overTitle: 'Tank full!', medal: 'shell', medals: [300, 900, 1800], coinRate: 0.05,
       hint: 'Tap a fish, then tap its twin to merge' },
     { id: 'catch', name: 'Catch the Fish', icon: 'ic-fish', overTitle: "Time's up!", medal: 'shell', medals: [15, 35, 60],
