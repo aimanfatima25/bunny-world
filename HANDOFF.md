@@ -9,7 +9,7 @@ I'm Aiman (beginner developer, Pakistan; I like short plain explanations and pic
 **Where it lives**
 - Project: `C:\Users\QA\Desktop\flappy-bunny` (git, branch `main`, GitHub: https://github.com/aimanfatima25/bunny-world, public)
 - Website (auto-deploys on every push): https://kawaiicorner.vercel.app — always send me this link after changes
-- Also on my Coolify server: https://kawaiicorner.aimanfatima.com (new name, my uncle's idea) and https://games.aimanfatima.com (Coolify project "bunny-world", Dockerfile + nginx; auto-deploys on every push via a GitHub webhook to Coolify's manual GitHub webhook (added 2026-10-15); if it ever stops, press Actions → Deploy in https://coolify.aimanfatima.com). My server is only reachable through a locally-managed Cloudflare Tunnel "aiman-home" (`/etc/cloudflared/config.yml`); new subdomains need a tunnel route that I add myself.
+- Also on my Coolify server: https://kawaiicorner.aimanfatima.com (new name, my uncle's idea; tunnel route + DNS CNAME added 2026-10-16) and https://games.aimanfatima.com (Coolify project "bunny-world", Dockerfile + nginx; auto-deploys on every push via a GitHub webhook to Coolify's manual GitHub webhook (added 2026-10-15); if it ever stops, press Actions → Deploy in https://coolify.aimanfatima.com). My server is only reachable through a locally-managed Cloudflare Tunnel "aiman-home" (`/etc/cloudflared/config.yml`); new subdomains need a tunnel route that I add myself.
 - Plain HTML/CSS/JS, no framework. Everything is designed at 360 x 640 and scaled; on phones it's full screen and the layer grows taller.
 
 **Design rules (important to me)**
