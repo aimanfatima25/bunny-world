@@ -1,11 +1,13 @@
-// Dress Up: pick one of your girls, then dress her in the outfits and accessories from
-// Aiman's Dress-Up Room design (cut by assets/cut-dressup.mjs into img/dressup/), add makeup,
-// and pick a background. Some things are free, the rest cost stars. "Done" saves the look for
-// that girl, and she wears it at home too; "Her outfit" puts her own clothes back on.
+// Dress Up: dress the doll from Aiman's Pastel Kawaii Dress-Up Room design in its outfits and
+// accessories (all cut by assets/cut-dressup.mjs into img/dressup/), add makeup, and pick a
+// background. Some things are free, the rest cost stars. "Done" saves the look and she stands
+// at home wearing it; "My girl's own look" puts your chosen girl back at home in her own clothes.
+// (Dressing the doll, who only wears a camisole and shorts, looks natural; the other girls
+// can become dolls too once the hair sheet gives the doll their hairstyles.)
 //
 // A look: { dress: 1..18 | null, acc: ['bow', ...], makeup: { blush, lips, shadow, freckles, sparkle }, bg }
-// Everything is placed on the girl by her height (all the standing girls share one shape):
-// the dress from her shoulders to her knees, the doll's arms coming out of its sleeves.
+// Everything is placed in the doll's own picture (img/dressup/doll.webp, 348 x 710):
+// the dress from her shoulders to her knees, her arm coming out of each sleeve.
 window.BW = window.BW || {};
 
 BW.dressup = (() => {
@@ -22,16 +24,18 @@ BW.dressup = (() => {
   const DRESS_PRICES = [0, 0, 150, 150, 120, 0, 180, 200, 0, 160, 200, 180, 160, 0, 250, 0, 180, 220];
   const DRESSES = DRESS_NAMES.map((name, i) => ({ id: 'dress-' + (i + 1), n: i + 1, name, price: FREE_DRESSES.includes(i + 1) ? 0 : DRESS_PRICES[i] }));
 
-  // accessories: where they sit, in parts of the girl's height from the middle of her head
-  // (x) and from the top of the picture (y), and how big (w)
+  // the doll: her picture's size, the middle of her body and of her face (doll pixels)
+  const DOLL = { w: 348, h: 710, body: 178, face: 172 };
+  // accessories: where their middle sits, in doll pixels from the middle of her face (x) and
+  // from the top (y), and how wide (w)
   const ACCS = [
-    { id: 'bow', n: 1, name: 'Ribbon Bow', price: 0, x: 0.12, y: 0.06, w: 0.1, rot: 0.25 },
-    { id: 'pins', n: 2, name: 'Hair Pins', price: 60, x: -0.13, y: 0.15, w: 0.085, rot: -0.5 },
-    { id: 'headband', n: 3, name: 'Headband', price: 80, x: 0, y: 0.068, w: 0.2, sy: 0.55 },
-    { id: 'beret', n: 4, name: 'Beret', price: 120, x: 0.015, y: 0.06, w: 0.25, rot: 0.08 },
-    { id: 'glasses', n: 5, name: 'Round Glasses', price: 0, x: 0, y: 0.264, w: 0.125 },
-    { id: 'bag', n: 6, name: 'Shoulder Bag', price: 100, x: 0.16, y: 0.6, w: 0.13 },
-    { id: 'bunny', n: 7, name: 'Bunny Plush', price: 150, x: -0.165, y: 0.65, w: 0.12 }
+    { id: 'bow', n: 1, name: 'Ribbon Bow', price: 0, x: 86, y: 52, w: 66, rot: 0.3 },
+    { id: 'pins', n: 2, name: 'Hair Pins', price: 60, x: -88, y: 150, w: 54, rot: -0.6 },
+    { id: 'headband', n: 3, name: 'Headband', price: 80, x: 4, y: 62, w: 214, sy: 0.45 },
+    { id: 'beret', n: 4, name: 'Beret', price: 120, x: 10, y: 52, w: 220, rot: 0.08 },
+    { id: 'glasses', n: 5, name: 'Round Glasses', price: 0, x: 8, y: 192, w: 132 },
+    { id: 'bag', n: 6, name: 'Shoulder Bag', price: 100, x: 104, y: 450, w: 84 },
+    { id: 'bunny', n: 7, name: 'Bunny Plush', price: 150, x: -96, y: 470, w: 80 }
   ];
   // only one thing on top of the head at a time
   const ON_HEAD = ['headband', 'beret'];
@@ -81,24 +85,24 @@ BW.dressup = (() => {
     return sleeves;
   }
 
-  // The girl wearing a look, drawn onto a new canvas (a bit wider than her picture so wide
+  // The doll wearing a look, drawn onto a new canvas (a bit wider than her picture so wide
   // sleeves fit). Resolves to null if her picture can't load.
-  async function render(girl, look) {
-    const body = await pic(`img/standing/${girl}.webp`);
+  async function render(look) {
+    const body = await pic('img/dressup/doll.webp');
     if (!body) return null;
-    const h = body.naturalHeight, w = body.naturalWidth, W = Math.round(w * 1.25), cx = W / 2;
+    const { h } = DOLL, W = Math.round(DOLL.w * 1.2), ox = W / 2 - DOLL.body;
     const c = document.createElement('canvas');
     c.width = W; c.height = h;
     const ctx = c.getContext('2d');
-    ctx.drawImage(body, (W - w) / 2, 0, w, h);
+    ctx.drawImage(body, ox, 0);
     if (look && look.dress) {
       const [dress, arm, sl] = await Promise.all([pic(`img/dressup/dress/${look.dress}.webp`), pic('img/dressup/arm.webp'), sleeveData()]);
       if (dress) {
-        const dh = h * 0.43, dw = dh * dress.naturalWidth / dress.naturalHeight, dx = cx - dw / 2, dy = h * 0.35;
+        const dh = h * 0.4225, dw = dh * dress.naturalWidth / dress.naturalHeight, dx = W / 2 - dw / 2, dy = h * 0.352;
         const s = sl[look.dress - 1];
         if (arm && s) {
-          // full arms: the doll's arm under each sleeve (mirrored for the left one)
-          const ah = h * 0.22, aw = ah * arm.naturalWidth / arm.naturalHeight;
+          // full arms: her arm coming out of each sleeve (mirrored for the left one)
+          const ah = h * 0.26, aw = ah * arm.naturalWidth / arm.naturalHeight;
           [[s.left, -1], [s.right, 1]].forEach(([p, flip]) => {
             ctx.save();
             ctx.translate(dx + p[0] * dw, dy + p[1] * dh - ah * 0.45);
@@ -111,14 +115,15 @@ BW.dressup = (() => {
       }
     }
     if (look) {
-      drawMakeup(ctx, cx, h, look.makeup || {});
+      const fx = ox + DOLL.face;
+      drawMakeup(ctx, fx, look.makeup || {});
       for (const id of look.acc || []) {
         const a = ACCS.find(x => x.id === id);
         const im = a && await pic(`img/dressup/acc/${a.n}.webp`);
         if (!im) continue;
-        const aw = h * a.w, ah = aw * im.naturalHeight / im.naturalWidth * (a.sy || 1);
+        const aw = a.w, ah = aw * im.naturalHeight / im.naturalWidth * (a.sy || 1);
         ctx.save();
-        ctx.translate(cx + a.x * h, a.y * h);
+        ctx.translate(fx + a.x, a.y);
         if (a.rot) ctx.rotate(a.rot);
         ctx.drawImage(im, -aw / 2, -ah / 2, aw, ah);
         ctx.restore();
@@ -127,36 +132,35 @@ BW.dressup = (() => {
     return c;
   }
 
-  // soft makeup on her face (eyes sit at about a quarter of her height)
-  function drawMakeup(ctx, cx, h, m) {
-    const eyeY = h * 0.264, eyeX = h * 0.039;
+  // soft makeup on her face (doll pixels: eyes at 190, cheeks at 228, mouth at 213)
+  function drawMakeup(ctx, fx, m) {
     ctx.save();
     if (m.shadow && m.shadow !== 'none') {
       ctx.globalAlpha = 0.35; ctx.fillStyle = m.shadow;
-      [-1, 1].forEach(s => { ctx.beginPath(); ctx.ellipse(cx + s * eyeX, eyeY - h * 0.016, h * 0.022, h * 0.009, 0, Math.PI, 0); ctx.fill(); });
+      [-1, 1].forEach(s => { ctx.beginPath(); ctx.ellipse(fx + s * 38, 172, 20, 9, 0, Math.PI, 0); ctx.fill(); });
     }
     if (m.blush && m.blush !== 'none') {
       [-1, 1].forEach(s => {
-        const x = cx + s * h * 0.062, y = h * 0.292, r = h * 0.024;
+        const x = fx + s * 56, y = 228, r = 20;
         const g = ctx.createRadialGradient(x, y, 0, x, y, r);
         g.addColorStop(0, m.blush); g.addColorStop(1, 'rgba(255,255,255,0)');
-        ctx.globalAlpha = 0.55; ctx.fillStyle = g;
+        ctx.globalAlpha = 0.6; ctx.fillStyle = g;
         ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.6, 0, 0, Math.PI * 2); ctx.fill();
       });
     }
     if (m.lips && m.lips !== 'none') {
-      ctx.globalAlpha = 0.8; ctx.fillStyle = m.lips;
-      ctx.beginPath(); ctx.ellipse(cx, h * 0.302, h * 0.007, h * 0.0045, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 0.85; ctx.fillStyle = m.lips;
+      ctx.beginPath(); ctx.ellipse(fx + 2, 214, 5, 3, 0, 0, Math.PI * 2); ctx.fill();
     }
     if (m.freckles === 'on') {
       ctx.globalAlpha = 0.55; ctx.fillStyle = '#B9805F';
-      [-1, 1].forEach(s => [[0.05, 0.283], [0.062, 0.279], [0.057, 0.288], [0.07, 0.285]].forEach(([fx, fy]) => {
-        ctx.beginPath(); ctx.arc(cx + s * fx * h, fy * h, h * 0.0025, 0, Math.PI * 2); ctx.fill();
+      [-1, 1].forEach(s => [[44, 218], [54, 214], [50, 224], [62, 220]].forEach(([dx, y]) => {
+        ctx.beginPath(); ctx.arc(fx + s * dx, y, 1.8, 0, Math.PI * 2); ctx.fill();
       }));
     }
     if (m.sparkle === 'on') {
       ctx.globalAlpha = 0.95; ctx.fillStyle = '#FFFFFF';
-      [[-0.075, 0.27, 0.012], [0.08, 0.255, 0.009], [0.07, 0.3, 0.007]].forEach(([sx, sy, r]) => star(ctx, cx + sx * h, sy * h, r * h));
+      [[-62, 196, 9], [64, 182, 7], [58, 244, 5]].forEach(([dx, y, r]) => star(ctx, fx + dx, y, r));
     }
     ctx.restore();
   }
@@ -166,17 +170,18 @@ BW.dressup = (() => {
     ctx.closePath(); ctx.fill();
   }
 
-  // the girl as a picture for <img> tags (home scene), or her plain picture with no look
+  // Who stands at home: the dressed doll after "Done", or your chosen girl in her own clothes.
+  // Resolves to { src, dressed }.
   const urls = {};
-  async function pictureOf(girl) {
-    const look = looks()[girl];
-    if (!look) return `img/standing/${girl}.webp`;
-    const key = girl + JSON.stringify(look);
+  async function homePicture(girl) {
+    const look = looks().doll;
+    if (!store.data.dollAtHome || !look) return { src: `img/standing/${girl}.webp`, dressed: false };
+    const key = JSON.stringify(look);
     if (!urls[key]) {
-      const c = await render(girl, look);
-      urls[key] = c ? c.toDataURL('image/png') : `img/standing/${girl}.webp`;
+      const c = await render(look);
+      urls[key] = c ? c.toDataURL('image/png') : null;
     }
-    return urls[key];
+    return urls[key] ? { src: urls[key], dressed: true } : { src: `img/standing/${girl}.webp`, dressed: false };
   }
 
   // ---------- the screen ----------
@@ -185,29 +190,13 @@ BW.dressup = (() => {
 
   function open(done) {
     onClose = done;
-    const people = BW.friends.list.filter(f => f.group === 'girls' && store.owns(f.id));
-    const grid = $('dollGrid');
-    grid.innerHTML = '';
-    people.forEach(f => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'doll-pick';
-      b.innerHTML = `<img alt=""><span>${f.name}</span>`;
-      pictureOf(f.id).then(src => { b.querySelector('img').src = src; });
-      b.addEventListener('click', () => { BW.sound.play('click'); start(f.id); });
-      grid.appendChild(b);
-    });
-    $('dollPicker').hidden = false;
-    BW.sound.music('dress');
-  }
-
-  function start(id) {
-    girl = id;
-    look = JSON.parse(JSON.stringify(looks()[id] || empty()));
-    $('dollPicker').hidden = true;
+    girl = BW.friends.get(store.data.girl) ? store.data.girl : 'girl-1';
+    look = JSON.parse(JSON.stringify(looks().doll || empty()));
+    look.acc = [];
     $('dressup').hidden = false;
-    $('dressName').textContent = BW.friends.get(id).name;
+    $('dressName').textContent = 'My Girl';
     tab = 'dress';
+    BW.sound.music('dress');
     showStars();
     renderTabs();
     renderItems();
@@ -216,7 +205,6 @@ BW.dressup = (() => {
 
   function close() {
     $('dressup').hidden = true;
-    $('dollPicker').hidden = true;
     BW.sound.music('home');
     if (onClose) onClose();
   }
@@ -230,7 +218,7 @@ BW.dressup = (() => {
     const stage = $('dressStage');
     stage.style.backgroundImage = `url(${bg.src})`;
     stage.className = 'dress-stage bg-' + bg.id;
-    const c = await render(girl, look);
+    const c = await render(look);
     if (mine !== drawing || !c) return;
     const box = $('dressDoll');
     box.innerHTML = '';
@@ -238,7 +226,8 @@ BW.dressup = (() => {
     box.appendChild(c);
   }
 
-  const TABS = [['dress', 'Dress'], ['hair', 'Hair'], ['makeup', 'Makeup'], ['accessories', 'Accessories'], ['background', 'Background']];
+  // (Accessories were taken out at Aiman's request; ACCS stays for later)
+  const TABS = [['dress', 'Dress'], ['hair', 'Hair'], ['makeup', 'Makeup'], ['background', 'Background']];
   function renderTabs() {
     document.querySelectorAll('.dress-side button[data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
     $('dressPanelTitle').textContent = TABS.find(t => t[0] === tab)[1];
@@ -278,7 +267,15 @@ BW.dressup = (() => {
     box.innerHTML = '';
     box.className = 'dress-items';
     if (tab === 'dress') {
-      box.appendChild(card({ name: 'Her outfit', img: `img/standing/${girl}.webp`, on: !look.dress, wide: false,
+      // your chosen girl back at home in her own clothes
+      box.appendChild(card({ name: `${BW.friends.get(girl).name}'s own look`, img: `img/standing/${girl}.webp`, on: !store.data.dollAtHome,
+        tap: () => {
+          BW.sound.play('swipe');
+          store.data.dollAtHome = false; store.save();
+          BW.app.toast(`${BW.friends.get(girl).name} is wearing her own outfit at home ♥`);
+          close();
+        } }));
+      box.appendChild(card({ name: 'No dress', img: 'img/dressup/doll.webp', on: !look.dress,
         tap: () => { BW.sound.play('swipe'); look.dress = null; renderItems(); redraw(); } }));
       DRESSES.forEach(d => box.appendChild(card({
         name: d.name, img: `img/dressup/dress/${d.n}.webp`, on: look.dress === d.n, locked: !has(d.id), price: d.price,
@@ -319,7 +316,7 @@ BW.dressup = (() => {
 
   function save() {
     const blank = !look.dress && !look.acc.length && Object.values(look.makeup).every(v => v === 'none') && look.bg === 'cottage';
-    if (blank) delete looks()[girl]; else looks()[girl] = JSON.parse(JSON.stringify(look));
+    if (blank) delete looks().doll; else looks().doll = JSON.parse(JSON.stringify(look));
     store.save();
   }
 
@@ -327,18 +324,18 @@ BW.dressup = (() => {
     document.querySelectorAll('.dress-side button[data-tab]').forEach(b => b.addEventListener('click', () => {
       BW.sound.play('click'); tab = b.dataset.tab; renderTabs(); renderItems();
     }));
-    $('dressSave').addEventListener('click', () => { save(); BW.sound.play('sparkle'); BW.app.toast(`${BW.friends.get(girl).name}'s look is saved ♥`); });
+    $('dressSave').addEventListener('click', () => { save(); BW.sound.play('sparkle'); BW.app.toast('Look saved ♥'); });
     $('dressDone').addEventListener('click', () => {
       save();
       BW.sound.play('sparkle');
-      // she becomes the girl at home, wearing her new look
-      store.setGirl(girl);
+      // she stands at home wearing her new look
+      store.data.dollAtHome = !!looks().doll;
+      store.save();
       close();
     });
     $('dressReset').addEventListener('click', () => { BW.sound.play('swipe'); look = empty(); renderItems(); redraw(); });
     $('dressBack').addEventListener('click', close);
-    $('dollBack').addEventListener('click', close);
   }
 
-  return { open, wire, pictureOf, render };
+  return { open, wire, homePicture, render };
 })();

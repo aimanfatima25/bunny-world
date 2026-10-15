@@ -120,6 +120,23 @@ function cutOut(box, open, seeds, thin, card) {
   return { out, W, H, crop: { left: minX, top: minY, width: maxX - minX + 1, height: maxY - minY + 1 } };
 }
 
+// peel light pixels off the outside, a ring at a time, until reaching the dark outline
+// (the items had a pale "sticker" edge on their cards)
+function peelRim(c, rings) {
+  const { out, W, H } = c;
+  for (let r = 0; r < rings; r++) {
+    const gone = [];
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const i = y * W + x;
+      if (!out[i * 4 + 3]) continue;
+      const outside = (x === 0 || !out[(i - 1) * 4 + 3]) || (x === W - 1 || !out[(i + 1) * 4 + 3]) || (y === 0 || !out[(i - W) * 4 + 3]) || (y === H - 1 || !out[(i + W) * 4 + 3]);
+      const light = 0.299 * out[i * 4] + 0.587 * out[i * 4 + 1] + 0.114 * out[i * 4 + 2] > 175;
+      if (outside && light) gone.push(i);
+    }
+    gone.forEach(i => { out[i * 4 + 3] = 0; });
+  }
+}
+
 async function save(c, file, height) {
   let img = sharp(c.out, { raw: { width: c.W, height: c.H, channels: 4 } }).extract(c.crop);
   if (height) img = sharp(await img.png().toBuffer()).resize({ height, kernel: 'lanczos3' });
@@ -142,6 +159,7 @@ let n = 0;
 for (const y of ROWS) for (const x of COLS) {
   n++;
   const c = cutOut([x + 6, y + 6, 104, 104], CREAM, null, 0, [252, 239, 224]);
+  peelRim(c, 3);
   await save(c, OUT + `dress/${n}.webp`, 240);
 }
 console.log('cut', n, 'dresses');

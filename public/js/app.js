@@ -88,7 +88,8 @@
 
   // Picks a girl (shown as your profile picture) or an animal (plays with you in the games)
   function pickFriend(id) {
-    if (BW.friends.isPerson(id)) store.setGirl(id);
+    // choosing a girl or guy in the Shop puts them at home (instead of the dressed-up doll)
+    if (BW.friends.isPerson(id)) { store.setGirl(id); store.data.dollAtHome = false; store.save(); }
     else store.setCharacter(id);
     showGirl();
   }
@@ -98,11 +99,11 @@
   function showGirl() {
     $('avatarBtn').querySelector('img').src = BW.friends.img(store.data.girl);
     $('avatarBtn').classList.toggle('guy', store.data.girl.startsWith('guy-'));
-    const me = store.data.girl, dressed = !!(store.data.looks && store.data.looks[me]);
-    BW.dressup.pictureOf(me).then(src => {
+    const me = store.data.girl;
+    BW.dressup.homePicture(me).then(p => {
       if (store.data.girl !== me) return;
-      $('sceneGirl').src = src;
-      $('sceneGirl').classList.toggle('dressed', dressed);
+      $('sceneGirl').src = p.src;
+      $('sceneGirl').classList.toggle('dressed', p.dressed);
     });
     $('scenePet').src = BW.friends.cutout(store.data.character).src;
   }
