@@ -117,6 +117,12 @@ BW.dressup = (() => {
           });
         };
         arms(false);
+        // skin over her camisole's top, so an open neckline shows her neck and chest, not the camisole
+        const fx = ox + DOLL.face, top = 252;
+        const g = ctx.createLinearGradient(0, top - 8, 0, top + 6);
+        g.addColorStop(0, 'rgba(251, 214, 203, 0)'); g.addColorStop(1, '#FBD6CB');
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.ellipse(fx + 4, top + 40, 56, 48, 0, Math.PI, 0); ctx.lineTo(fx + 60, top + 90); ctx.lineTo(fx - 52, top + 90); ctx.closePath(); ctx.fill();
         ctx.drawImage(dress, dx, dy, dw, dh);
         // her long hair falls in front of the dress's shoulders
         if (hair) ctx.drawImage(hair, ox, 0);

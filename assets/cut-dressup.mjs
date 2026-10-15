@@ -8,6 +8,7 @@
 // Later sheets made on the base doll (assets/design/dressup-prompts.md) get their own section here.
 // Run: node assets/cut-dressup.mjs   (add "check" to write assets/dressup-check.png)
 import sharp from 'sharp';
+sharp.cache(false);
 import fs from 'node:fs';
 
 const here = p => new URL(p, import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
@@ -317,4 +318,50 @@ if (process.argv.includes('check')) {
   }
   await sharp(out, { raw: { width: W, height: H, channels: 4 } }).webp({ quality: 92, alphaQuality: 100 }).toFile(OUT + 'hair-front.webp');
   console.log('hair in front done');
+}
+
+// 8. open each dress's neckline: the back of the dress shows above the front collar, where
+//    her neck should be. From the top middle, spread over light fabric (stopping at the dark
+//    outlines) within the top part of the dress, and make it see-through so her neck shows.
+//    A dress is skipped if the fill gets too big (that would be part of the dress, not the back).
+{
+  const opened = [];
+  for (let n = 1; n <= 18; n++) {
+    const file = OUT + `dress/${n}.webp`;
+    const { data: P, info: I } = await sharp(fs.readFileSync(file)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    const W = I.width, H = I.height, N = W * H;
+    const lum = i => 0.299 * P[i * 4] + 0.587 * P[i * 4 + 1] + 0.114 * P[i * 4 + 2];
+    const LIMIT = Math.round(H * 0.24);
+    // the seed: down the middle, past the top outline, to the first light pixel
+    const cx = Math.round(W / 2);
+    let y = 0;
+    while (y < LIMIT && !(P[(y * W + cx) * 4 + 3] > 100)) y++;          // to the top of the dress
+    while (y < LIMIT && lum(y * W + cx) < 150) y++;                      // through the outline
+    if (y >= LIMIT) continue;
+    const fill = new Uint8Array(N), q = new Int32Array(N);
+    let h = 0, t = 0;
+    const ok = i => !fill[i] && P[i * 4 + 3] > 100 && lum(i) > 150;
+    const s0 = y * W + cx; fill[s0] = 1; q[t++] = s0;
+    while (h < t && t < N * 0.08) {
+      const i = q[h++], x = i % W, yy = (i / W) | 0;
+      for (const j of [x > 0 ? i - 1 : -1, x < W - 1 ? i + 1 : -1, yy > 0 ? i - W : -1, yy < LIMIT ? i + W : -1]) {
+        if (j >= 0 && ok(j)) { fill[j] = 1; q[t++] = j; }
+      }
+    }
+    // too big, or reaching the dress's sides: not a neckline
+    let minX = W, maxX = 0;
+    for (let i = 0; i < t; i++) { const x = q[i] % W; if (x < minX) minX = x; if (x > maxX) maxX = x; }
+    if (t >= N * 0.08 || t < 30 || maxX - minX > W * 0.5) continue;
+    // see-through, plus a soft pixel around it so no light fringe stays
+    for (let i = 0; i < t; i++) P[q[i] * 4 + 3] = 0;
+    for (let i = 0; i < t; i++) {
+      const p = q[i], x = p % W;
+      for (const j of [x > 0 ? p - 1 : -1, x < W - 1 ? p + 1 : -1, p - W, p + W]) {
+        if (j >= 0 && j < N && P[j * 4 + 3] && lum(j) > 150) P[j * 4 + 3] = 0;
+      }
+    }
+    fs.writeFileSync(file, await sharp(Buffer.from(P), { raw: { width: W, height: H, channels: 4 } }).webp({ quality: 92, alphaQuality: 100 }).toBuffer());
+    opened.push(n);
+  }
+  console.log('necklines opened:', opened.join(' '));
 }
