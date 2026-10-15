@@ -270,6 +270,16 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
   background: url(img/ui/scene-wall.webp) center bottom / cover no-repeat;
   overflow: hidden;
 }
+/* the magic tree from Aiman's home design stands on the ledge, with the chosen animal beside it
+   (placed from the bottom, so it stays on the ledge when the scene grows taller on phones) */
+.scene-tree {
+  position: absolute;
+  left: 30px;
+  bottom: 34px;
+  width: 291px;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 5px rgba(80, 45, 30, .25));
+}
 /* only the chosen girl and the chosen animal sit on the ledge */
 .scene-girl {
   position: absolute;
@@ -281,9 +291,10 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
 }
 .scene-pet {
   position: absolute;
-  left: 50%;
-  bottom: 12px;
-  height: 30%;
+  left: 56%;
+  bottom: 30px;
+  height: 22%;
+  max-height: 110px;
   filter: drop-shadow(0 3px 3px rgba(80, 45, 30, .35));
   transform-origin: 50% 100%;
   animation: pet-bob 2.6s ease-in-out infinite;
