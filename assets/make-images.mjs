@@ -3,7 +3,8 @@
 //  - icon: the girl in the middle with her bunny clip and pink bow (no text)
 //  - splash: the whole picture with its "Kawaii Corner" title, on a soft pink card
 //  - public/img/og-image.jpg: the title and the group, for the preview card when the link is shared
-// Run: node assets/make-images.mjs   then   npx capacitor-assets generate --android
+// Run: node assets/make-images.mjs, then npx capacitor-assets generate --android,
+// then node assets/shrink-splash.mjs (the splash screens come out huge otherwise)
 import sharp from 'sharp';
 
 const here = name => new URL(name, import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
