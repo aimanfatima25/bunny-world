@@ -20,7 +20,7 @@ BW.store = (() => {
     lastGift: '',
     myFish: [],
     playerName: '',
-    girl: 'girl-1'
+    girl: 'girl-1'   // the person you are: a girl ('girl-3') or a guy ('guy-2')
   }, load());
 
   // Friends were replaced by Aiman's picture animals (friends.js). Keep the ones that still
@@ -32,7 +32,7 @@ BW.store = (() => {
     if (id in GONE) { data.coins += GONE[id]; return false; }
     return true;
   });
-  ['bunny', 'cat', 'panda', 'chick', 'girl-1', 'girl-2', 'girl-4'].forEach(id => { if (!data.unlocked.includes(id)) data.unlocked.push(id); });
+  ['bunny', 'cat', 'panda', 'chick', 'girl-1', 'girl-2', 'girl-4', 'guy-1', 'guy-2'].forEach(id => { if (!data.unlocked.includes(id)) data.unlocked.push(id); });
   data.character = RENAMED[data.character] || data.character;
   if (!data.unlocked.includes(data.character)) data.character = 'bunny';
   if (JSON.stringify([data.unlocked, data.character]) !== before) save();

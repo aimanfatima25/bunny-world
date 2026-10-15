@@ -1,7 +1,7 @@
 // All the girls and animal friends players can collect, using Aiman's own pictures
-// (img/girls/girl-<n>.webp, img/animals/<id>.webp full-body animals, img/friends/<id>.webp cards).
-// Players pick one girl and one animal.
-//   group:  'girls', 'animals' or 'sea'
+// (img/girls/girl-<n>.webp, img/standing/guy-<n>.webp, img/animals/<id>.webp full-body animals,
+// img/friends/<id>.webp cards). Players pick one person (a girl or a guy) and one animal.
+//   group:  'girls', 'guys', 'animals' or 'sea'
 //   price:  stars to unlock (0 = a starter friend everyone has)
 //   cat:    the category tab on the Choose pages (set below)
 window.BW = window.BW || {};
@@ -10,6 +10,13 @@ BW.friends = (() => {
   const GIRL_NAMES = ['Mia', 'Luna', 'Clover', 'Honey', 'Skye', 'Melody', 'Nora', 'Rosie', 'Mochi', 'Sunny', 'Raven',
     'Lily', 'Coco', 'Ruby', 'Bella', 'Latte', 'Peach', 'Bree', 'Jasmine', 'Zoe', 'Hana', 'Mocha'];
   const GIRL_PRICES = [0, 0, 150, 0, 200, 250, 200, 250, 300, 250, 300, 350, 300, 400, 350, 400, 450, 400, 450, 500, 500, 600];
+  // guys from Aiman's sheet (assets/design/friends/guys-full.webp); Kai and Leo are free.
+  // Note: guy 10 (NIKE cap), 14 (Supreme) and 21 (GAP) show brand names: redraw before the Play Store.
+  const GUY_NAMES = ['Kai', 'Leo', 'Haru', 'Yuki', 'Ren', 'Toby', 'Sora', 'Jun', 'Max', 'Ryan', 'Noah',
+    'Eli', 'Sam', 'Jay', 'Finn', 'Ash', 'Milo', 'Theo', 'Luca', 'Ollie', 'Ben', 'Zane'];
+  const GUY_PRICES = [0, 0, 150, 200, 200, 250, 250, 300, 250, 300, 300, 350, 300, 400, 350, 350, 400, 400, 450, 450, 500, 500];
+  const GUY_CATS = ['casual', 'cozy', 'school', 'cozy', 'casual', 'school', 'cozy', 'school', 'cozy', 'casual', 'casual',
+    'cozy', 'casual', 'casual', 'cozy', 'casual', 'cozy', 'casual', 'cozy', 'school', 'casual', 'casual'];
 
   // [id, name, stars, tab] in the sheet's order; bunny, kitty, panda and chick are free
   const ANIMALS = [
@@ -38,6 +45,8 @@ BW.friends = (() => {
   const list = [
     // girls (one is "you"; Mia, Luna and Honey are free)
     ...GIRL_NAMES.map((name, i) => ({ id: `girl-${i + 1}`, name, group: 'girls', price: GIRL_PRICES[i] })),
+    // guys
+    ...GUY_NAMES.map((name, i) => ({ id: `guy-${i + 1}`, name, group: 'guys', price: GUY_PRICES[i], cat: GUY_CATS[i] })),
     // animals: Aiman's full-body animal sheet (img/animals/<id>.webp, cut by assets/cut-animals.mjs)
     ...ANIMALS.map(([id, name, price, cat]) => ({ id, name, group: 'animals', price, cat, body: true })),
     // older card-only animals, until they get full-body pictures too
@@ -79,8 +88,12 @@ BW.friends = (() => {
   return {
     list,
     get(id) { return byId[id]; },
+    // girls and guys: the people you can be, who also visit the cooking games as customers
+    isPerson(id) { return id.startsWith('girl-') || id.startsWith('guy-'); },
+    people() { return list.filter(f => f.group === 'girls' || f.group === 'guys'); },
     img(id) {
       if (id.startsWith('girl-')) return `img/girls/${id}.webp`;
+      if (id.startsWith('guy-')) return `img/standing/${id}.webp`;
       return byId[id] && byId[id].body ? `img/animals/${id}.webp` : `img/friends/${id}.webp`;
     },
     // true for animals with a clean full-body picture (shown whole, never cropped)

@@ -19,7 +19,13 @@
     { id: 'memory', name: 'Memory', icon: 'ic-memory', overTitle: "Time's up!", medal: 'star', medals: [8, 16, 28], coinRate: 1,
       hint: 'Tap two cards to find a pair' },
     { id: 'bubble', name: 'Bubble Pop', icon: 'ic-bubble', overTitle: 'Pop!', medal: 'bubble', medals: [200, 600, 1500], coinRate: 0.05,
-      hint: 'Aim, then let go to shoot. Match 3 to pop!' }
+      hint: 'Aim, then let go to shoot. Match 3 to pop!' },
+    // the cooking shops (games/cook.js): 2 stars for every 3 orders served; their own ≡ button pauses
+    ...[['sushi', 'Sushi Shop', 'sushi'], ['ramen', 'Ramen Shop', 'bowl'], ['cake', 'Cake & Sweets', 'cake']].map(([id, name, medal]) => ({
+      id, name, overTitle: 'Shop closed!', medal, medals: [4, 9, 15], ownPause: true,
+      stars: info => Math.floor(info.served / 3) * 2,
+      hint: id === 'cake' ? 'Tap the treats they want, then the tray' : 'Tap ingredients, then the tray. Recipes help!'
+    }))
   ];
   const MEDAL_BONUS = [10, 25, 50];
   const GIFT_COINS = 50;
@@ -80,25 +86,29 @@
 
   // Picks a girl (shown as your profile picture) or an animal (plays with you in the games)
   function pickFriend(id) {
-    if (id.startsWith('girl-')) store.setGirl(id);
+    if (BW.friends.isPerson(id)) store.setGirl(id);
     else store.setCharacter(id);
     showGirl();
   }
 
-  // The chosen girl is the profile picture; she and the chosen animal sit on the cottage ledge
+  // The chosen girl or guy is the profile picture; they and the chosen animal sit on the cottage ledge
   function showGirl() {
     $('avatarBtn').querySelector('img').src = BW.friends.img(store.data.girl);
+    $('avatarBtn').classList.toggle('guy', store.data.girl.startsWith('guy-'));
     $('sceneGirl').src = `img/standing/${store.data.girl}.webp`;
     $('scenePet').src = BW.friends.cutout(store.data.character).src;
   }
 
   // ---------- games menu ----------
-  // The 12 cards from the design. game: starts that game, open: opens a page, neither: coming soon
+  // The game cards (from the designs). game: starts that game, open: opens a page, neither: coming soon
 
   const TILES = [
     { label: 'Flappy Bunny', img: 'flappy', game: 'flappy' },
     { label: 'Catch the Fish', img: 'catch', game: 'catch' },
     { label: 'Merge the Fish', img: 'merge', game: 'fish' },
+    { label: 'Sushi Shop', img: 'sushi', game: 'sushi' },
+    { label: 'Ramen Shop', img: 'ramen', game: 'ramen' },
+    { label: 'Cake & Sweets', img: 'cake', game: 'cake' },
     { label: 'Match 3', img: 'match3' },
     { label: 'Adventure', img: 'adventure' },
     { label: 'Bubble Pop', img: 'bubble', game: 'bubble' },
@@ -135,9 +145,12 @@
     play.hidden = false;
     over.hidden = true;
     $('hint').textContent = g.hint;
+    // the shops have a painted ≡ button for pausing, so the round home button stays out of the way
+    $('backBtn').hidden = !!g.ownPause;
     game = BW.games[g.id].start($('gameCanvas'), {
       character: store.data.character,
       getBest: () => store.best(g.id),
+      pause: pauseGame,
       onGameOver
     });
   }
@@ -176,6 +189,10 @@
       title: 'Choose Your Girl', header: 'header-girl', groups: ['girls'],
       tabs: [['all', 'All'], ['casual', 'Casual'], ['cozy', 'Cozy'], ['elegant', 'Elegant'], ['school', 'School'], ['fantasy', 'Fantasy']]
     },
+    guys: {
+      title: 'Choose Your Guy', header: 'header-guy', sign: 'Choose Your Guy', groups: ['guys'],
+      tabs: [['all', 'All'], ['casual', 'Casual'], ['cozy', 'Cozy'], ['school', 'School']]
+    },
     animals: {
       title: 'Choose Your Friend', header: 'header-friend', groups: ['animals', 'sea'],
       tabs: [['all', 'All'], ['mammals', 'Mammals'], ['birds', 'Birds'], ['reptiles', 'Reptiles'], ['sea', 'Sea Friends'], ['others', 'Others']]
@@ -189,6 +206,7 @@
     const c = CHOOSE[chooseMode];
     $('chooseHeader').src = `img/choose/${c.header}.webp`;
     $('chooseTitle').textContent = c.title;
+    $('chooseSign').textContent = c.sign || '';
     document.querySelectorAll('.choose-switch button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.mode === chooseMode)));
     cancelAnimationFrame(heroRaf);
     hub.hidden = true;
@@ -213,7 +231,7 @@
   }
 
   function isChosen(f) {
-    return f.group === 'girls' ? store.data.girl === f.id : store.data.character === f.id;
+    return BW.friends.isPerson(f.id) ? store.data.girl === f.id : store.data.character === f.id;
   }
 
   function renderTabs() {
@@ -239,7 +257,7 @@
       const owned = store.owns(f.id);
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = 'cubby' + (owned ? '' : ' locked') + (isChosen(f) ? ' chosen' : '') + (f.group === 'girls' ? ' girl' : '') + (BW.friends.hasBody(f.id) ? ' body' : '');
+      b.className = 'cubby' + (owned ? '' : ' locked') + (isChosen(f) ? ' chosen' : '') + (f.group === 'girls' ? ' girl' : f.group === 'guys' ? ' guy' : '') + (BW.friends.hasBody(f.id) ? ' body' : '');
       b.setAttribute('aria-label', f.name + (isChosen(f) ? ', chosen' : owned ? '' : `, ${f.price} stars`));
       b.innerHTML = `<img src="${BW.friends.img(f.id)}" alt="">`
         + (owned ? '' : `<span class="price">${icon('i-coin')}${f.price}</span>`)
@@ -255,15 +273,16 @@
     const owned = store.owns(f.id), stars = store.data.coins;
     $('pickImg').src = BW.friends.img(f.id);
     $('pickImg').classList.toggle('body', BW.friends.hasBody(f.id));
+    $('pickImg').classList.toggle('guy', f.group === 'guys');
     $('pickName').textContent = f.name;
     const main = $('pickMain');
     main.className = 'pick-main';
     if (isChosen(f)) {
-      $('pickNote').textContent = f.group === 'girls' ? 'This is you!' : 'Already playing with you';
+      $('pickNote').textContent = BW.friends.isPerson(f.id) ? 'This is you!' : 'Already playing with you';
       main.textContent = 'Chosen ♥';
       main.classList.add('done');
     } else if (owned) {
-      $('pickNote').textContent = f.group === 'girls' ? 'Be this girl?' : 'Take this friend along?';
+      $('pickNote').textContent = f.group === 'girls' ? 'Be this girl?' : f.group === 'guys' ? 'Be this guy?' : 'Take this friend along?';
       main.textContent = 'Choose';
     } else {
       $('pickNote').innerHTML = `You have ${icon('i-coin')} ${stars.toLocaleString('en-US')}`;
@@ -290,7 +309,7 @@
       store.buyFriend(f.id, f.price);
       toast(`${f.name} unlocked!`);
     } else {
-      toast(f.group === 'girls' ? `Hi ${f.name}!` : `${f.name} is with you now!`);
+      toast(BW.friends.isPerson(f.id) ? `Hi ${f.name}!` : `${f.name} is with you now!`);
     }
     pickFriend(f.id);
     closePick();
@@ -487,7 +506,7 @@
   $('pauseHome').addEventListener('click', goHome);
   $('homeBtn').addEventListener('click', goHome);
   $('againBtn').addEventListener('click', playAgain);
-  $('shopNav').addEventListener('click', () => openShop('girls'));
+  $('shopNav').addEventListener('click', () => openShop(store.data.girl.startsWith('guy-') ? 'guys' : 'girls'));
   document.querySelectorAll('.choose-switch button').forEach(b => b.addEventListener('click', () => openShop(b.dataset.mode)));
   $('shopBack').addEventListener('click', closeShop);
   $('pickMain').addEventListener('click', pickMain);
