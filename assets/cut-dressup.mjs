@@ -262,3 +262,59 @@ if (process.argv.includes('check')) {
   }
   console.log('cut', Object.keys(UI).length, 'buttons');
 }
+
+// 7. the doll's long hair below her chin → hair-front.webp (same size as doll.webp), drawn over
+//    the dress so her hair falls in front of her shoulders instead of looking chopped off
+{
+  const { data: D, info: I } = await sharp(OUT + 'doll.webp').ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const W = I.width, H = I.height, out = Buffer.alloc(W * H * 4);
+  const hair = (x, y) => {
+    const k = (y * W + x) * 4, [r, g, b, a] = [D[k], D[k + 1], D[k + 2], D[k + 3]];
+    const l = 0.299 * r + 0.587 * g + 0.114 * b;
+    return a > 0 && l > 62 && l < 165 && r >= g && g >= b - 4 && r - b > 18;   // warm brown: not the dark outlines, skin or white
+  };
+  const CHIN = 236, FOOT = 560;
+  // real hair is a big area of brown; outlines are thin lines. So keep brown pixels whose
+  // neighbourhood is mostly brown, then grow back 3 pixels over brown and dark outline.
+  const isHair = new Uint8Array(W * H);
+  for (let y = CHIN; y < FOOT; y++) for (let x = 0; x < W; x++) isHair[y * W + x] = hair(x, y) ? 1 : 0;
+  let core = new Uint8Array(W * H);
+  for (let y = CHIN + 3; y < FOOT - 3; y++) for (let x = 3; x < W - 3; x++) {
+    let n = 0;
+    for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) n += isHair[(y + dy) * W + x + dx];
+    if (n >= 34) core[y * W + x] = 1;
+  }
+  for (let k = 0; k < 4; k++) {
+    const next = core.slice();
+    for (let y = CHIN; y < FOOT; y++) for (let x = 1; x < W - 1; x++) {
+      const i = y * W + x;
+      if (core[i]) continue;
+      const kk = i * 4, l = 0.299 * D[kk] + 0.587 * D[kk + 1] + 0.114 * D[kk + 2];
+      if (!(isHair[i] || (D[kk + 3] > 0 && l < 110))) continue;
+      if (core[i - 1] || core[i + 1] || core[i - W] || core[i + W]) next[i] = 1;
+    }
+    core = next;
+  }
+  for (let y = CHIN; y < FOOT; y++) for (let x = 0; x < W; x++) {
+    if (!core[y * W + x]) continue;
+    const k = (y * W + x) * 4;
+    out[k] = D[k]; out[k + 1] = D[k + 1]; out[k + 2] = D[k + 2];
+    // fade in just under the chin so there's no hard line
+    out[k + 3] = Math.round(D[k + 3] * Math.min(1, (y - CHIN) / 14));
+  }
+  // drop tiny specks (bits of brown in the camisole bow etc.)
+  const N = W * H, lab = new Int32Array(N).fill(-1), q = new Int32Array(N);
+  for (let s0 = 0; s0 < N; s0++) {
+    if (!out[s0 * 4 + 3] || lab[s0] >= 0) continue;
+    let h = 0, t = 0; q[t++] = s0; lab[s0] = 1;
+    while (h < t) {
+      const i = q[h++], x = i % W;
+      for (const j of [x > 0 ? i - 1 : -1, x < W - 1 ? i + 1 : -1, i >= W ? i - W : -1, i < N - W ? i + W : -1]) {
+        if (j >= 0 && out[j * 4 + 3] && lab[j] < 0) { lab[j] = 1; q[t++] = j; }
+      }
+    }
+    if (t < 400) for (let n = 0; n < t; n++) out[q[n] * 4 + 3] = 0;
+  }
+  await sharp(out, { raw: { width: W, height: H, channels: 4 } }).webp({ quality: 92, alphaQuality: 100 }).toFile(OUT + 'hair-front.webp');
+  console.log('hair in front done');
+}

@@ -96,22 +96,31 @@ BW.dressup = (() => {
     const ctx = c.getContext('2d');
     ctx.drawImage(body, ox, 0);
     if (look && look.dress) {
-      const [dress, arm, sl] = await Promise.all([pic(`img/dressup/dress/${look.dress}.webp`), pic('img/dressup/arm.webp'), sleeveData()]);
+      const [dress, arm, sl, hair] = await Promise.all([pic(`img/dressup/dress/${look.dress}.webp`), pic('img/dressup/arm.webp'), sleeveData(), pic('img/dressup/hair-front.webp')]);
       if (dress) {
         const dh = h * 0.4225, dw = dh * dress.naturalWidth / dress.naturalHeight, dx = W / 2 - dw / 2, dy = h * 0.352;
         const s = sl[look.dress - 1];
-        if (arm && s) {
-          // full arms: her arm coming out of each sleeve (mirrored for the left one)
+        // her arms coming out of each sleeve (mirrored for the left one). belowSleeve draws the
+        // arm again from the sleeve's hem down, over the dress and her hair, so the whole arm
+        // and hand always show
+        const arms = belowSleeve => {
+          if (!arm || !s) return;
           const ah = h * 0.26, aw = ah * arm.naturalWidth / arm.naturalHeight;
           [[s.left, -1], [s.right, 1]].forEach(([p, flip]) => {
+            const top = dy + p[1] * dh - ah * 0.45;
             ctx.save();
-            ctx.translate(dx + p[0] * dw, dy + p[1] * dh - ah * 0.45);
+            if (belowSleeve) { ctx.beginPath(); ctx.rect(0, dy + p[1] * dh + 2, W, h); ctx.clip(); }
+            ctx.translate(dx + p[0] * dw, top);
             ctx.scale(flip, 1);
             ctx.drawImage(arm, -aw / 2, 0, aw, ah);
             ctx.restore();
           });
-        }
+        };
+        arms(false);
         ctx.drawImage(dress, dx, dy, dw, dh);
+        // her long hair falls in front of the dress's shoulders
+        if (hair) ctx.drawImage(hair, ox, 0);
+        arms(true);
       }
     }
     if (look) {
@@ -226,8 +235,8 @@ BW.dressup = (() => {
     box.appendChild(c);
   }
 
-  // (Accessories were taken out at Aiman's request; ACCS stays for later)
-  const TABS = [['dress', 'Dress'], ['hair', 'Hair'], ['makeup', 'Makeup'], ['background', 'Background']];
+  // (Accessories and Hair were taken out at Aiman's request; ACCS stays for later)
+  const TABS = [['dress', 'Dress'], ['makeup', 'Makeup'], ['background', 'Background']];
   function renderTabs() {
     document.querySelectorAll('.dress-side button[data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
     $('dressPanelTitle').textContent = TABS.find(t => t[0] === tab)[1];
