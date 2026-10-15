@@ -156,12 +156,14 @@ BW.games.memory = (() => {
       const c = cardAt(x, y);
       if (!c || c.up || c.matched) return;
       c.up = true;
+      BW.sound.play('tap');
       open.push(c);
       if (open.length < 2) return;
       const [a, b] = open;
       if (a.face !== b.face) { peek = PEEK; return; }
       a.matched = b.matched = true;
       a.pop = b.pop = 1;
+      BW.sound.play('coin');
       open = [];
       score++;
       [a, b].forEach(c2 => fx.add(c2.x + CW / 2, c2.y + CH / 2, '#FF7FAF', 8));

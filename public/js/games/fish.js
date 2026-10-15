@@ -106,6 +106,7 @@ BW.games.fish = (() => {
       f.pop = 1;
       if (f.type === LAST) f.speed *= 0.6;
       merges++;
+      BW.sound.play('merge');
       score += POINTS[f.type];
       fx.add(f.x, drawY(f), '#FFFFFF', 10, 150);
       fx.label(f.x, drawY(f) - 34, '+' + POINTS[f.type]);

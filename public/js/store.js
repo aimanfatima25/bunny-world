@@ -56,6 +56,8 @@ BW.store = (() => {
     setName(name) { data.playerName = name; save(); },
     // the ID card's extra lines
     setProfile(birthday, skill) { data.birthday = birthday; data.skill = skill; save(); },
+    // the Settings switches: { sfx, music }
+    setSound(sound) { data.sound = { sfx: sound.sfx, music: sound.music }; save(); },
     // A random id for this device, so the leaderboard keeps one best score per player
     playerId() {
       if (!data.playerId) {

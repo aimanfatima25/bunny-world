@@ -28,6 +28,8 @@
     }))
   ];
   const MEDAL_BONUS = [10, 25, 50];
+  // background music in games (the others just have their sound effects)
+  const MUSIC = { bubble: 'bubble', sushi: 'cook', ramen: 'cook', cake: 'cook' };
   const GIFT_COINS = 50;
   const HUB_HINT = 'Tap a game to play';
 
@@ -109,10 +111,9 @@
     { label: 'Sushi Shop', img: 'sushi', game: 'sushi' },
     { label: 'Ramen Shop', img: 'ramen', game: 'ramen' },
     { label: 'Cake & Sweets', img: 'cake', game: 'cake' },
-    { label: 'Match 3', img: 'match3' },
     { label: 'Adventure', img: 'adventure' },
     { label: 'Bubble Pop', img: 'bubble', game: 'bubble' },
-    { label: 'Memory', img: 'memory', game: 'memory' },
+    { label: 'Memory', img: 'match3', game: 'memory' },   // Match 3 and Memory were the same game
     { label: 'Decorate Room', img: 'room' },
     { label: 'Dress Up', img: 'dressup' },
     { label: 'Garden', img: 'garden' }
@@ -145,6 +146,8 @@
     play.hidden = false;
     over.hidden = true;
     $('hint').textContent = g.hint;
+    BW.sound.play('click');
+    BW.sound.music(MUSIC[g.id] || null);
     // the shops have a painted ≡ button for pausing, so the round home button stays out of the way
     $('backBtn').hidden = !!g.ownPause;
     game = BW.games[g.id].start($('gameCanvas'), {
@@ -160,6 +163,7 @@
     if (!game) return;
     if (!over.hidden) { goHome(); return; }
     BW.kit.paused = true;
+    BW.sound.loop('boil', false); BW.sound.loop('bake', false);
     $('pause').hidden = false;
     $('resumeBtn').focus();
   }
@@ -171,6 +175,9 @@
 
   function goHome() {
     resumeGame();
+    BW.sound.music('home');
+    BW.sound.loop('boil', false);
+    BW.sound.loop('bake', false);
     if (game) game.stop();
     game = null;
     current = null;
@@ -307,6 +314,7 @@
         return;
       }
       store.buyFriend(f.id, f.price);
+      BW.sound.play('coin');
       toast(`${f.name} unlocked!`);
     } else {
       toast(BW.friends.isPerson(f.id) ? `Hi ${f.name}!` : `${f.name} is with you now!`);
@@ -424,6 +432,7 @@
     g.medals.forEach((need, i) => { if (score >= need) level = i; });
     const earned = g.stars ? g.stars(info || {}) : Math.floor(score * g.coinRate) + (level >= 0 ? MEDAL_BONUS[level] : 0);
     store.addCoins(earned);
+    BW.sound.play('over');
 
     $('overTitle').textContent = g.overTitle;
     $('score').textContent = score;
@@ -464,6 +473,7 @@
     store.addCoins(GIFT_COINS);
     $('giftAmount').textContent = GIFT_COINS;
     $('giftPopup').hidden = false;
+    BW.sound.play('sparkle');
     $('giftOk').focus();
     showGift();
   }
@@ -576,7 +586,17 @@
   $('starPlus').addEventListener('click', () => toast('Play games to earn more stars!'));
   $('heartPlus').addEventListener('click', () => toast('Hearts are coming soon!'));
   $('mailBtn').addEventListener('click', () => toast('No new messages'));
-  $('settingsBtn').addEventListener('click', () => toast('Settings are coming soon!'));
+  $('settingsBtn').addEventListener('click', () => {
+    $('sfxOn').checked = BW.sound.on.sfx;
+    $('musicOn').checked = BW.sound.on.music;
+    $('settingsPopup').hidden = false;
+  });
+  const soundSwitch = () => BW.sound.setOn($('sfxOn').checked, $('musicOn').checked);
+  $('sfxOn').addEventListener('change', () => { soundSwitch(); BW.sound.play('click'); });
+  $('musicOn').addEventListener('change', soundSwitch);
+  $('settingsOk').addEventListener('click', () => { $('settingsPopup').hidden = true; });
+  $('settingsPopup').addEventListener('click', e => { if (e.target === $('settingsPopup')) $('settingsPopup').hidden = true; });
+  BW.sound.music('home');
 
   resizeAll();
   renderGames();

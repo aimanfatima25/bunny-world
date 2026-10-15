@@ -102,6 +102,7 @@ BW.cook = (() => {
         const c = ordered().find(c => sameSet(tray, wants(c)));
         if (!c) {
           shake = 0.35;
+          BW.sound.play('wrong');
           say('Oops! Check the recipe', TRAY[0] + TRAY[2] / 2, TRAY[1] - 8);
           tray = []; trayAt = [];
           return;
@@ -115,6 +116,7 @@ BW.cook = (() => {
         const id = orderable.find(d => sameSet(tray, shop.dishes[d].needs));
         if (!id) {
           shake = 0.35;
+          BW.sound.play('wrong');
           say("That's not a recipe!", TRAY[0] + TRAY[2] / 2, TRAY[1] - 8);
           tray = []; trayAt = [];
           return;
@@ -122,11 +124,13 @@ BW.cook = (() => {
         const free = pans.indexOf(null);
         if (free < 0) { say('The oven is full', 120, STATION[1] - 6); return; }
         pans[free] = { id, time: 0 };
+        BW.sound.play('plop');
         tray = []; trayAt = [];
         say('Into the oven!', PANS[free][0] + PANS[free][2] / 2, PANS[free][1]);
       }
 
       function thank(c) {
+        BW.sound.play('serve');
         served++;
         c.leaving = 0.01;
         c.happy = true;
@@ -151,11 +155,12 @@ BW.cook = (() => {
           const free = pans.indexOf(null);
           if (free < 0) { say(`The ${shop.station.name.toLowerCase()} is full`, 120, STATION[1] - 6); return; }
           pans[free] = { id, time: 0 };
+          BW.sound.play('plop');
           return;
         }
         const i = tray.indexOf(id);
         if (i >= 0) { tray.splice(i, 1); trayAt.splice(i, 1); }   // tap again to take it off
-        else addToTray(id);
+        else if (addToTray(id)) BW.sound.play(shop.bake ? 'mix' : 'chop');
       }
 
       function tapPan(i) {
@@ -184,7 +189,7 @@ BW.cook = (() => {
       function tapFront(x, y) {
         const ui = shop.ui, at = r => within(g(r), x, y);
         if (at(ui.recipes)) { book = true; return; }
-        if (at(ui.start)) { mode = 'play'; spawnIn = 0.3; return; }
+        if (at(ui.start)) { mode = 'play'; spawnIn = 0.3; BW.sound.play('click'); return; }
         for (const k of ['upgrade', 'shop', 'trophies', 'decor', 'stats', 'map']) {
           if (at(ui[k])) {
             const r = g(ui[k]);
@@ -219,13 +224,14 @@ BW.cook = (() => {
         if (tip) { tip.life -= dt; if (tip.life <= 0) tip = null; }
         if (mode !== 'play' || book) return;
 
+        BW.sound.loop(shop.bake ? 'bake' : 'boil', pans.some(p => p && p.time < cookTime));
         pans.forEach((p, i) => {
           if (!p) return;
           const before = p.time;
           p.time += dt;
           const box = PANS[i];
-          if (before < cookTime && p.time >= cookTime) fx.add(box[0] + box[2] / 2, box[1] + 34, '#FFFFFF', 8, 90);
-          if (before < cookTime + BURN_TIME && p.time >= cookTime + BURN_TIME) { say('Burnt!', box[0] + box[2] / 2, box[1]); shake = 0.2; }
+          if (before < cookTime && p.time >= cookTime) { fx.add(box[0] + box[2] / 2, box[1] + 34, '#FFFFFF', 8, 90); BW.sound.play('ding'); }
+          if (before < cookTime + BURN_TIME && p.time >= cookTime + BURN_TIME) { say('Burnt!', box[0] + box[2] / 2, box[1]); shake = 0.2; BW.sound.play('burn'); }
         });
 
         customers.forEach(c => {
@@ -253,6 +259,7 @@ BW.cook = (() => {
         if (timeLeft <= 0 || lives <= 0) {
           timeLeft = Math.max(0, timeLeft);
           mode = 'over';
+          BW.sound.loop('boil', false); BW.sound.loop('bake', false);
           options.onGameOver(served, { served });
         }
       }
@@ -661,7 +668,7 @@ BW.cook = (() => {
       });
       return {
         restart() { reset(); mode = 'play'; },
-        stop: engine.stop
+        stop() { BW.sound.loop('boil', false); BW.sound.loop('bake', false); engine.stop(); }
       };
     }
 

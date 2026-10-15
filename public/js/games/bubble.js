@@ -88,6 +88,7 @@ BW.games.bubble = (() => {
     function fire() {
       if (state !== 'play' || shot) return;
       shot = { x: SHOOT_X, y: SHOOT_Y, vx: Math.cos(aim) * SPEED, vy: Math.sin(aim) * SPEED, color: next[0] };
+      BW.sound.play('shoot');
       next = [next[1], nextColor()];
     }
 
@@ -128,6 +129,8 @@ BW.games.bubble = (() => {
           fx.add(cellX(a, d), cellY(a), '#FFFFFF', 3, 90);
         });
         score += group.length * 10;
+        // a little run of pops, one after another
+        group.slice(0, 6).forEach((g, i) => setTimeout(() => BW.sound.play('pop'), i * 55));
         fx.label(cellX(r, c), cellY(r) - 20, '+' + group.length * 10);
         dropLoose();
       } else {

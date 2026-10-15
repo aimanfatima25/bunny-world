@@ -73,6 +73,7 @@ BW.games.catch = (() => {
       aimNet(x, y);
       if (state === 'ready') { state = 'play'; return; }
       net.scoop = 0.35;
+      BW.sound.play('splash');
       x = net.x; y = net.y;
       // the closest fish under the net gets caught
       let best = null, bestD = 40 * 40;
@@ -86,6 +87,7 @@ BW.games.catch = (() => {
         // wrong catch: it wriggles away and you lose a heart
         best.caught = 0.01;
         lives--;
+        BW.sound.play('wrong');
         shake = best.danger ? 0.5 : 0.35;
         fx.label(best.x, by - 32, best.danger ? 'Ouch! -♥' : 'Prickly! -♥');
         fx.add(best.x, by, '#F28C8C', 14, 180);
@@ -95,6 +97,7 @@ BW.games.catch = (() => {
       // a good catch flies into the bucket
       fish = fish.filter(f => f !== best);
       flying.push({ id: best.id, x: best.x, y: by, dir: best.dir, size: best.size, p: 0 });
+      BW.sound.play('catch');
       const pts = best.id === 'koi' ? 5 : 1;
       score += pts;
       caught++;

@@ -63,10 +63,12 @@ BW.games.flappy = (() => {
       if (state === 'over') return;
       if (state === 'ready') begin();
       bunny.vy = -420;
+      BW.sound.play('hop');
     }
 
     // picking how to play; camera and tilt ask for permission first
     async function choose(kind) {
+      BW.sound.play('click');
       if (kind === 'tap') { control = 'tap'; state = 'ready'; return; }
       state = 'loading';
       message = kind === 'tilt' ? 'Getting the tilt sensor...' : 'Starting the camera...';
@@ -88,6 +90,7 @@ BW.games.flappy = (() => {
 
     function end() {
       state = 'over';
+      BW.sound.play('bonk');
       flash = 1;
       options.onGameOver(score);
     }
@@ -127,7 +130,7 @@ BW.games.flappy = (() => {
       far += v * 0.25 * dt;
       pillars.forEach(p => {
         p.x -= v * dt;
-        if (!p.passed && p.x + PILLAR_W < bunny.x) { p.passed = true; score++; }
+        if (!p.passed && p.x + PILLAR_W < bunny.x) { p.passed = true; score++; BW.sound.play('score'); }
       });
       if (pillars.length && pillars[pillars.length - 1].x < W - SPACING) addPillar(W + 10);
       pillars = pillars.filter(p => p.x > -PILLAR_W - 20);

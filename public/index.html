@@ -260,6 +260,16 @@
         </div>
       </div>
 
+      <!-- Settings: sound on / off -->
+      <div class="panel dim" id="settingsPopup" hidden>
+        <div class="card settings-card">
+          <h2>Settings</h2>
+          <label class="switch-row"><span>Sound effects</span><input type="checkbox" id="sfxOn"><i></i></label>
+          <label class="switch-row"><span>Music</span><input type="checkbox" id="musicOn"><i></i></label>
+          <button class="btn" id="settingsOk" type="button">Done</button>
+        </div>
+      </div>
+
       <!-- Your ID card (tap your picture at the top left) -->
       <div class="panel dim" id="idPopup" hidden>
         <form class="id-wrap" id="idForm" autocomplete="off">
@@ -296,6 +306,7 @@
   <div class="hint" id="hint"></div>
 
   <script src="js/store.js"></script>
+  <script src="js/sound.js"></script>
   <script src="js/friends.js"></script>
   <script src="js/characters.js"></script>
   <script src="js/fishmaker.js"></script>

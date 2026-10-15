@@ -18,7 +18,6 @@ const pieces = {
   'games/match3.webp': [60, 903, 252, 134],
   'games/adventure.webp': [337, 903, 270, 134],
   'games/bubble.webp': [634, 903, 250, 134],
-  'games/memory.webp': [60, 1103, 252, 136],
   'games/room.webp': [337, 1103, 270, 136],
   'games/dressup.webp': [634, 1103, 250, 136],
   'games/garden.webp': [60, 1305, 252, 136],
