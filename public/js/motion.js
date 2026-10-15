@@ -1,11 +1,11 @@
-// Motion controls for Flappy Bunny: follow your hand or your eyes with the front camera,
-// or the tilt of your phone. Each control gives a number from 0 (top of the screen) to 1
+// Motion controls for Flappy Bunny: follow your hand with the front camera, or the tilt of
+// your phone. Each control gives a number from 0 (top of the screen) to 1
 // (bottom), which the bunny flies towards.
-//   const c = await BW.motion.start('hand' | 'eyes' | 'tilt')
-//   c.value  where to fly, 0..1      c.seen  true while the hand / face is found
-//   c.video  the camera picture (hand / eyes), c.point the tracked spot in it, c.stop()
-// Hand and eye tracking use Google's MediaPipe (public/vendor/mediapipe), loaded only when
-// someone picks them. Throws an Error with a friendly message if it can't start.
+//   const c = await BW.motion.start('hand' | 'tilt')
+//   c.value  where to fly, 0..1      c.seen  true while the hand is found
+//   c.video  the camera picture (hand), c.point the tracked spot in it, c.stop()
+// Hand tracking uses Google's MediaPipe (public/vendor/mediapipe), loaded only when
+// someone picks it. Throws an Error with a friendly message if it can't start.
 window.BW = window.BW || {};
 
 BW.motion = (() => {
@@ -19,15 +19,10 @@ BW.motion = (() => {
     if (trackers[kind]) return trackers[kind];
     lib = lib || await import(BASE + 'vision_bundle.mjs');
     const fileset = { wasmLoaderPath: BASE + 'wasm/vision_wasm_internal.js', wasmBinaryPath: BASE + 'wasm/vision_wasm_internal.wasm' };
-    const make = delegate => kind === 'hand'
-      ? lib.HandLandmarker.createFromOptions(fileset, {
-        baseOptions: { modelAssetPath: BASE + 'models/hand_landmarker.task', delegate },
-        runningMode: 'VIDEO', numHands: 1
-      })
-      : lib.FaceLandmarker.createFromOptions(fileset, {
-        baseOptions: { modelAssetPath: BASE + 'models/face_landmarker.task', delegate },
-        runningMode: 'VIDEO', numFaces: 1, outputFaceBlendshapes: true
-      });
+    const make = delegate => lib.HandLandmarker.createFromOptions(fileset, {
+      baseOptions: { modelAssetPath: BASE + 'models/hand_landmarker.task', delegate },
+      runningMode: 'VIDEO', numHands: 1
+    });
     // the phone's graphics chip is fastest; fall back to the processor if it isn't allowed
     try { trackers[kind] = await make('GPU'); } catch (e) { trackers[kind] = await make('CPU'); }
     return trackers[kind];
@@ -53,39 +48,20 @@ BW.motion = (() => {
     }
 
     const c = { kind, video, value: 0.5, seen: false, point: null, stopped: false };
-    // eyes: where you look plus a little of where your head points, measured from where
-    // you looked when the game started (c.calibrate() sets that middle)
-    let middle = null, lastTime = -1, raf = 0, raw = 0;
-    c.calibrate = () => { middle = raw; };
+    let lastTime = -1, raf = 0;
 
     function loop() {
       if (c.stopped) return;
       if (video.readyState >= 2 && video.currentTime !== lastTime) {
         lastTime = video.currentTime;
         const r = lm.detectForVideo(video, performance.now());
-        if (kind === 'hand') {
-          const h = r.landmarks && r.landmarks[0];
-          c.seen = !!h;
-          if (h) {
-            // the middle of the palm; the camera's top is the screen's top
-            const y = (h[0].y + h[9].y) / 2;
-            c.point = { x: 1 - h[9].x, y };
-            c.value = clamp((y - 0.18) / 0.62);
-          }
-        } else {
-          const face = r.faceLandmarks && r.faceLandmarks[0];
-          const shapes = r.faceBlendshapes && r.faceBlendshapes[0];
-          c.seen = !!(face && shapes);
-          if (c.seen) {
-            const s = {};
-            shapes.categories.forEach(k => { s[k.categoryName] = k.score; });
-            const look = (s.eyeLookDownLeft + s.eyeLookDownRight - s.eyeLookUpLeft - s.eyeLookUpRight) / 2;
-            const nose = face[1].y;
-            raw = look * 0.9 + nose * 2.2;
-            if (middle === null) middle = raw;
-            c.point = { x: 1 - face[1].x, y: face[1].y };
-            c.value = clamp(0.5 + (raw - middle) * 1.6);
-          }
+        const h = r.landmarks && r.landmarks[0];
+        c.seen = !!h;
+        if (h) {
+          // the middle of the palm; the camera's top is the screen's top
+          const y = (h[0].y + h[9].y) / 2;
+          c.point = { x: 1 - h[9].x, y };
+          c.value = clamp((y - 0.18) / 0.62);
         }
       }
       raf = requestAnimationFrame(loop);

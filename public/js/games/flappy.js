@@ -1,6 +1,6 @@
 // Flappy Bunny: hop through the carrot pillars.
 // When it opens it asks how you want to play: tap to hop, or (motion.js) let the bunny
-// follow your hand or your eyes on the front camera, or the tilt of your phone. With a
+// follow your hand on the front camera, or the tilt of your phone. With a
 // motion control there's no gravity: the bunny flies to where you point it.
 // Every game has the same shape: start(canvas, options) returns { restart, stop }.
 //   options.character   which friend to draw
@@ -17,13 +17,15 @@ BW.games.flappy = (() => {
     const ctx = canvas.getContext('2d');
     let state, bunny, pillars, score, groundX, clouds, flash;
     let t = 0, raf = 0, last = performance.now();
-    // how you play: null (not picked yet), 'tap', 'hand', 'eyes' or 'tilt'
+    // how you play: null (not picked yet), 'tap', 'hand' or 'tilt'
     let control = null, motion = null, message = '', seenFor = 0, lostFor = 0, aim = 0.5;
     const TOP_Y = 40, LOW_Y = GROUND - 30;     // where a motion-controlled bunny can fly
 
     // the choices on the first screen: [control, label, little picture]
     const CHOICES = [['tap', 'Tap to hop', '👆']];
-    if (BW.motion && BW.motion.can.camera) CHOICES.push(['hand', 'Hand wave', '✋'], ['eyes', 'Eye motion', '👀']);
+    if (BW.motion && BW.motion.can.camera) CHOICES.push(['hand', 'Hand wave', '✋']);
+    // chicks already have little wings of their own
+    const OWN_WINGS = ['chick', 'bow-chick'];
     if (BW.motion && BW.motion.can.tilt) CHOICES.push(['tilt', 'Tilt phone', '📱']);
     const choiceBox = i => [50, 236 + i * 64, 260, 52];
 
@@ -96,10 +98,10 @@ BW.games.flappy = (() => {
       if (state === 'choose' || state === 'loading') { bunny.y = 200 + Math.sin(t * 4) * 8; groundX = (groundX - 90 * dt) % 24; return; }
       if (state === 'ready') {
         bunny.y = 300 + Math.sin(t * 4) * 8; groundX = (groundX - 90 * dt) % 24;
-        // hand / eyes: start once you've been seen for a moment (eyes: that's the middle)
-        if (motion && control !== 'tilt') {
+        // hand: start once it's been seen for a moment
+        if (motion && control === 'hand') {
           seenFor = motion.seen ? seenFor + dt : 0;
-          if (seenFor > 0.8) { if (motion.calibrate) motion.calibrate(); aim = 0.5; begin(); }
+          if (seenFor > 0.8) { aim = 0.5; begin(); }
         }
         return;
       }
@@ -297,7 +299,8 @@ BW.games.flappy = (() => {
         // your animal's own picture, looking the way it flies (right), with the wings on its
         // back: low on the left side, behind the body, away from the face
         const img = BW.friends.cutout(options.character);
-        ctx.save(); ctx.translate(-12, 8); ctx.scale(0.85, 0.85); wing(beat - 0.3); ctx.restore();
+        const wings = !OWN_WINGS.includes(options.character);
+        if (wings) { ctx.save(); ctx.translate(-12, 8); ctx.scale(0.85, 0.85); wing(beat - 0.3); ctx.restore(); }
         if (img.complete && img.naturalWidth) {
           // fit the picture in a 54 x 54 box, whatever its shape
           const k = 54 / Math.max(img.naturalWidth, img.naturalHeight);
@@ -309,7 +312,7 @@ BW.games.flappy = (() => {
           ctx.restore();
           ctx.filter = 'none';
         }
-        ctx.save(); ctx.translate(-14, 12); ctx.scale(0.72, 0.72); wing(beat); ctx.restore();
+        if (wings) { ctx.save(); ctx.translate(-14, 12); ctx.scale(0.72, 0.72); wing(beat); ctx.restore(); }
       }
       ctx.restore();
     }
@@ -371,7 +374,6 @@ BW.games.flappy = (() => {
         const how = {
           tap: ['Tap to hop', ''],
           hand: [motion && motion.seen ? 'Keep your hand up...' : 'Show your hand', 'Move it up and down to fly'],
-          eyes: [motion && motion.seen ? 'Look at the bunny...' : 'Look at the screen', 'Look up and down to fly'],
           tilt: ['Tap to start', 'Tilt your phone to fly']
         }[control];
         text(how[0], W / 2, 400, 26);
@@ -380,7 +382,7 @@ BW.games.flappy = (() => {
         text('Best ' + options.getBest(), W / 2, how[1] ? 470 + (message && control === 'tap' ? 30 : 0) : 440, 20);
       } else if (state === 'play') {
         text(String(score), W / 2, 70, 56);
-        if (motion && lostFor > 0.4) text(control === 'hand' ? "Can't see your hand!" : "Can't see you!", W / 2, 130, 20);
+        if (motion && lostFor > 0.4) text(control === 'hand' ? "Can't see your hand!" : 'Tilt sensor lost', W / 2, 130, 20);
       }
       drawCamera();
       if (flash > 0) { ctx.fillStyle = `rgba(255,255,255,${flash * 0.7})`; ctx.fillRect(0, 0, W, H); }
