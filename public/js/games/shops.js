@@ -1,11 +1,13 @@
 // The three cooking shops, drawn from Aiman's shop designs (img/shops/<id>.webp, 941 x 1671).
 // Every place is a box [x, y, width, height] in the design picture's own pixels:
-//   pic:     the food picture (used on the menu board, bins, tray, bubbles and recipe bar)
+//   pic:     the food picture (used on the menu board, boxes, plate, bubbles and recipe bar)
 //   tap:     where you tap it on the shop picture (the front screen)
 //   wall:    the part of the shop shown behind the customers in the kitchen view
 //   station: the cooking spot cut from the design (rice cooker, stove, mixer)
 //   cook:    ingredients that must cook on the station first ('*' = everything)
-//   plate:   what you build the order on: a sushi 'plate', a ramen 'bowl' or a gift 'box'
+//   plate:   what you build the order in: a sushi 'plate', a ramen 'bowl' or a 'mixing bowl'
+//   art:     a drawn picture (food-art.js) instead of a piece of the design
+//   bake:    Cake & Sweets: mix in the bowl, bake in the oven, then serve straight from the oven
 // cook.js turns each shop into a game (BW.games.sushi / ramen / cake).
 window.BW = window.BW || {};
 
@@ -84,39 +86,35 @@ BW.shops = (() => {
       }
     },
 
-    // Cake & Sweets: customers order 1 to 3 treats; each one is baked at the mixer, then boxed.
+    // Cake & Sweets: mix ingredients in the mixing bowl, bake it in the oven, serve the cake.
+    // The ingredients, oven and cakes are drawn (food-art.js), since the design shows only
+    // finished treats; the front screen is still Aiman's shop picture.
     cake: {
-      id: 'cake', title: 'Cake & Sweets', pill: '#FAE4C4', boxed: true,
-      wall: [130, 150, 680, 461],
-      station: { name: 'Mixer', pic: [596, 590, 104, 100], verb: 'Baking' },
-      cook: '*',
-      plate: 'box',
+      id: 'cake', title: 'Cake & Sweets', pill: '#FAE4C4', bake: true,
       ui: ui({ upgrade: [16, 298, 116, 120], recipes: [16, 432, 116, 122], shop: [16, 568, 116, 124],
         trophies: [812, 312, 116, 122], decor: [812, 437, 116, 122],
         map: [32, 1476, 172, 140], start: [296, 1470, 348, 174], stats: [736, 1476, 172, 140] }),
-      counter: 784,
-      ingredients: {},
+      wall: [130, 150, 680, 461],
+      station: { name: 'Oven', art: 'oven', verb: 'Baking' },
+      cook: [],
+      plate: 'mixing bowl',
+      ingredients: {
+        flour: { name: 'Flour', art: 'flour' },
+        eggs: { name: 'Eggs', art: 'eggs' },
+        sugar: { name: 'Sugar', art: 'sugar' },
+        milk: { name: 'Milk', art: 'milk' },
+        butter: { name: 'Butter', art: 'butter' },
+        chocolate: { name: 'Chocolate', art: 'chocolate' },
+        strawberry: { name: 'Strawberry', art: 'strawberry' },
+        cream: { name: 'Cream', art: 'cream' }
+      },
       dishes: {
-        strawberry: { name: 'Strawberry Cake', pic: [56, 836, 154, 118], tap: [48, 830, 170, 162] },
-        chocolate: { name: 'Chocolate Cake', pic: [228, 830, 154, 124], tap: [220, 824, 170, 168] },
-        vanilla: { name: 'Vanilla Cake', pic: [398, 838, 146, 116], tap: [390, 830, 162, 162] },
-        redvelvet: { name: 'Red Velvet Cake', pic: [562, 840, 150, 114], tap: [556, 832, 166, 160] },
-        oreo: { name: 'Oreo Cake', pic: [734, 842, 158, 112], tap: [728, 834, 172, 158] },
-        cupcakes: { name: 'Cupcakes', pic: [30, 1016, 168, 104], tap: [22, 1008, 186, 152] },
-        tarts: { name: 'Tarts', pic: [222, 1018, 162, 102], tap: [214, 1008, 180, 152] },
-        macarons: { name: 'Macarons', pic: [404, 1022, 136, 98], tap: [394, 1008, 158, 152] },
-        cheesecake: { name: 'Cheesecake', pic: [564, 1018, 150, 102], tap: [556, 1008, 168, 152] },
-        donuts: { name: 'Donuts', pic: [736, 1018, 166, 102], tap: [728, 1008, 182, 152] },
-        cookies: { name: 'Cookies', pic: [26, 1180, 158, 98], tap: [18, 1172, 176, 140] },
-        brownies: { name: 'Brownies', pic: [210, 1180, 160, 98], tap: [202, 1172, 176, 140] },
-        muffins: { name: 'Muffins', pic: [396, 1180, 150, 98], tap: [388, 1172, 166, 140] },
-        profiteroles: { name: 'Profiteroles', pic: [566, 1180, 156, 98], tap: [558, 1172, 172, 140] },
-        pudding: { name: 'Pudding', pic: [748, 1180, 160, 98], tap: [740, 1172, 176, 140] },
-        candy: { name: 'Candy', pic: [52, 1318, 104, 106], tap: [36, 1316, 132, 142] },
-        gummies: { name: 'Gummies', pic: [176, 1318, 108, 106], tap: [166, 1316, 130, 142] },
-        giftbox: { name: 'Gift Box', pic: [340, 1336, 206, 92], tap: [318, 1330, 250, 128] },
-        chocolates: { name: 'Chocolates', pic: [580, 1366, 150, 62], tap: [572, 1340, 166, 118] },
-        lollipops: { name: 'Lollipops', pic: [756, 1316, 140, 114], tap: [740, 1310, 166, 148] }
+        vanilla: { name: 'Vanilla Cake', art: 'vanilla-cake', needs: ['flour', 'eggs', 'sugar', 'milk'] },
+        chocolate: { name: 'Chocolate Cake', art: 'chocolate-cake', needs: ['flour', 'eggs', 'sugar', 'chocolate'] },
+        strawberry: { name: 'Strawberry Cake', art: 'strawberry-cake', needs: ['flour', 'eggs', 'cream', 'strawberry'] },
+        cupcakes: { name: 'Cupcakes', art: 'cupcakes', needs: ['flour', 'eggs', 'butter', 'strawberry'] },
+        cookies: { name: 'Cookies', art: 'cookies', needs: ['flour', 'butter', 'sugar', 'chocolate'] },
+        brownies: { name: 'Brownies', art: 'brownies', needs: ['flour', 'eggs', 'butter', 'chocolate'] }
       }
     }
   };

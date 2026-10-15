@@ -260,6 +260,36 @@
         </div>
       </div>
 
+      <!-- Your ID card (tap your picture at the top left) -->
+      <div class="panel dim" id="idPopup" hidden>
+        <form class="id-wrap" id="idForm" autocomplete="off">
+          <div class="id-card">
+            <div class="id-top">
+              <div class="id-logo"><img id="idPet" alt=""></div>
+              <span class="id-tag">ID-CARD</span>
+              <span class="id-number" id="idNumber">BW-000000</span>
+            </div>
+            <div class="id-dots" aria-hidden="true">
+              <span><img src="img/ui/star.webp" alt=""></span>
+              <span><img src="img/ui/heart.webp" alt=""></span>
+              <span><b id="idStars">0</b></span>
+            </div>
+            <label class="id-line"><span>name:</span><input id="idName" maxlength="12" placeholder="your name"></label>
+            <label class="id-line small"><span>date_of_birth:</span><input id="idBirth" maxlength="10" placeholder="dd / mm / yyyy"></label>
+            <label class="id-line"><span>skill:</span><input id="idSkill" maxlength="16" placeholder="baking cakes"></label>
+            <div class="id-bottom"><div class="id-barcode" id="idBarcode" aria-hidden="true"></div></div>
+            <div class="id-photo">
+              <i class="c tl"></i><i class="c br"></i>
+              <img id="idPhoto" alt="">
+            </div>
+          </div>
+          <div class="buttons">
+            <button class="btn ghost" id="idClose" type="button">Close</button>
+            <button class="btn" id="idSave" type="submit">Save</button>
+          </div>
+        </form>
+      </div>
+
       <div class="toast" id="toast" role="status" hidden></div>
     </div>
   </div>
@@ -277,6 +307,7 @@
   <script src="js/games/catch.js"></script>
   <script src="js/games/memory.js"></script>
   <script src="js/games/bubble.js"></script>
+  <script src="js/games/food-art.js"></script>
   <script src="js/games/shops.js"></script>
   <script src="js/games/cook.js"></script>
   <script src="js/aquarium.js"></script>

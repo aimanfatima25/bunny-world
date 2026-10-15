@@ -24,7 +24,7 @@
     ...[['sushi', 'Sushi Shop', 'sushi'], ['ramen', 'Ramen Shop', 'bowl'], ['cake', 'Cake & Sweets', 'cake']].map(([id, name, medal]) => ({
       id, name, overTitle: 'Shop closed!', medal, medals: [4, 9, 15], ownPause: true,
       stars: info => Math.floor(info.served / 3) * 2,
-      hint: id === 'cake' ? 'Bake the treats they want, box them, tap the tray' : 'Cook, add the toppings, then tap the tray to serve'
+      hint: id === 'cake' ? 'Mix the recipe in the bowl, bake it, serve the cake' : 'Cook, add the toppings, then tap the plate to serve'
     }))
   ];
   const MEDAL_BONUS = [10, 25, 50];
@@ -473,6 +473,50 @@
     showCoins();
   }
 
+  // ---------- ID card ----------
+  // Your picture, name, birthday and skill on a pink ID card. The name is also your
+  // Top 10 name; the ID number comes from this device's player id.
+
+  const cleanName = v => v.replace(/[^\p{L}\p{N} ]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 12);
+
+  function openId() {
+    const d = store.data, me = BW.friends.get(d.girl);
+    const id = store.playerId().replace(/[^a-z0-9]/g, '').slice(0, 6).toUpperCase();
+    $('idNumber').textContent = `BW-${id}`;
+    $('idPhoto').src = BW.friends.img(d.girl);
+    $('idPhoto').classList.toggle('guy', d.girl.startsWith('guy-'));
+    $('idPet').src = BW.friends.cutout(d.character).src;
+    $('idStars').textContent = d.coins > 999 ? Math.floor(d.coins / 1000) + 'k' : d.coins;
+    $('idName').value = d.playerName || '';
+    $('idName').placeholder = me ? me.name : 'your name';
+    $('idBirth').value = d.birthday || '';
+    $('idSkill').value = d.skill || '';
+    // a barcode made from the ID: thin and thick bars
+    const bars = $('idBarcode');
+    bars.innerHTML = '';
+    [...(id + id.split('').reverse().join(''))].forEach(ch => {
+      const n = parseInt(ch, 36);
+      [1 + (n % 3), 1 + ((n >> 2) % 2)].forEach(w => { const b = document.createElement('i'); b.style.width = w + 'px'; bars.appendChild(b); });
+    });
+    $('idPopup').hidden = false;
+  }
+
+  function closeId() { $('idPopup').hidden = true; }
+
+  function saveId(e) {
+    e.preventDefault();
+    const name = cleanName($('idName').value);
+    const birth = $('idBirth').value.replace(/[^0-9/ .-]/g, '').trim().slice(0, 14);
+    const skill = $('idSkill').value.replace(/[<>]/g, '').trim().slice(0, 16);
+    if (name && name !== store.data.playerName) {
+      store.setName(name);
+      Promise.all(GAMES.map(g => BW.leaderboard.submit(g.id, store.best(g.id))));
+    }
+    store.setProfile(birth, skill);
+    closeId();
+    toast(name ? `Saved! Hi ${name} ♥` : 'Saved!');
+  }
+
   // ---------- wiring ----------
 
   function resizeAll() {
@@ -486,6 +530,7 @@
     if (aquarium && e.code === 'Escape') { closeAquarium(); return; }
     if (!$('shop').hidden) { if (e.code === 'Escape') { if (picked) closePick(); else closeShop(); } return; }
     if (!$('top').hidden) { if (e.code === 'Escape') closeTop(); return; }
+    if (!$('idPopup').hidden) { if (e.code === 'Escape') closeId(); return; }
     if (!$('giftPopup').hidden && (e.code === 'Escape' || e.code === 'Enter' || e.code === 'Space')) {
       e.preventDefault(); closeGift(); return;
     }
@@ -524,7 +569,10 @@
   });
   $('aquariumBack').addEventListener('click', closeAquarium);
   $('friendsNav').addEventListener('click', () => toast('Playing with your friends is coming soon!'));
-  $('avatarBtn').addEventListener('click', () => toast('Your account page is coming soon!'));
+  $('avatarBtn').addEventListener('click', openId);
+  $('idClose').addEventListener('click', closeId);
+  $('idForm').addEventListener('submit', saveId);
+  $('idPopup').addEventListener('click', e => { if (e.target === $('idPopup')) closeId(); });
   $('starPlus').addEventListener('click', () => toast('Play games to earn more stars!'));
   $('heartPlus').addEventListener('click', () => toast('Hearts are coming soon!'));
   $('mailBtn').addEventListener('click', () => toast('No new messages'));

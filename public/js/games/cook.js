@@ -4,10 +4,11 @@
 //  - Kitchen: her shop's wall at the top with a framed menu board; girls and guys stand in
 //    front of it and order from it. Below is your counter: the cooking station (her rice
 //    cooker / stove / mixer), the ingredient boxes, your tray, and the recipe bar on the right.
-//    Some things cook first (rice, noodles, every treat): they go on the station, and once
-//    they're ready you tap them onto your plate. Leave them too long and they burn!
-//    Everything you add goes onto the plate (a ramen bowl, a gift box for treats) one by one;
-//    tap the plate to serve. A shift lasts 90 seconds, and ends early if 3 customers give up.
+//    Rice and noodles cook first on the station; once they're ready tap them onto your plate
+//    (they come out as a round fluffy mound / a noodle nest). Leave them too long and they burn!
+//    Everything you add goes onto the plate (or into the ramen bowl) one by one; tap it to serve.
+//  - Cake & Sweets bakes instead: put ingredients in the mixing bowl, tap it to bake the
+//    cake that recipe makes in the oven, then tap the cake when it's ready to serve it. A shift lasts 90 seconds, and ends early if 3 customers give up.
 // Score = orders served; app.js gives 2 stars for every 3.
 window.BW = window.BW || {};
 BW.games = BW.games || {};
@@ -16,7 +17,7 @@ BW.cook = (() => {
   const K = BW.kit, W = K.W, H = K.H, TAU = K.TAU;
   const S = W / 941;                  // design pixels → game pixels (front screen and top bar)
   const TIME = 90, LIVES = 3, MAX_TRAY = 6;
-  const COOK_TIME = 2.5, BURN_TIME = 7;
+  const COOK_TIME = 2.5, BURN_TIME = 7, BAKE_TIME = 3.5;
   const BROWN = '#5C3B2A', CREAM = '#FFF6EA', EDGE = '#8B5E4A', PINK = '#D2607A';
   const FONT = "'Baloo 2', 'Trebuchet MS', sans-serif";
 
@@ -46,10 +47,10 @@ BW.cook = (() => {
 
   function make(shop) {
     const dishIds = Object.keys(shop.dishes);
-    const orderable = shop.boxed ? dishIds : dishIds.filter(id => shop.dishes[id].needs);
-    // what goes in the boxes on your counter: ingredients, or every treat at Cake & Sweets
-    const binIds = shop.boxed ? dishIds : Object.keys(shop.ingredients);
-    const needsCooking = id => shop.cook === '*' || shop.cook.includes(id);
+    const orderable = dishIds.filter(id => shop.dishes[id].needs);
+    const binIds = Object.keys(shop.ingredients);
+    const needsCooking = id => shop.cook.includes(id);
+    const cookTime = shop.bake ? BAKE_TIME : COOK_TIME;
 
     // lay the boxes out in a grid on the counter
     const binCols = binIds.length > 8 ? 5 : 4, binRows = Math.ceil(binIds.length / binCols);
@@ -78,34 +79,26 @@ BW.cook = (() => {
       }
 
       const say = (text, x, y) => fx.label(x, y, text);
-      const picOf = id => (shop.ingredients[id] || shop.dishes[id]).pic;
-      const nameOf = id => (shop.ingredients[id] || shop.dishes[id]).name;
+      const nameOf = id => shop.ingredients[id].name;
 
       // ---------- customers ----------
-
-      function newOrder() {
-        if (!shop.boxed) return [pick(orderable)];
-        // a box of treats: just one at first, up to three later
-        const most = served < 3 ? 1 : Math.min(3, 1 + Math.floor(served / 3));
-        const n = 1 + Math.floor(Math.random() * most);
-        return K.shuffle(orderable.slice()).slice(0, n);
-      }
 
       function spawn() {
         const free = SLOTS.findIndex((x, i) => !customers.some(c => c.slot === i));
         if (free < 0) return;
         const here = customers.map(c => c.who);
         const who = pick(BW.friends.people().filter(p => !here.includes(p.id))).id;
-        const order = newOrder();
-        const wait = Math.max(15, 30 - served * 0.6) + (order.length - 1) * 6;
+        const order = [pick(orderable)];
+        const wait = Math.max(15, 30 - served * 0.6) + (shop.bake ? 6 : 0);
         customers.push({ slot: free, who, img: picture(`img/standing/${who}.webp`), order, wait, left: wait, enter: 0, leaving: 0, happy: false });
       }
 
-      const wants = c => (shop.boxed ? c.order : shop.dishes[c.order[0]].needs);
+      const wants = c => shop.dishes[c.order[0]].needs;
       const ordered = () => customers.filter(c => !c.leaving && c.enter >= 1);
 
       function serve() {
         if (!tray.length) { say(`Your ${shop.plate} is empty`, TRAY[0] + TRAY[2] / 2, TRAY[1] - 8); return; }
+        if (shop.bake) { bake(); return; }
         const c = ordered().find(c => sameSet(tray, wants(c)));
         if (!c) {
           shake = 0.35;
@@ -113,10 +106,30 @@ BW.cook = (() => {
           tray = []; trayAt = [];
           return;
         }
+        tray = []; trayAt = [];
+        thank(c);
+      }
+
+      // Cake & Sweets: the mixing bowl goes into the oven as whatever cake its recipe makes
+      function bake() {
+        const id = orderable.find(d => sameSet(tray, shop.dishes[d].needs));
+        if (!id) {
+          shake = 0.35;
+          say("That's not a recipe!", TRAY[0] + TRAY[2] / 2, TRAY[1] - 8);
+          tray = []; trayAt = [];
+          return;
+        }
+        const free = pans.indexOf(null);
+        if (free < 0) { say('The oven is full', 120, STATION[1] - 6); return; }
+        pans[free] = { id, time: 0 };
+        tray = []; trayAt = [];
+        say('Into the oven!', PANS[free][0] + PANS[free][2] / 2, PANS[free][1]);
+      }
+
+      function thank(c) {
         served++;
         c.leaving = 0.01;
         c.happy = true;
-        tray = []; trayAt = [];
         const x = SLOTS[c.slot];
         fx.add(x, COUNTER - 90, '#FF9FB2', 16, 170);
         fx.add(x, COUNTER - 90, '#F9D77E', 10, 140);
@@ -149,11 +162,17 @@ BW.cook = (() => {
         const p = pans[i];
         if (!p) return;
         const box = PANS[i];
-        if (p.time >= COOK_TIME + BURN_TIME) {     // burnt: throw it away
+        if (p.time >= cookTime + BURN_TIME) {      // burnt: throw it away
           pans[i] = null;
           say('Into the bin!', box[0] + box[2] / 2, box[1]);
-        } else if (p.time >= COOK_TIME) {
-          if (tray.includes(p.id) && !shop.boxed) { say(`Already in your ${shop.plate}`, box[0] + box[2] / 2, box[1]); return; }
+        } else if (p.time >= cookTime && shop.bake) {
+          // a baked cake goes straight to whoever ordered it
+          const c = ordered().find(c => c.order[0] === p.id);
+          if (!c) { say('Nobody ordered this yet', box[0] + box[2] / 2, box[1]); return; }
+          pans[i] = null;
+          thank(c);
+        } else if (p.time >= cookTime) {
+          if (tray.includes(p.id)) { say(`Already in your ${shop.plate}`, box[0] + box[2] / 2, box[1]); return; }
           if (addToTray(p.id)) pans[i] = null;
         } else {
           say('Not ready yet!', box[0] + box[2] / 2, box[1]);
@@ -173,7 +192,7 @@ BW.cook = (() => {
             return;
           }
         }
-        for (const id in shop.dishes) if (!shop.boxed && at(shop.dishes[id].tap)) { tip = { id, life: 2.6 }; return; }
+        for (const id in shop.dishes) if (shop.dishes[id].tap && at(shop.dishes[id].tap)) { tip = { id, life: 2.6 }; return; }
       }
 
       function tapKitchen(x, y) {
@@ -205,8 +224,8 @@ BW.cook = (() => {
           const before = p.time;
           p.time += dt;
           const box = PANS[i];
-          if (before < COOK_TIME && p.time >= COOK_TIME) fx.add(box[0] + box[2] / 2, box[1] + 34, '#FFFFFF', 8, 90);
-          if (before < COOK_TIME + BURN_TIME && p.time >= COOK_TIME + BURN_TIME) { say('Burnt!', box[0] + box[2] / 2, box[1]); shake = 0.2; }
+          if (before < cookTime && p.time >= cookTime) fx.add(box[0] + box[2] / 2, box[1] + 34, '#FFFFFF', 8, 90);
+          if (before < cookTime + BURN_TIME && p.time >= cookTime + BURN_TIME) { say('Burnt!', box[0] + box[2] / 2, box[1]); shake = 0.2; }
         });
 
         customers.forEach(c => {
@@ -256,6 +275,36 @@ BW.cook = (() => {
         ctx.drawImage(bg, r[0], r[1], r[2], r[3], x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
       }
 
+      // a piece of the design as a round portion (no square corners), for food on the plate
+      function portion(r, x, y, w, h) {
+        if (!bg.complete || !bg.naturalWidth) return;
+        const cx = x + w / 2, cy = y + h / 2, rx = w / 2, ry = h / 2;
+        ctx.save();
+        ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, TAU); ctx.clip();
+        // the middle of the picture, where the food is, filling the circle
+        const sw = r[2] * 0.7, sh = r[3] * 0.7;
+        const k = Math.max(w / sw, h / sh);
+        ctx.drawImage(bg, r[0] + (r[2] - sw) / 2, r[1] + (r[3] - sh) / 2, sw, sh, cx - sw * k / 2, cy - sh * k / 2, sw * k, sh * k);
+        const rim = ctx.createRadialGradient(cx, cy, Math.min(rx, ry) * 0.6, cx, cy, Math.max(rx, ry));
+        rim.addColorStop(0, 'rgba(0,0,0,0)'); rim.addColorStop(1, 'rgba(70, 40, 25, .28)');
+        ctx.fillStyle = rim; ctx.fillRect(x, y, w, h);
+        ctx.restore();
+        ctx.strokeStyle = 'rgba(91, 70, 80, .55)'; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, TAU); ctx.stroke();
+      }
+
+      // one thing in the shop: drawn art when it has some, otherwise its piece of the design.
+      // o.cooked: rice and noodles look cooked; o.round: a round portion for the plate
+      function drawItem(it, x, y, w, h, o) {
+        o = o || {};
+        if (o.cooked && BW.food.has(o.cooked)) BW.food.draw(ctx, o.cooked, x, y, w, h, t);
+        else if (it.art) BW.food.draw(ctx, it.art, x, y, w, h, t);
+        else if (o.round) portion(it.pic, x, y, w, h);
+        else food(it.pic, x, y, w, h);
+      }
+      const ing = (id, x, y, w, h, o) => drawItem(shop.ingredients[id], x, y, w, h, o);
+      const dish = (id, x, y, w, h) => drawItem(shop.dishes[id], x, y, w, h);
+
       function panel(x, y, w, h, r, fill) {
         ctx.fillStyle = fill || CREAM;
         K.roundRect(ctx, x, y, w, h, r || 12); ctx.fill();
@@ -303,7 +352,7 @@ BW.cook = (() => {
         panel(x, y, w, h, 10);
         label(d.name, x + w / 2, y + 12, 12);
         const x0 = x + (w - needs.length * 34) / 2;
-        needs.forEach((id, i) => food(shop.ingredients[id].pic, x0 + i * 34 + 2, y + 22, 30, 32));
+        needs.forEach((id, i) => ing(id, x0 + i * 34 + 2, y + 22, 30, 32));
         ctx.restore();
       }
 
@@ -317,32 +366,23 @@ BW.cook = (() => {
         drawTip();
       }
 
-      // the full recipe book (a picture menu at Cake & Sweets), from the front screen
+      // the full recipe book, from the front screen
       function drawBook() {
         ctx.fillStyle = 'rgba(40, 25, 20, .55)'; ctx.fillRect(0, 0, W, H);
         const x = 16, y = 60, w = W - 32, h = 530;
         panel(x, y, w, h, 18);
-        label(shop.boxed ? 'Sweets Menu' : `${shop.title} Recipes`, W / 2, y + 22, 20);
-        if (shop.boxed) {
-          const cw = (w - 16) / 4, ch = 88;
-          dishIds.forEach((id, i) => {
-            const cx = x + 8 + (i % 4) * cw, cy = y + 44 + Math.floor(i / 4) * ch;
-            food(shop.dishes[id].pic, cx + 4, cy, cw - 8, 58);
-            label(shop.dishes[id].name, cx + cw / 2, cy + 68, 10.5, BROWN, 'center', 700);
-          });
-          label('Bake each treat at the mixer, then box them', W / 2, y + h - 34, 11.5, '#9B7B6A', 'center', 700);
-          label('on the tray and tap it to serve!', W / 2, y + h - 18, 11.5, '#9B7B6A', 'center', 700);
-        } else {
+        label(`${shop.title} Recipes`, W / 2, y + 22, 20);
+        {
           const rows = orderable.length, rh = Math.min(64, (h - 70) / rows);
           orderable.forEach((id, i) => {
             const d = shop.dishes[id], ry = y + 42 + i * rh;
             if (i) { ctx.strokeStyle = '#EAD9C6'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x + 12, ry); ctx.lineTo(x + w - 12, ry); ctx.stroke(); }
-            food(d.pic, x + 8, ry + 4, 66, rh - 8);
+            dish(id, x + 8, ry + 4, 66, rh - 8);
             label(d.name, x + 82, ry + 11, 12.5, BROWN, 'left');
             const step = Math.min(58, (w - 92) / d.needs.length);
             d.needs.forEach((n, j) => {
               const ix = x + 82 + j * step;
-              food(shop.ingredients[n].pic, ix, ry + 20, step - 6, rh - 34);
+              ing(n, ix, ry + 20, step - 6, rh - 34);
               label(shortName(n), ix + (step - 6) / 2, ry + rh - 8, 9, '#7A5A48', 'center', 700);
             });
           });
@@ -381,7 +421,7 @@ BW.cook = (() => {
           if (wanted.includes(id)) {
             ctx.fillStyle = 'rgba(255, 159, 178, .45)'; K.roundRect(ctx, cx, cy, cw - 1, ch - 1, 4); ctx.fill();
           }
-          food(shop.dishes[id].pic, cx + 1, cy + 1, cw - 3, ch - 3);
+          dish(id, cx + 1, cy + 1, cw - 3, ch - 3);
         });
       }
 
@@ -401,7 +441,7 @@ BW.cook = (() => {
       function drawBubble(c) {
         if (c.leaving || c.enter < 1) return;
         const x = SLOTS[c.slot], head = COUNTER - 118;
-        const n = c.order.length, cell = shop.boxed ? 32 : 44;
+        const n = c.order.length, cell = 44;
         const bw = Math.max(60, n * cell + 14), bh = 50;
         const bx = Math.max(4, Math.min(W - 4 - bw, x + 30)), by = head - 4;
         // bubble beside their head, with a little tail pointing at them
@@ -410,7 +450,7 @@ BW.cook = (() => {
         ctx.beginPath(); ctx.moveTo(bx + 1, by + 18); ctx.lineTo(bx - 9, by + 28); ctx.lineTo(bx + 1, by + 30); ctx.closePath();
         ctx.fill(); ctx.stroke();
         ctx.fillStyle = CREAM; ctx.fillRect(bx, by + 19, 3, 10);
-        c.order.forEach((id, i) => food(shop.dishes[id].pic, bx + 7 + i * cell, by + 5, cell - 4, bh - 18));
+        c.order.forEach((id, i) => dish(id, bx + 7 + i * cell, by + 5, cell - 4, bh - 18));
         const p = Math.max(0, c.left / c.wait);
         ctx.fillStyle = '#EAD9C6'; K.roundRect(ctx, bx + 7, by + bh - 10, bw - 14, 5, 2.5); ctx.fill();
         ctx.fillStyle = p > 0.5 ? '#8CC77A' : p > 0.25 ? '#F2C35B' : '#F28C8C';
@@ -420,7 +460,8 @@ BW.cook = (() => {
       // the cooking station from her design, and the two cooking spots beside it
       function drawStation() {
         panel(STATION[0], STATION[1], STATION[2], STATION[3], 10, '#F3E2CC');
-        food(shop.station.pic, STATION[0] + 4, STATION[1] + 4, STATION[2] - 8, STATION[3] - 18);
+        if (shop.station.art) BW.food.draw(ctx, shop.station.art, STATION[0] + 6, STATION[1] + 4, STATION[2] - 12, STATION[3] - 18, t, pans.some(p => p && p.time < cookTime));
+        else food(shop.station.pic, STATION[0] + 4, STATION[1] + 4, STATION[2] - 8, STATION[3] - 18);
         label(shop.station.name, STATION[0] + STATION[2] / 2, STATION[1] + STATION[3] - 8, 10, BROWN, 'center', 800);
         PANS.forEach((box, i) => {
           const [x, y, w, h] = box, p = pans[i];
@@ -433,15 +474,16 @@ BW.cook = (() => {
             label('empty', cx, cy, 10, '#C2A48E', 'center', 700);
             return;
           }
-          const ready = p.time >= COOK_TIME, burnt = p.time >= COOK_TIME + BURN_TIME;
+          const ready = p.time >= cookTime, burnt = p.time >= cookTime + BURN_TIME;
           ctx.save();
           if (burnt) ctx.filter = 'brightness(.35) sepia(.6)';
           else if (!ready) ctx.globalAlpha = 0.65;
           const bob = ready && !burnt ? Math.sin(t * 8) * 2 : 0;
-          food(picOf(p.id), cx - 18, cy - 14 + bob, 36, 28);
+          if (shop.bake) dish(p.id, cx - 19, cy - 15 + bob, 38, 30);
+          else ing(p.id, cx - 19, cy - 15 + bob, 38, 30, { cooked: p.id });
           ctx.restore();
           // progress ring while cooking, then a shrinking "hurry" ring before it burns
-          const f = ready ? 1 - (p.time - COOK_TIME) / BURN_TIME : p.time / COOK_TIME;
+          const f = ready ? 1 - (p.time - cookTime) / BURN_TIME : p.time / cookTime;
           ctx.lineWidth = 4; ctx.lineCap = 'round';
           ctx.strokeStyle = !ready ? '#F2C35B' : f > 0.35 ? '#8CC77A' : '#F28C8C';
           if (!burnt) { ctx.beginPath(); ctx.arc(cx, cy, 26, -Math.PI / 2, -Math.PI / 2 + TAU * Math.max(0, f)); ctx.stroke(); }
@@ -453,7 +495,7 @@ BW.cook = (() => {
               ctx.beginPath(); ctx.arc(cx - 8 + k * 8, cy - 22 - s * 14, 3 + s * 3, 0, TAU); ctx.fill();
             }
           }
-          label(burnt ? 'Burnt! Tap' : ready ? 'Ready! Tap' : shop.station.verb, cx, y + h - 10, 10, burnt ? '#8A3B3B' : ready ? '#3F7A3A' : BROWN);
+          label(burnt ? 'Burnt! Tap' : ready ? (shop.bake ? 'Ready! Serve' : 'Ready! Tap') : shop.station.verb, cx, y + h - 10, 10, burnt ? '#8A3B3B' : ready ? '#3F7A3A' : BROWN);
         });
       }
 
@@ -465,27 +507,47 @@ BW.cook = (() => {
           K.roundRect(ctx, x + 2, y + 2, w - 4, h - 4, 7); ctx.fill();
           ctx.strokeStyle = EDGE; ctx.lineWidth = 1.5; K.roundRect(ctx, x + 2, y + 2, w - 4, h - 4, 7); ctx.stroke();
           const named = h > 50;
-          food(picOf(id), x + 5, y + 5, w - 10, h - (named ? 22 : 10));
+          ing(id, x + 5, y + 5, w - 10, h - (named ? 22 : 10));
           if (named) label(shortName(id), x + w / 2, y + h - 10, 9.5, BROWN, 'center', 800);
-          if (needsCooking(id) && !shop.boxed) {
+          if (needsCooking(id)) {
             ctx.fillStyle = '#F2C35B'; ctx.beginPath(); ctx.arc(x + w - 9, y + 9, 6, 0, TAU); ctx.fill();
             label('♨', x + w - 9, y + 9.5, 9, BROWN);
           }
         });
       }
 
-      // where the i-th thing sits on the plate: the first one in the middle, the rest
-      // around it, each a little higher so it piles up
-      function spot(i, n, cx, cy, spread) {
-        if (n === 1) return [cx, cy];
-        const a = (i / n) * TAU - Math.PI / 2;
-        return [cx + Math.cos(a) * spread, cy + Math.sin(a) * spread * 0.35 - i * 1.5];
-      }
-      function drawLayers(cx, cy, size, spread) {
-        tray.forEach((id, i) => {
-          const drop = Math.min(1, (t - trayAt[i]) * 6);
-          const [px, py] = spot(i, tray.length, cx, cy, spread);
-          food(picOf(id), px - size / 2, py - size * 0.4 - (1 - drop) * 18, size, size * 0.8);
+      // Things pile up the way the dish is made: the cooked rice / noodles first, then each
+      // topping laid on top of it. When the plate holds a whole recipe, it becomes that dish,
+      // exactly like its picture on the menu.
+      const madeDish = () => !shop.bake && orderable.find(d => sameSet(tray, shop.dishes[d].needs));
+      function drawLayers(cx, cy, size, spread, made) {
+        const done = madeDish();
+        if (done && made) {
+          const pop = Math.min(1, (t - Math.max(...trayAt)) * 5);
+          const w = made[0] * (0.8 + pop * 0.2), h = made[1] * (0.8 + pop * 0.2);
+          // the menu picture in a soft oval, so no square edges show
+          const ox = cx - w / 2, oy = cy + made[2] - h / 2;
+          ctx.save();
+          ctx.beginPath(); ctx.ellipse(cx, oy + h / 2, w / 2, h / 2, 0, 0, TAU); ctx.clip();
+          food(shop.dishes[done].pic, ox, oy, w, h);
+          ctx.restore();
+          if (pop < 1) fx.add(cx, oy + h / 2, '#FFF6C8', 1, 120);
+          return;
+        }
+        const drop = i => (1 - Math.min(1, (t - trayAt[i]) * 6)) * 18;
+        const base = tray.map((id, i) => i).filter(i => needsCooking(tray[i]));
+        const tops = tray.map((id, i) => i).filter(i => !needsCooking(tray[i]));
+        const bs = size * 1.9;
+        base.forEach(i => ing(tray[i], cx - bs / 2, cy - bs * 0.42 - drop(i), bs, bs * 0.8, { cooked: tray[i] }));
+        tops.forEach((i, k) => {
+          let px = cx, py = cy - bs * 0.1 - k * 5, w = size * 1.5, h = size * 0.62;
+          if (shop.plate === 'bowl') {
+            // toppings float side by side on the noodles
+            const n = tops.length;
+            px = cx + (n > 1 ? (k / (n - 1) - 0.5) * spread * 0.85 : 0);
+            py = cy - 2 - (k % 2) * 4; w = size * 1.05; h = size * 0.75;
+          }
+          ing(tray[i], px - w / 2, py - h / 2 - drop(i), w, h, { round: true });
         });
       }
 
@@ -505,18 +567,20 @@ BW.cook = (() => {
           ctx.restore();
           ctx.fillStyle = tray.length ? '#E9B877' : '#F3E2CC';
           ctx.beginPath(); ctx.ellipse(cx, top, 70, 13, 0, 0, TAU); ctx.fill(); ctx.stroke();
-          drawLayers(cx, top - 2, 40, 34);
-        } else if (shop.plate === 'box') {
-          // an open pink gift box with a ribbon
-          const bx = cx - 66, by = y + 30, bw = 132, bh = 50;
-          ctx.fillStyle = 'rgba(60, 35, 20, .3)'; ctx.beginPath(); ctx.ellipse(cx, by + bh + 2, 68, 6, 0, 0, TAU); ctx.fill();
+          drawLayers(cx, top - 2, 32, 58, [132, 98, 10]);
+        } else if (shop.plate === 'mixing bowl') {
+          // a pink mixing bowl with a whisk; the ingredients pile up inside
+          const top = y + 34;
+          ctx.strokeStyle = '#B9B4C2'; ctx.lineWidth = 2;
+          for (let k = -1; k <= 1; k++) { ctx.beginPath(); ctx.ellipse(cx + 52 + k * 3, top - 14, 6 - Math.abs(k) * 2, 15, 0.5, 0, TAU); ctx.stroke(); }
+          ctx.strokeStyle = '#C98F6B'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(cx + 58, top - 26); ctx.lineTo(cx + 66, top - 40); ctx.stroke();
+          ctx.fillStyle = 'rgba(60, 35, 20, .3)'; ctx.beginPath(); ctx.ellipse(cx, y + h - 6, 56, 8, 0, 0, TAU); ctx.fill();
           ctx.fillStyle = '#F7C6D0'; ctx.strokeStyle = EDGE; ctx.lineWidth = 2.5;
-          K.roundRect(ctx, bx, by, bw, bh, 6); ctx.fill(); ctx.stroke();
-          ctx.fillStyle = '#FBE3E8'; K.roundRect(ctx, bx + 6, by + 5, bw - 12, 12, 4); ctx.fill();
-          drawLayers(cx, by + 8, 38, 40);
-          ctx.fillStyle = '#F7C6D0'; K.roundRect(ctx, bx, by + 18, bw, bh - 18, 6); ctx.fill(); ctx.stroke();
-          ctx.fillStyle = '#E8879C'; ctx.fillRect(cx - 5, by + 18, 10, bh - 18);
-          ctx.beginPath(); ctx.ellipse(cx - 9, by + 20, 9, 5, -0.4, 0, TAU); ctx.ellipse(cx + 9, by + 20, 9, 5, 0.4, 0, TAU); ctx.fill();
+          ctx.beginPath(); ctx.moveTo(cx - 70, top); ctx.bezierCurveTo(cx - 66, y + h + 4, cx + 66, y + h + 4, cx + 70, top); ctx.closePath(); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = 'rgba(255,255,255,.45)'; ctx.beginPath(); ctx.ellipse(cx - 40, top + 22, 8, 14, 0.5, 0, TAU); ctx.fill();
+          ctx.fillStyle = tray.length ? '#FBEBD3' : '#FBE3E8';
+          ctx.beginPath(); ctx.ellipse(cx, top, 68, 13, 0, 0, TAU); ctx.fill(); ctx.stroke();
+          drawLayers(cx, top - 2, 34, 50);
         } else {
           // a round cream plate with a brown rim
           const py = y + 58;
@@ -525,10 +589,10 @@ BW.cook = (() => {
           ctx.beginPath(); ctx.ellipse(cx, py, 78, 22, 0, 0, TAU); ctx.fill(); ctx.stroke();
           ctx.strokeStyle = '#E3CDB4'; ctx.lineWidth = 1.5;
           ctx.beginPath(); ctx.ellipse(cx, py, 62, 15, 0, 0, TAU); ctx.stroke();
-          drawLayers(cx, py - 2, 40, 40);
+          drawLayers(cx, py - 2, 34, 64, [118, 62, -24]);
         }
-        if (!tray.length) label(shop.boxed ? 'Bake treats, box them here' : 'Add ingredients here', cx, y + 12, 11.5, CREAM, 'center', 800);
-        else label('Tap to serve ♥', cx, y + 10, 12.5, '#FFE3EA', 'center', 800);
+        if (!tray.length) label(shop.bake ? 'Mix ingredients here' : 'Add ingredients here', cx, y + 12, 11.5, CREAM, 'center', 800);
+        else label(shop.bake ? 'Tap to bake ♥' : 'Tap to serve ♥', cx, y + 10, 12.5, '#FFE3EA', 'center', 800);
         // the Clear button beside it
         const [kx, ky, r] = CLEAR;
         ctx.fillStyle = CREAM; ctx.strokeStyle = EDGE; ctx.lineWidth = 2.5;
@@ -538,12 +602,10 @@ BW.cook = (() => {
         label('Clear', kx, ky + 11, 9);
       }
 
-      // the recipe bar on the right: every recipe, the ones being ordered glow pink.
-      // At Cake & Sweets there's nothing to mix, so it lists each customer's order instead.
+      // the recipe bar on the right: every recipe, the ones being ordered glow pink
       function drawBar() {
         const [x, y, w, h] = BAR;
         panel(x, y, w, h, 12);
-        if (shop.boxed) { drawOrders(x, y, w, h); return; }
         label('Recipes', x + w / 2, y + 11, 12);
         const wanted = ordered().map(c => c.order[0]);
         const rh = (h - 22) / orderable.length;
@@ -555,36 +617,10 @@ BW.cook = (() => {
             ctx.strokeStyle = '#EAD9C6'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x + 6, ry); ctx.lineTo(x + w - 6, ry); ctx.stroke();
           }
           const big = rh > 45;
-          food(d.pic, x + 4, ry + 2, 34, rh - 4);
-          label(d.name.replace(' Ramen', '').replace(' Sushi', ''), x + 41, ry + (big ? 9 : 7), big ? 10.5 : 9, BROWN, 'left', 800);
+          dish(id, x + 4, ry + 2, 34, rh - 4);
+          label(d.name.replace(' Ramen', '').replace(' Sushi', '').replace(' Cake', ''), x + 41, ry + (big ? 9 : 7), big ? 10.5 : 9, BROWN, 'left', 800);
           const step = (w - 44) / d.needs.length;
-          d.needs.forEach((n, j) => food(shop.ingredients[n].pic, x + 41 + j * step, ry + (big ? 17 : 13), step - 2, rh - (big ? 19 : 14)));
-        });
-      }
-
-      function drawOrders(x, y, w, h) {
-        label('Orders', x + w / 2, y + 11, 12);
-        const list = ordered();
-        if (!list.length) { label('Waiting for', x + w / 2, y + h / 2 - 8, 10.5, '#9B7B6A', 'center', 700); label('customers...', x + w / 2, y + h / 2 + 8, 10.5, '#9B7B6A', 'center', 700); return; }
-        const box = (h - 24) / 2;
-        list.sort((a, b) => a.slot - b.slot).forEach((c, k) => {
-          const oy = y + 22 + k * box;
-          // their face
-          const im = c.img, face = im.naturalWidth * 0.62;
-          ctx.save();
-          ctx.beginPath(); ctx.arc(x + 20, oy + 18, 14, 0, TAU); ctx.closePath();
-          ctx.fillStyle = '#F6E3CF'; ctx.fill(); ctx.clip();
-          ctx.drawImage(im, (im.naturalWidth - face) / 2, im.naturalHeight * 0.02, face, face, x + 6, oy + 4, 28, 28);
-          ctx.restore();
-          ctx.strokeStyle = EDGE; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x + 20, oy + 18, 14, 0, TAU); ctx.stroke();
-          label(BW.friends.get(c.who).name, x + 40, oy + 18, 11, BROWN, 'left');
-          // what they want, ticked off when it's on the tray
-          c.order.forEach((id, i) => {
-            const iy = oy + 38 + i * 36, done = tray.includes(id);
-            food(shop.dishes[id].pic, x + 6, iy, 38, 32);
-            label(shop.dishes[id].name.replace(' Cake', ''), x + 47, iy + 16, 9, BROWN, 'left', 700);
-            if (done) label('✓', x + w - 10, iy + 6, 14, '#3F7A3A');
-          });
+          d.needs.forEach((n, j) => ing(n, x + 41 + j * step, ry + (big ? 17 : 13), step - 2, rh - (big ? 19 : 14)));
         });
       }
 

@@ -54,6 +54,8 @@ BW.store = (() => {
     addCustomFish(design) { data.myFish.push(design); save(); },
     owns(id) { return data.unlocked.includes(id); },
     setName(name) { data.playerName = name; save(); },
+    // the ID card's extra lines
+    setProfile(birthday, skill) { data.birthday = birthday; data.skill = skill; save(); },
     // A random id for this device, so the leaderboard keeps one best score per player
     playerId() {
       if (!data.playerId) {

@@ -495,6 +495,66 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
 .earned.big { font-size: 28px; }
 .earned.big .coin { width: 30px; height: 30px; }
 .pause-note { margin: 0 0 4px; font-size: 15px; color: var(--muted); }
+/* ---------- ID card (like Aiman's pink ID-card picture) ---------- */
+.id-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; animation: pop .25s ease-out; }
+.id-card {
+  position: relative;
+  width: 330px;
+  height: 214px;
+  border: 2px solid #4A4048;
+  border-radius: 14px;
+  background: linear-gradient(#F6CAD6 0 66%, #F6F2F4 66%);
+  color: #6E4A5A;
+  overflow: hidden;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .35);
+}
+.id-top { position: absolute; left: 12px; top: 10px; right: 12px; height: 44px; }
+.id-logo { position: absolute; left: 0; top: 0; width: 44px; height: 44px; border: 2px solid #4A4048; border-radius: 6px; background: #FFFDFB; display: grid; place-items: center; }
+.id-logo img { width: 38px; height: 38px; object-fit: contain; }
+.id-tag { position: absolute; left: 52px; top: 6px; padding: 0 12px; border: 2px solid #4A4048; border-radius: 11px; background: #FFFDFB; color: #D4537E; font-size: 13px; font-weight: 700; font-style: italic; letter-spacing: .05em; }
+.id-number { position: absolute; right: 2px; top: 2px; padding: 1px 10px; border: 2px solid #4A4048; border-radius: 11px; background: #FFFDFB; color: #6E4A5A; font-size: 11px; font-weight: 800; letter-spacing: .05em; }
+.id-dots { position: absolute; left: 66px; top: 40px; display: flex; gap: 7px; }
+.id-dots span { width: 22px; height: 22px; border: 2px solid #4A4048; border-radius: 50%; background: #FFFDFB; display: grid; place-items: center; overflow: hidden; }
+.id-dots img { width: 15px; height: 15px; }
+.id-dots b { font-size: 9px; color: #6E4A5A; }
+.id-line { position: absolute; left: 16px; width: 180px; display: flex; align-items: baseline; gap: 4px; font-size: 13px; font-weight: 700; font-style: italic; color: #4A4048; }
+.id-line span { text-decoration: underline; flex: none; }
+.id-line.small { font-size: 10.5px; }
+.id-line:nth-of-type(1) { top: 70px; }
+.id-line:nth-of-type(2) { top: 94px; }
+.id-line:nth-of-type(3) { top: 114px; }
+.id-line input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  border-bottom: 2px dashed #4A4048;
+  background: transparent;
+  font: inherit;
+  font-style: normal;
+  font-size: 13px;
+  color: #6E4A5A;
+  padding: 0 2px;
+  outline: none;
+}
+.id-line input::placeholder { color: rgba(110, 74, 90, .45); }
+.id-bottom { position: absolute; left: 0; right: 0; bottom: 0; height: 73px; border-top: 2px solid #4A4048; }
+.id-barcode { position: absolute; left: 18px; top: 14px; height: 42px; display: flex; gap: 2px; }
+.id-barcode i { display: block; height: 100%; background: #2E2830; }
+.id-photo {
+  position: absolute;
+  right: 14px;
+  top: 52px;
+  width: 104px;
+  height: 140px;
+  border: 2px solid #4A4048;
+  background: #FFFDFB;
+  overflow: hidden;
+}
+.id-photo img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 12%; }
+.id-photo img.guy { object-position: 50% 0; transform: scale(1.5); transform-origin: 50% 0; }
+.id-photo .c { position: absolute; width: 16px; height: 16px; border: 2px dashed #4A4048; z-index: 1; }
+.id-photo .c.tl { left: 3px; top: 3px; border-right: 0; border-bottom: 0; }
+.id-photo .c.br { right: 3px; bottom: 3px; border-left: 0; border-top: 0; }
 .gift-big { width: 56px; height: 56px; color: var(--pink); }
 .buttons { display: flex; gap: 10px; margin-top: 6px; }
 .btn {
