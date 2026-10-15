@@ -294,18 +294,22 @@ BW.games.flappy = (() => {
         ctx.scale(1.3, 1.3);
         flyingBunny(beat, state === 'over');
       } else {
-        // your animal's own picture, with the wings on their back
+        // your animal's own picture, looking the way it flies (right), with the wings on its
+        // back: low on the left side, behind the body, away from the face
         const img = BW.friends.cutout(options.character);
-        ctx.save(); ctx.translate(-14, -2); wing(beat - 0.3); ctx.restore();
+        ctx.save(); ctx.translate(-12, 8); ctx.scale(0.85, 0.85); wing(beat - 0.3); ctx.restore();
         if (img.complete && img.naturalWidth) {
           // fit the picture in a 54 x 54 box, whatever its shape
           const k = 54 / Math.max(img.naturalWidth, img.naturalHeight);
           const w = img.naturalWidth * k, h = img.naturalHeight * k;
           if (state === 'over') ctx.filter = 'grayscale(.6)';
+          ctx.save();
+          if (BW.friends.facesLeft(options.character)) ctx.scale(-1, 1);
           ctx.drawImage(img, -w / 2, -h / 2, w, h);
+          ctx.restore();
           ctx.filter = 'none';
         }
-        ctx.save(); ctx.translate(-12, 2); ctx.scale(0.85, 0.85); wing(beat); ctx.restore();
+        ctx.save(); ctx.translate(-14, 12); ctx.scale(0.72, 0.72); wing(beat); ctx.restore();
       }
       ctx.restore();
     }

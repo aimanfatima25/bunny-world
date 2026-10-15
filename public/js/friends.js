@@ -42,13 +42,21 @@ BW.friends = (() => {
     ['queen-capy', 'Queen Capy', 500]
   ];
 
+  // animals in the sheet that look towards the left; games where they fly or move right
+  // (Flappy Bunny, Bubble Pop) flip them so they face the way they're going
+  const FACES_LEFT = ['bunny', 'puppy', 'duck', 'squirrel', 'fox', 'raccoon', 'deer', 'hedgehog', 'piggy', 'otter', 'seal',
+    'capybara', 'snow-bunny', 'chinchilla', 'flower-capy', 'turtle', 'lizard', 'red-panda', 'ferret', 'skunk', 'fennec',
+    'berry-hog', 'chick-capy', 'crow', 'sparrow', 'pigeon', 'flamingo', 'cockatoo', 'budgie', 'java', 'king-capy',
+    'leaf-capy', 'scarf-capy', 'yuzu-capy', 'sleepy-capy', 'crown-capy', 'bunny-capy', 'frog-capy', 'duck-capy',
+    'sunny-capy', 'queen-capy'];
+
   const list = [
     // girls (one is "you"; Mia, Luna and Honey are free)
     ...GIRL_NAMES.map((name, i) => ({ id: `girl-${i + 1}`, name, group: 'girls', price: GIRL_PRICES[i] })),
     // guys
     ...GUY_NAMES.map((name, i) => ({ id: `guy-${i + 1}`, name, group: 'guys', price: GUY_PRICES[i], cat: GUY_CATS[i] })),
     // animals: Aiman's full-body animal sheet (img/animals/<id>.webp, cut by assets/cut-animals.mjs)
-    ...ANIMALS.map(([id, name, price, cat]) => ({ id, name, group: 'animals', price, cat, body: true })),
+    ...ANIMALS.map(([id, name, price, cat]) => ({ id, name, group: 'animals', price, cat, body: true, facesLeft: FACES_LEFT.includes(id) })),
     // older card-only animals, until they get full-body pictures too
     { id: 'octopus', name: 'Octopus', group: 'animals', price: 350 },
     { id: 'croc', name: 'Croc & Duckie', group: 'animals', price: 350 },
@@ -98,6 +106,7 @@ BW.friends = (() => {
     },
     // true for animals with a clean full-body picture (shown whole, never cropped)
     hasBody(id) { return !!(byId[id] && byId[id].body); },
+    facesLeft(id) { return !!(byId[id] && byId[id].facesLeft); },
     // The picture as an <img>, loaded once and reused (for drawing on canvases)
     image(id) {
       if (!images[id]) { images[id] = new Image(); images[id].src = this.img(id); }

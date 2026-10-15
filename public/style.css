@@ -15,6 +15,11 @@
   color-scheme: dark;
 }
 html, body { height: 100%; margin: 0; }
+/* no blue flash or text selection when tapping and holding to play */
+* { -webkit-tap-highlight-color: transparent; }
+body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+input, textarea { -webkit-user-select: text; user-select: text; }
+canvas { touch-action: none; outline: none; }
 [hidden] { display: none !important; }
 body {
   background: var(--page);

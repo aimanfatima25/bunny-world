@@ -269,7 +269,11 @@ BW.games.bubble = (() => {
       if (img && img.complete && img.naturalWidth) {
         const k = 100 / Math.max(img.naturalWidth, img.naturalHeight);
         const w = img.naturalWidth * k, h = img.naturalHeight * k;
-        ctx.drawImage(img, 18, H - 40 - h * 0.92 + Math.sin(t * 2.5) * 2, w, h);
+        const y = H - 40 - h * 0.92 + Math.sin(t * 2.5) * 2;
+        // looking right, towards the wand
+        if (BW.friends.facesLeft(options.character)) {
+          ctx.save(); ctx.translate(18 + w, y); ctx.scale(-1, 1); ctx.drawImage(img, 0, 0, w, h); ctx.restore();
+        } else ctx.drawImage(img, 18, y, w, h);
       } else {
         ctx.save(); ctx.translate(70, 560); ctx.scale(1.6, 1.6); BW.characters.draw(ctx, options.character); ctx.restore();
       }
