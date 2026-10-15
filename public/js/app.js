@@ -122,7 +122,8 @@
     { label: 'Bubble Pop', img: 'bubble', game: 'bubble' },
     { label: 'Memory', img: 'match3', game: 'memory' },   // Match 3 and Memory were the same game
     { label: 'Decorate Room', img: 'room' },
-    { label: 'Dress Up', img: 'dressup', open: () => openDressUp() },
+    // Dress Up is hidden until it's improved (dressup.js stays; open: () => openDressUp() brings it back)
+    { label: 'Dress Up', img: 'dressup' },
     { label: 'Garden', img: 'garden' }
   ];
 

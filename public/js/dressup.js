@@ -55,6 +55,10 @@ BW.dressup = (() => {
     { id: 'bakery', name: 'Bakery', src: 'img/shops/cake.webp', crop: [130, 140, 680, 640] }
   ];
 
+  // Dress Up is switched off for now (Aiman wants to improve it first): the home page always
+  // shows her chosen girl. Set to true together with the tile's open in app.js.
+  const ENABLED = false;
+
   const empty = () => ({ dress: null, acc: [], makeup: { blush: 'none', lips: 'none', shadow: 'none', freckles: 'none', sparkle: 'none' }, bg: 'cottage' });
   const looks = () => (store.data.looks = store.data.looks || {});
   const owned = () => (store.data.wardrobe = store.data.wardrobe || []);
@@ -190,7 +194,7 @@ BW.dressup = (() => {
   const urls = {};
   async function homePicture(girl) {
     const look = looks().doll;
-    if (!store.data.dollAtHome || !look) return { src: `img/standing/${girl}.webp`, dressed: false };
+    if (!ENABLED || !store.data.dollAtHome || !look) return { src: `img/standing/${girl}.webp`, dressed: false };
     const key = JSON.stringify(look);
     if (!urls[key]) {
       const c = await render(look);

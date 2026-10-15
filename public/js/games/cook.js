@@ -155,12 +155,12 @@ BW.cook = (() => {
           const free = pans.indexOf(null);
           if (free < 0) { say(`The ${shop.station.name.toLowerCase()} is full`, 120, STATION[1] - 6); return; }
           pans[free] = { id, time: 0 };
-          BW.sound.play('plop');
+          BW.sound.play(shop.bake ? 'plop' : 'drop');
           return;
         }
         const i = tray.indexOf(id);
         if (i >= 0) { tray.splice(i, 1); trayAt.splice(i, 1); }   // tap again to take it off
-        else if (addToTray(id)) BW.sound.play(shop.bake ? 'mix' : 'chop');
+        else if (addToTray(id)) BW.sound.play(shop.bake ? 'mix' : 'plate');
       }
 
       function tapPan(i) {
@@ -178,7 +178,7 @@ BW.cook = (() => {
           thank(c);
         } else if (p.time >= cookTime) {
           if (tray.includes(p.id)) { say(`Already in your ${shop.plate}`, box[0] + box[2] / 2, box[1]); return; }
-          if (addToTray(p.id)) pans[i] = null;
+          if (addToTray(p.id)) { pans[i] = null; BW.sound.play('plate'); }
         } else {
           say('Not ready yet!', box[0] + box[2] / 2, box[1]);
         }
