@@ -94,10 +94,16 @@
   }
 
   // The chosen girl or guy is the profile picture; they and the chosen animal sit on the cottage ledge
+  // (a girl wears the look from Dress Up, if she has one)
   function showGirl() {
     $('avatarBtn').querySelector('img').src = BW.friends.img(store.data.girl);
     $('avatarBtn').classList.toggle('guy', store.data.girl.startsWith('guy-'));
-    $('sceneGirl').src = `img/standing/${store.data.girl}.webp`;
+    const me = store.data.girl, dressed = !!(store.data.looks && store.data.looks[me]);
+    BW.dressup.pictureOf(me).then(src => {
+      if (store.data.girl !== me) return;
+      $('sceneGirl').src = src;
+      $('sceneGirl').classList.toggle('dressed', dressed);
+    });
     $('scenePet').src = BW.friends.cutout(store.data.character).src;
   }
 
@@ -115,7 +121,7 @@
     { label: 'Bubble Pop', img: 'bubble', game: 'bubble' },
     { label: 'Memory', img: 'match3', game: 'memory' },   // Match 3 and Memory were the same game
     { label: 'Decorate Room', img: 'room' },
-    { label: 'Dress Up', img: 'dressup' },
+    { label: 'Dress Up', img: 'dressup', open: () => openDressUp() },
     { label: 'Garden', img: 'garden' }
   ];
 
@@ -478,6 +484,20 @@
     showGift();
   }
 
+  // ---------- Dress Up ----------
+
+  function openDressUp() {
+    cancelAnimationFrame(heroRaf);
+    BW.dressup.open(() => {
+      hub.hidden = false;
+      $('hint').textContent = HUB_HINT;
+      showCoins();
+      showGirl();
+      heroRaf = requestAnimationFrame(heroLoop);
+    });
+    $('hint').textContent = 'Tap clothes to try them on';
+  }
+
   function closeGift() {
     $('giftPopup').hidden = true;
     showCoins();
@@ -580,6 +600,8 @@
   $('aquariumBack').addEventListener('click', closeAquarium);
   $('friendsNav').addEventListener('click', () => toast('Playing with your friends is coming soon!'));
   $('avatarBtn').addEventListener('click', openId);
+  BW.dressup.wire();
+  BW.app = { toast };
   $('idClose').addEventListener('click', closeId);
   $('idForm').addEventListener('submit', saveId);
   $('idPopup').addEventListener('click', e => { if (e.target === $('idPopup')) closeId(); });

@@ -45,6 +45,7 @@ BW.store = (() => {
 
   return {
     data,
+    save,
     addCoins(n) { data.coins += n; save(); },
     best(gameId) { return data.best[gameId] || 0; },
     setBest(gameId, score) { data.best[gameId] = score; save(); },
