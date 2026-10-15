@@ -245,6 +245,22 @@
       </section>
 
       <!-- My Aquarium: all the fish made in the Fish Maker -->
+      <!-- Friends (Aiman's Friends design): your ID, friends, requests and people to meet -->
+      <section class="screen friends-page" id="friendsPage" hidden>
+        <header class="fr-head">
+          <button class="fr-back" id="frBack" type="button" aria-label="Back to home">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12 H6 M11 6 L5 12 L11 18" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <h2>♥ Friends ♥</h2>
+        </header>
+        <div class="fr-tools">
+          <label class="fr-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M16 16 L20 20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+            <input id="frSearch" type="search" placeholder="Search by user ID or name…" autocomplete="off" maxlength="20"></label>
+          <button class="fr-invite" id="frInvite" type="button">＋ Invite Friend</button>
+        </div>
+        <div class="fr-list" id="frList"></div>
+      </section>
+
       <section class="screen" id="aquarium" hidden>
         <canvas id="aquariumCanvas"></canvas>
         <button class="round-btn back" id="aquariumBack" type="button" aria-label="Back to home"><svg><use href="#i-home"/></svg></button>
@@ -304,6 +320,38 @@
         </div>
       </div>
 
+      <!-- Pick your unique username (the first time you open your ID card or Friends) -->
+      <div class="panel dim" id="unPopup" hidden>
+        <form class="card un-card" id="unForm" autocomplete="off">
+          <h2>Pick your username</h2>
+          <p class="un-note">Friends find and add you with it. Nobody else can have the same one.</p>
+          <label class="un-box"><span>@</span><input id="unInput" maxlength="15" spellcheck="false" autocapitalize="none" placeholder="your_name"></label>
+          <p class="un-status" id="unStatus"></p>
+          <div class="buttons">
+            <button class="btn ghost" id="unCancel" type="button">Later</button>
+            <button class="btn" id="unSave" type="submit" disabled>Save</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Share your ID card -->
+      <div class="panel dim" id="sharePopup" hidden>
+        <div class="card share-card">
+          <h2>Share my ID card</h2>
+          <button class="share-main" id="shNative" type="button">📤 Share… <small>Instagram, YouTube, WhatsApp & more</small></button>
+          <div class="share-grid">
+            <a id="shWhatsapp" target="_blank" rel="noopener" class="sh wa">WhatsApp</a>
+            <a id="shFacebook" target="_blank" rel="noopener" class="sh fb">Facebook</a>
+            <a id="shX" target="_blank" rel="noopener" class="sh x">X</a>
+            <a id="shTelegram" target="_blank" rel="noopener" class="sh tg">Telegram</a>
+            <button id="shCopy" type="button" class="sh">🔗 Copy link</button>
+            <button id="shSave" type="button" class="sh">🖼️ Save picture</button>
+          </div>
+          <p class="share-link" id="shLink"></p>
+          <button class="btn ghost" id="shareClose" type="button">Close</button>
+        </div>
+      </div>
+
       <!-- Your ID card (tap your picture at the top left) -->
       <div class="panel dim" id="idPopup" hidden>
         <form class="id-wrap" id="idForm" autocomplete="off">
@@ -311,17 +359,21 @@
             <div class="id-top">
               <div class="id-logo"><img id="idPet" alt=""></div>
               <span class="id-tag">ID-CARD</span>
-              <span class="id-number" id="idNumber">BW-000000</span>
+              <button class="id-number" id="idNumber" type="button" aria-label="Your username">@username</button>
             </div>
-            <div class="id-dots" aria-hidden="true">
-              <span><img src="img/ui/star.webp" alt=""></span>
-              <span><img src="img/ui/heart.webp" alt=""></span>
-              <span><b id="idStars">0</b></span>
+            <div class="id-dots">
+              <span title="Stars"><img src="img/ui/star.webp" alt="Stars"><b id="idStars">0</b></span>
+              <span title="Hearts"><img src="img/ui/heart.webp" alt="Hearts"><b id="idHearts">5</b></span>
+              <span title="Friends"><img src="img/ui/nav-friends.webp" alt="Friends"><b id="idFriends">0</b></span>
             </div>
             <label class="id-line"><span>name:</span><input id="idName" maxlength="12" placeholder="your name"></label>
             <label class="id-line small"><span>date_of_birth:</span><input id="idBirth" maxlength="10" placeholder="dd / mm / yyyy"></label>
             <label class="id-line"><span>skill:</span><input id="idSkill" maxlength="16" placeholder="baking cakes"></label>
-            <div class="id-bottom"><div class="id-barcode" id="idBarcode" aria-hidden="true"></div></div>
+            <div class="id-bottom">
+              <canvas class="id-qr" id="idQr" width="160" height="160" aria-label="QR code of your friend link"></canvas>
+              <span class="id-scan">scan to<br>add me ♥</span>
+              <button class="id-more" id="idMore" type="button" aria-label="Share my ID card">⋮</button>
+            </div>
             <div class="id-photo">
               <i class="c tl"></i><i class="c br"></i>
               <img id="idPhoto" alt="">
@@ -357,6 +409,9 @@
   <script src="js/games/shops.js"></script>
   <script src="js/games/cook.js"></script>
   <script src="js/aquarium.js"></script>
+  <script src="vendor/qrcode/qrcode.js"></script>
+  <script src="js/account.js"></script>
+  <script src="js/friends-page.js"></script>
   <script src="js/dressup.js"></script>
   <script src="js/app.js"></script>
 </body>

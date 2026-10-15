@@ -5,3 +5,4 @@ android/app/build/
 .DS_Store
 Thumbs.db
 *.apk
+server/data*/

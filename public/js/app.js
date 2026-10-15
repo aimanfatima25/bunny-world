@@ -506,30 +506,46 @@
   }
 
   // ---------- ID card ----------
-  // Your picture, name, birthday and skill on a pink ID card. The name is also your
-  // Top 10 name; the ID number comes from this device's player id.
+  // Your picture, name, birthday and skill on a pink ID card, with your unique @username,
+  // your real stars, hearts and friends, and a QR code of your friend link. The ⋮ button
+  // shares it. The name is also your Top 10 name.
+
+  // other pages (Friends) open over the home screen and come back to it
+  function showScreen(id) {
+    cancelAnimationFrame(heroRaf);
+    hub.hidden = true;
+    $(id).hidden = false;
+    $('hint').textContent = '';
+  }
+  function backHome(id) {
+    $(id).hidden = true;
+    hub.hidden = false;
+    $('hint').textContent = HUB_HINT;
+    showCoins();
+    heroRaf = requestAnimationFrame(heroLoop);
+  }
 
   const cleanName = v => v.replace(/[^\p{L}\p{N} ]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 12);
 
-  function openId() {
+  function openId() { BW.social.needUsername(showId); }
+
+  function showId() {
     const d = store.data, me = BW.friends.get(d.girl);
-    const id = store.playerId().replace(/[^a-z0-9]/g, '').slice(0, 6).toUpperCase();
-    $('idNumber').textContent = `BW-${id}`;
+    $('idNumber').textContent = '@' + d.username;
     $('idPhoto').src = BW.friends.img(d.girl);
     $('idPhoto').classList.toggle('guy', d.girl.startsWith('guy-'));
     $('idPet').src = BW.friends.cutout(d.character).src;
-    $('idStars').textContent = d.coins > 999 ? Math.floor(d.coins / 1000) + 'k' : d.coins;
+    const short = n => (n > 9999 ? Math.floor(n / 1000) + 'k' : String(n));
+    $('idStars').textContent = short(d.coins);
+    $('idHearts').textContent = d.hearts == null ? 5 : d.hearts;
+    $('idFriends').textContent = '…';
+    BW.account.user(d.username).then(r => { $('idFriends').textContent = r && !r.error ? r.friends : '–'; });
     $('idName').value = d.playerName || '';
     $('idName').placeholder = me ? me.name : 'your name';
     $('idBirth').value = d.birthday || '';
     $('idSkill').value = d.skill || '';
-    // a barcode made from the ID: thin and thick bars
-    const bars = $('idBarcode');
-    bars.innerHTML = '';
-    [...(id + id.split('').reverse().join(''))].forEach(ch => {
-      const n = parseInt(ch, 36);
-      [1 + (n % 3), 1 + ((n >> 2) % 2)].forEach(w => { const b = document.createElement('i'); b.style.width = w + 'px'; bars.appendChild(b); });
-    });
+    // the QR code is your friend link: scanning it opens Kawaii Corner and adds you
+    BW.account.drawQR($('idQr'), BW.account.link(d.username));
     $('idPopup').hidden = false;
   }
 
@@ -545,6 +561,7 @@
       Promise.all(GAMES.map(g => BW.leaderboard.submit(g.id, store.best(g.id))));
     }
     store.setProfile(birth, skill);
+    BW.account.sync();
     closeId();
     toast(name ? `Saved! Hi ${name} ♥` : 'Saved!');
   }
@@ -562,6 +579,9 @@
     if (aquarium && e.code === 'Escape') { closeAquarium(); return; }
     if (!$('shop').hidden) { if (e.code === 'Escape') { if (picked) closePick(); else closeShop(); } return; }
     if (!$('top').hidden) { if (e.code === 'Escape') closeTop(); return; }
+    if (!$('sharePopup').hidden) { if (e.code === 'Escape') $('sharePopup').hidden = true; return; }
+    if (!$('unPopup').hidden) { if (e.code === 'Escape') $('unPopup').hidden = true; return; }
+    if (!$('friendsPage').hidden) { if (e.code === 'Escape') backHome('friendsPage'); return; }
     if (!$('idPopup').hidden) { if (e.code === 'Escape') closeId(); return; }
     if (!$('giftPopup').hidden && (e.code === 'Escape' || e.code === 'Enter' || e.code === 'Space')) {
       e.preventDefault(); closeGift(); return;
@@ -600,10 +620,14 @@
     $('playerName').focus();
   });
   $('aquariumBack').addEventListener('click', closeAquarium);
-  $('friendsNav').addEventListener('click', () => toast('Playing with your friends is coming soon!'));
+  $('friendsNav').addEventListener('click', () => BW.social.openFriends());
+  $('frBack').addEventListener('click', () => backHome('friendsPage'));
+  $('idMore').addEventListener('click', () => BW.social.openShare());
+  $('idNumber').addEventListener('click', () => BW.social.openShare());
   $('avatarBtn').addEventListener('click', openId);
   BW.dressup.wire();
-  BW.app = { toast };
+  BW.app = { toast, showScreen };
+  BW.social.wire();
   $('idClose').addEventListener('click', closeId);
   $('idForm').addEventListener('submit', saveId);
   $('idPopup').addEventListener('click', e => { if (e.target === $('idPopup')) closeId(); });
