@@ -1,4 +1,4 @@
-# Bunny World 🐰🎀
+# Kawaii Corner 🐰🎀 (formerly Bunny World)
 
 A cute world of mini-games. Pick a friend, earn coins, and play.
 Plain HTML + CSS + JavaScript (canvas), no framework.
