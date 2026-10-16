@@ -191,7 +191,8 @@ const withRelation = (me, u) => Object.assign(profile(u), { relation: relation(m
 
 // ---------- Google sign-in and cloud saves ----------
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
+// the Kawaii Corner web client in Google Cloud (project chat-assistant-510718); a client ID is public, not a secret
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '7932465743-6bfl2ckm59miptotf6frp5ngk5v7lveg.apps.googleusercontent.com';
 const loginBySub = db.prepare('SELECT * FROM logins WHERE google_sub = ?');
 const loginByPlayer = db.prepare('SELECT * FROM logins WHERE player = ?');
 const addLogin = db.prepare('INSERT INTO logins (google_sub, email, player, created_at) VALUES (?, ?, ?, ?)');
