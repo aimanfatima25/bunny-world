@@ -9,13 +9,6 @@
 //    Everything you add goes onto the plate (or into the ramen bowl) one by one; tap it to serve.
 //  - Cake & Sweets bakes instead: put ingredients in the mixing bowl, tap it to bake the
 //    cake that recipe makes in the oven, then tap the cake when it's ready to serve it. A shift lasts 90 seconds, and ends early if 3 customers give up.
-// Every time the kitchen opens it asks how you want to play: Tap, or Hand gestures.
-// Hand control (or the ✋ button by Clear, motion.js): move your hand left / right / up / down
-// to move the pink box between the cooking spots and the ingredient boxes, make a fist ✊ to
-// pick what's in the box (it goes to cook or onto your plate), and make scissors ✌️ to serve.
-// With hand control the pink box only visits the ingredient boxes: what needs cooking goes onto
-// your plate by itself once it's ready (a baked cake goes straight to whoever ordered it).
-// The arrow keys, Enter and S do the same on a computer.
 // Score = orders served; app.js gives 2 stars for every 3.
 // Together with a friend (options.duo): straight into the kitchen after a 3-2-1, 4 levels of
 // 40 seconds, each busier with less patient customers; hearts refill each level (at 0 you wait
@@ -42,9 +35,6 @@ BW.cook = (() => {
   const PANS = [[106, 308, 56, 88], [162, 308, 56, 88]];   // two cooking spots
   const BINS = [4, 404, 214, 144];    // ingredient boxes
   const CLEAR = [24, 604, 20];        // circle: x, y, r
-  const HAND = [6, 550, 38, 32];      // the ✋ hand control button (shows your camera when on)
-  const ASK = [30, 180, 300, 270];    // the "how do you want to play?" card
-  const ASK_TAP = [48, 250, 126, 140], ASK_HAND = [186, 250, 126, 140];
   const TRAY = [48, 550, 172, 88];    // the plate / bowl / box you build the order on
   const BAR = [222, 304, 134, 330];   // the recipe bar
 
@@ -77,8 +67,6 @@ BW.cook = (() => {
       let mode, book, customers, tray, trayAt, pans, served, lives, timeLeft, spawnIn, shake, tip, t = 0;
       const duo = options.duo;
       let level = 1, lastLevel = 0, onBreak = false;
-      let cam = null, pad = null, camStarting = false, cursor = 0, pointing = false;
-      let asking = false, askMsg = '';
       FRAME = duo ? [10, 50, 196, 68] : [10, 50, 340, 68];
       const fx = K.sparkles();
 
@@ -207,115 +195,12 @@ BW.cook = (() => {
         }
       }
 
-      // ---------- hand control ----------
-
-      // the spots the pink box moves between: the ingredient boxes, row by row (the cooking
-      // spots look after themselves with hand control, see handPans)
-      function spots() {
-        return binIds.map((id, i) => ({ box: binBox(i), row: Math.floor(i / binCols), pick: () => tapBin(id) }));
-      }
-
-      // hand control: ready food leaves the cooking spot by itself, onto your plate (or, for a
-      // baked cake, to whoever ordered it); burnt food goes in the bin
-      function handPans() {
-        pans.forEach((p, i) => {
-          if (!p || p.time < cookTime) return;
-          const box = PANS[i], cx = box[0] + box[2] / 2;
-          if (p.time >= cookTime + BURN_TIME) { pans[i] = null; say('Into the bin!', cx, box[1]); return; }
-          if (shop.bake) {
-            const c = ordered().find(c => c.order[0] === p.id);
-            if (c) { pans[i] = null; thank(c); }
-            return;
-          }
-          if (tray.includes(p.id) || tray.length >= MAX_TRAY) return;
-          if (addToTray(p.id)) { pans[i] = null; BW.sound.play('plate'); fx.add(cx, box[1] + 34, '#FFF6C8', 6, 90); }
-        });
-      }
-
-      function handOff() { if (cam) cam.stop(); cam = null; pad = null; pointing = false; }
-
-      // turns the camera on; returns '' when it worked, or what went wrong
-      async function handOn() {
-        if (cam) return '';
-        if (!BW.motion || !BW.motion.can.camera) return 'No camera here';
-        camStarting = true;
-        try {
-          cam = await BW.motion.start('hand');
-          pad = BW.motion.pad(cam);
-          pointing = true;
-          BW.sound.play('sparkle');
-          return '';
-        } catch (e) {
-          return e.message;
-        } finally {
-          camStarting = false;
-        }
-      }
-
-      async function toggleHand() {
-        if (camStarting) return;
-        if (cam) { handOff(); BW.sound.play('click'); return; }
-        say('Starting the camera...', 90, HAND[1] - 8);
-        const err = await handOn();
-        say(err || 'Move hand ✋  Fist ✊ = pick  ✌️ = serve', err ? 90 : W / 2 - 10, HAND[1] - 8);
-      }
-
-      // ---------- "how do you want to play?" (every time the kitchen opens) ----------
-
-      function openKitchen() {
-        mode = 'play';
-        spawnIn = 0.3;
-        asking = true;
-        askMsg = '';
-      }
-
-      async function answer(kind) {
-        if (camStarting) return;
-        BW.sound.play('click');
-        if (kind === 'tap') { handOff(); asking = false; return; }
-        askMsg = 'Starting the camera...';
-        const err = await handOn();
-        if (err) { askMsg = err + ' · try Tap'; return; }
-        asking = false;
-      }
-
-      function tapAsk(x, y) {
-        if (within(ASK_TAP, x, y)) answer('tap');
-        else if (within(ASK_HAND, x, y)) answer('hand');
-      }
-
-      // a hand move, a fist, scissors (or the same from the keyboard)
-      function act(ev) {
-        if (!ev || mode !== 'play' || book || asking) return;
-        if (duo && (Date.now() < duo.startAt || onBreak || lives <= 0)) return;
-        const list = spots(), n = list.length;
-        pointing = true;
-        cursor = Math.min(cursor, n - 1);
-        if (ev === 'left' || ev === 'right') {
-          cursor = (cursor + (ev === 'right' ? 1 : -1) + n) % n;
-          BW.sound.play('click');
-        } else if (ev === 'up' || ev === 'down') {
-          const rows = list[n - 1].row + 1, row = (list[cursor].row + (ev === 'down' ? 1 : -1) + rows) % rows;
-          const mid = b => b[0] + b[2] / 2, x = mid(list[cursor].box);
-          let best = -1;
-          list.forEach((s, i) => { if (s.row === row && (best < 0 || Math.abs(mid(s.box) - x) < Math.abs(mid(list[best].box) - x))) best = i; });
-          cursor = best;
-          BW.sound.play('click');
-        } else if (ev === 'fist') {
-          const b = list[cursor].box;
-          fx.add(b[0] + b[2] / 2, b[1] + b[3] / 2, '#FF9FB2', 6, 90);
-          list[cursor].pick();
-        } else if (ev === 'scissors') {
-          serve();
-        }
-      }
-
       // ---------- tapping ----------
 
       function tapFront(x, y) {
         const ui = shop.ui, at = r => within(g(r), x, y);
         if (at(ui.recipes)) { book = true; return; }
-        if (at(ui.start)) { openKitchen(); BW.sound.play('click'); return; }
+        if (at(ui.start)) { mode = 'play'; spawnIn = 0.3; BW.sound.play('click'); return; }
         for (const k of ['upgrade', 'shop', 'trophies', 'decor', 'stats', 'map']) {
           if (at(ui[k])) {
             const r = g(ui[k]);
@@ -327,7 +212,6 @@ BW.cook = (() => {
       }
 
       function tapKitchen(x, y) {
-        if (within(HAND, x, y)) { toggleHand(); return; }
         if (within(TRAY, x, y)) { serve(); return; }
         if (Math.hypot(x - CLEAR[0], y - CLEAR[1]) < CLEAR[2] + 4) { tray = []; trayAt = []; return; }
         for (let i = 0; i < PANS.length; i++) if (within(PANS[i], x, y)) { tapPan(i); return; }
@@ -336,7 +220,6 @@ BW.cook = (() => {
 
       function tap(x, y) {
         if (mode === 'over') return;
-        if (asking && mode === 'play') { if (within(g(box('menu')), x, y) && options.pause) options.pause(); else tapAsk(x, y); return; }
         if (duo && (Date.now() < duo.startAt || onBreak || lives <= 0)) {
           if (within(g(box('menu')), x, y) && options.pause) options.pause();
           return;
@@ -372,9 +255,7 @@ BW.cook = (() => {
           if (level !== lastLevel) { lastLevel = level; lives = LIVES; duo.set({ score: served, level }); }
           if (onBreak) return;
         }
-        // the shift waits while you choose (playing together the shared clock keeps going)
-        if (mode !== 'play' || book || asking) return;
-        if (pad) act(pad.update(dt));
+        if (mode !== 'play' || book) return;
 
         // boiling water only for noodles and rice (Ramen, Sushi); a warm hum for the oven and griddle
         BW.sound.loop(shop.bake || shop.id === 'pancake' ? 'bake' : 'boil', pans.some(p => p && p.time < cookTime));
@@ -386,7 +267,6 @@ BW.cook = (() => {
           if (before < cookTime && p.time >= cookTime) { fx.add(box[0] + box[2] / 2, box[1] + 34, '#FFFFFF', 8, 90); BW.sound.play('ding'); }
           if (before < cookTime + BURN_TIME && p.time >= cookTime + BURN_TIME) { say('Burnt!', box[0] + box[2] / 2, box[1]); shake = 0.2; BW.sound.play('burn'); }
         });
-        if (pointing) handPans();     // hand control or arrow keys
 
         customers.forEach(c => {
           if (c.leaving) { c.leaving += dt * 1.6; return; }
@@ -526,28 +406,6 @@ BW.cook = (() => {
         ctx.strokeStyle = `rgba(255,255,255,${0.35 + Math.sin(t * 4) * 0.25})`; ctx.lineWidth = 4;
         K.roundRect(ctx, r[0] + 4, r[1] + r[3] * 0.12, r[2] - 8, r[3] * 0.76, 40); ctx.stroke();
         drawTip();
-      }
-
-      // the "how do you want to play?" card, in the cream cottage style
-      function drawAsk() {
-        ctx.fillStyle = 'rgba(40, 25, 20, .5)'; ctx.fillRect(0, 0, W, H);
-        const [x, y, w, h] = ASK;
-        panel(x, y, w, h, 22);
-        label('How do you want to play?', W / 2, y + 30, 19);
-        label('You can change it with the ✋ button too', W / 2, y + 54, 11, '#9B7B6A', 'center', 700);
-        const choice = (r, icon, name, lines, on) => {
-          const [bx, by, bw, bh] = r;
-          ctx.fillStyle = on ? '#FCE4EA' : '#FFFDF8';
-          K.roundRect(ctx, bx, by, bw, bh, 16); ctx.fill();
-          ctx.strokeStyle = on ? '#F07A98' : EDGE; ctx.lineWidth = 2.5;
-          K.roundRect(ctx, bx, by, bw, bh, 16); ctx.stroke();
-          label(icon, bx + bw / 2, by + 34, 34);
-          label(name, bx + bw / 2, by + 72, 15);
-          lines.forEach((l, i) => label(l, bx + bw / 2, by + 94 + i * 15, 10, '#8A6A5C', 'center', 700));
-        };
-        choice(ASK_TAP, '👆', 'Tap', ['Tap the boxes', 'and the plate'], false);
-        choice(ASK_HAND, '✋', 'Hand gestures', ['Move hand · ✊ pick', '✌️ serve'], !!cam || camStarting);
-        if (askMsg) label(askMsg, W / 2, y + h - 18, 11.5, askMsg.includes('try') ? '#B0475E' : BROWN, 'center', 800);
       }
 
       // the full recipe book, from the front screen
@@ -784,57 +642,6 @@ BW.cook = (() => {
         ctx.strokeStyle = PINK; ctx.lineWidth = 3.5; ctx.lineCap = 'round';
         ctx.beginPath(); ctx.moveTo(kx - 6, ky - 10); ctx.lineTo(kx + 6, ky + 2); ctx.moveTo(kx + 6, ky - 10); ctx.lineTo(kx - 6, ky + 2); ctx.stroke();
         label('Clear', kx, ky + 11, 9);
-        drawHandButton();
-      }
-
-      // the ✋ button: your camera (mirrored) while hand control is on
-      function drawHandButton() {
-        const [x, y, w, h] = HAND;
-        ctx.save();
-        K.roundRect(ctx, x, y, w, h, 9);
-        ctx.fillStyle = cam ? '#FCE4EA' : CREAM; ctx.fill();
-        if (cam && cam.video && cam.video.readyState >= 2) {
-          ctx.save(); ctx.clip();
-          const v = cam.video, k = Math.max(w / v.videoWidth, h / v.videoHeight);
-          ctx.translate(x + w, y); ctx.scale(-1, 1);
-          ctx.drawImage(v, (w - v.videoWidth * k) / 2, (h - v.videoHeight * k) / 2, v.videoWidth * k, v.videoHeight * k);
-          ctx.restore();
-          if (cam.seen && cam.point) {
-            ctx.fillStyle = '#FF7FA0';
-            ctx.beginPath(); ctx.arc(x + cam.point.x * w, y + cam.point.y * h, 3, 0, TAU); ctx.fill();
-          }
-        } else {
-          label(camStarting ? '…' : '✋', x + w / 2, y + h / 2 + 1, 17);
-        }
-        ctx.lineWidth = 2.5; ctx.strokeStyle = cam ? (cam.seen ? '#8EC25E' : '#F28C8C') : EDGE;
-        K.roundRect(ctx, x, y, w, h, 9); ctx.stroke();
-        ctx.restore();
-      }
-
-      // the pink box around the spot the hand (or arrow keys) is on, and the gesture help
-      function drawPointer() {
-        if (cam) {
-          const ready = cam.seen && pad && pad.center;
-          const help = !cam.seen ? 'Show your hand to the camera ✋' : !ready ? 'Hold your hand still a moment…' : 'Move hand ◀ ▶ ▲ ▼  ·  ✊ pick  ·  ✌️ serve';
-          label(help, 111, 297, 10, ready ? CREAM : '#FFD3DC', 'center', 800);
-          // a little joystick: the ring is the middle, the dot is your hand
-          const jx = 236, jy = 295, jr = 8;
-          ctx.fillStyle = 'rgba(255, 246, 234, .9)'; ctx.strokeStyle = EDGE; ctx.lineWidth = 1.5;
-          ctx.beginPath(); ctx.arc(jx, jy, jr, 0, TAU); ctx.fill(); ctx.stroke();
-          if (ready && pad.offset) {
-            const k = jr / 0.16, ox = Math.max(-1.3, Math.min(1.3, pad.offset.x * k / jr)) * jr, oy = Math.max(-1.3, Math.min(1.3, pad.offset.y * k / jr)) * jr;
-            ctx.fillStyle = pad.zone ? '#FF6F96' : '#8EC25E';
-            ctx.beginPath(); ctx.arc(jx + ox, jy + oy, 3.5, 0, TAU); ctx.fill();
-          }
-        }
-        if (!pointing || mode !== 'play') return;
-        const list = spots(), s = list[Math.min(cursor, list.length - 1)], [x, y, w, h] = s.box;
-        const glow = 0.6 + Math.sin(t * 6) * 0.4;
-        ctx.save();
-        ctx.shadowColor = '#FF7FA0'; ctx.shadowBlur = 10 * glow;
-        ctx.strokeStyle = '#FF6F96'; ctx.lineWidth = 3.5;
-        K.roundRect(ctx, x + 1, y + 1, w - 2, h - 2, 9); ctx.stroke();
-        ctx.restore();
       }
 
       // the recipe bar on the right: every recipe, the ones being ordered glow pink
@@ -871,7 +678,6 @@ BW.cook = (() => {
         drawBins();
         drawTray();
         drawBar();
-        drawPointer();
         drawPills();
         customers.forEach(drawBubble);
         if (duo) {
@@ -891,35 +697,22 @@ BW.cook = (() => {
         else drawKitchen();
         fx.draw(ctx);
         ctx.restore();
-        if (asking && mode === 'play') drawAsk();
         if (duo) K.countdown(ctx, duo, shop.title);
         if (book) drawBook();
       }
 
       reset();
-      if (duo) { openKitchen(); timeLeft = LEVEL_TIME; duo.set({ score: 0, level: 1 }); }
+      if (duo) { mode = 'play'; timeLeft = LEVEL_TIME; duo.set({ score: 0, level: 1 }); }
       const engine = K.run(canvas, {
         update, draw,
         down: tap,
         keydown(e) {
-          if (mode === 'menu' && (e.code === 'Space' || e.code === 'Enter')) { e.preventDefault(); openKitchen(); return; }
-          if (asking && mode === 'play') {
-            if (e.code === 'Enter' || e.code === 'Space' || e.code === 'Digit1') { e.preventDefault(); answer('tap'); }
-            else if (e.code === 'Digit2') answer('hand');
-            return;
-          }
-          const keys = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down', Enter: 'fist', KeyS: 'scissors' };
-          if (mode === 'play' && keys[e.code]) {
-            e.preventDefault();
-            // the first arrow press only shows the pink box
-            if (!pointing && keys[e.code] !== 'scissors') { pointing = true; return; }
-            act(keys[e.code]);
-          }
+          if (mode === 'menu' && (e.code === 'Space' || e.code === 'Enter')) { e.preventDefault(); mode = 'play'; }
         }
       });
       return {
-        restart() { reset(); openKitchen(); },
-        stop() { BW.sound.loop('boil', false); BW.sound.loop('bake', false); if (cam) cam.stop(); cam = null; engine.stop(); }
+        restart() { reset(); mode = 'play'; },
+        stop() { BW.sound.loop('boil', false); BW.sound.loop('bake', false); engine.stop(); }
       };
     }
 
