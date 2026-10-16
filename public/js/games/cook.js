@@ -13,6 +13,8 @@
 // Hand control (or the ✋ button by Clear, motion.js): move your hand left / right / up / down
 // to move the pink box between the cooking spots and the ingredient boxes, make a fist ✊ to
 // pick what's in the box (it goes to cook or onto your plate), and make scissors ✌️ to serve.
+// With hand control the pink box only visits the ingredient boxes: what needs cooking goes onto
+// your plate by itself once it's ready (a baked cake goes straight to whoever ordered it).
 // The arrow keys, Enter and S do the same on a computer.
 // Score = orders served; app.js gives 2 stars for every 3.
 // Together with a friend (options.duo): straight into the kitchen after a 3-2-1, 4 levels of
@@ -207,12 +209,27 @@ BW.cook = (() => {
 
       // ---------- hand control ----------
 
-      // the spots the pink box moves between: the two cooking spots, then the ingredient boxes
-      // row by row (row 0 is the cooking spots)
+      // the spots the pink box moves between: the ingredient boxes, row by row (the cooking
+      // spots look after themselves with hand control, see handPans)
       function spots() {
-        const list = PANS.map((b, i) => ({ box: b, row: 0, pick: () => tapPan(i) }));
-        binIds.forEach((id, i) => list.push({ box: binBox(i), row: 1 + Math.floor(i / binCols), pick: () => tapBin(id) }));
-        return list;
+        return binIds.map((id, i) => ({ box: binBox(i), row: Math.floor(i / binCols), pick: () => tapBin(id) }));
+      }
+
+      // hand control: ready food leaves the cooking spot by itself, onto your plate (or, for a
+      // baked cake, to whoever ordered it); burnt food goes in the bin
+      function handPans() {
+        pans.forEach((p, i) => {
+          if (!p || p.time < cookTime) return;
+          const box = PANS[i], cx = box[0] + box[2] / 2;
+          if (p.time >= cookTime + BURN_TIME) { pans[i] = null; say('Into the bin!', cx, box[1]); return; }
+          if (shop.bake) {
+            const c = ordered().find(c => c.order[0] === p.id);
+            if (c) { pans[i] = null; thank(c); }
+            return;
+          }
+          if (tray.includes(p.id) || tray.length >= MAX_TRAY) return;
+          if (addToTray(p.id)) { pans[i] = null; BW.sound.play('plate'); fx.add(cx, box[1] + 34, '#FFF6C8', 6, 90); }
+        });
       }
 
       function handOff() { if (cam) cam.stop(); cam = null; pad = null; pointing = false; }
@@ -369,6 +386,7 @@ BW.cook = (() => {
           if (before < cookTime && p.time >= cookTime) { fx.add(box[0] + box[2] / 2, box[1] + 34, '#FFFFFF', 8, 90); BW.sound.play('ding'); }
           if (before < cookTime + BURN_TIME && p.time >= cookTime + BURN_TIME) { say('Burnt!', box[0] + box[2] / 2, box[1]); shake = 0.2; BW.sound.play('burn'); }
         });
+        if (pointing) handPans();     // hand control or arrow keys
 
         customers.forEach(c => {
           if (c.leaving) { c.leaving += dt * 1.6; return; }
