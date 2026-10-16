@@ -146,7 +146,7 @@ BW.shops = (() => {
         chocolate: { name: 'Chocolate', pic: P(470, 812, 108, 66) },
         nuts: { name: 'Nuts', pic: P(588, 812, 108, 66) },
         banana: { name: 'Banana', pic: P(96, 904, 110, 62) },
-        butter: { name: 'Butter', pic: P(708, 904, 110, 62) }
+        butter: { name: 'Butter', art: 'butter' }      // drawn: the design's butter bowl is cut off at the edge
       },
       dishes: {
         berry: { name: 'Berry Stack', art: 'pancake-berry', needs: ['batter', 'strawberries', 'blueberries'] },
