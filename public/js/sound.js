@@ -198,13 +198,18 @@ BW.sound = (() => {
     schedule();
   }
 
-  // the first tap anywhere wakes the sound up
+  // the first tap anywhere wakes the sound up. Phones only allow sound at the END of a tap
+  // (and a blocked try isn't retried by the browser), so every tap checks again until the
+  // music is really playing.
   function unlock() {
     if (!ctx()) return;
-    if (ac.state === 'suspended') ac.resume();
-    if (wanted !== playing) startMusic();
+    if (ac.state === 'suspended') ac.resume().catch(() => {});
+    if (wanted !== playing) { startMusic(); return; }
+    const f = FILES[playing] && tracks[FILES[playing]];
+    if (f && f.paused && prefs.music && !document.hidden) f.play().catch(() => {});
+    boilFile();
   }
-  ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, unlock, { capture: true }));
+  ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'].forEach(ev => window.addEventListener(ev, unlock, { capture: true }));
   // quiet while the app is in the background
   document.addEventListener('visibilitychange', () => {
     const f = FILES[playing] && tracks[FILES[playing]];
