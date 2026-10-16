@@ -6,3 +6,9 @@ android/app/build/
 Thumbs.db
 *.apk
 server/data*/
+
+# Play Store signing (the key itself lives outside the project)
+android/keystore.properties
+*.jks
+*.keystore
+*.aab
