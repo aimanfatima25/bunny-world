@@ -163,7 +163,7 @@ BW.sound = (() => {
   }
 
   // Aiman's music files (public/audio/): these songs play the file instead of a made-up tune
-  const FILES = { home: 'audio/home.mp3', caramel: 'audio/caramel.mp3', cooking: 'audio/cooking.mp3' };
+  const FILES = { home: 'audio/home.mp3', caramel: 'audio/caramel.mp3' };
   const tracks = {};
   function track(src, vol) {
     if (!tracks[src]) { const a = new Audio(src); a.loop = true; a.preload = 'auto'; tracks[src] = a; }

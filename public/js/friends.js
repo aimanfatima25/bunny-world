@@ -11,7 +11,8 @@ BW.friends = (() => {
     'Lily', 'Coco', 'Ruby', 'Bella', 'Latte', 'Peach', 'Bree', 'Jasmine', 'Zoe', 'Hana', 'Mocha'];
   const GIRL_PRICES = [0, 0, 150, 0, 200, 250, 200, 250, 300, 250, 300, 350, 300, 400, 350, 400, 450, 400, 450, 500, 500, 600];
   // guys from Aiman's sheet (assets/design/friends/guys-full.webp); Kai and Leo are free.
-  // Note: guy 10 (NIKE cap), 14 (Supreme) and 21 (GAP) show brand names: redraw before the Play Store.
+  // Guy 10 (NIKE cap), 14 (Supreme), 21 (GAP) and girl 20 (NY cap) had brand logos: painted
+  // over for the Play Store by assets/remove-logos.mjs.
   const GUY_NAMES = ['Kai', 'Leo', 'Haru', 'Yuki', 'Ren', 'Toby', 'Sora', 'Jun', 'Max', 'Ryan', 'Noah',
     'Eli', 'Sam', 'Jay', 'Finn', 'Ash', 'Milo', 'Theo', 'Luca', 'Ollie', 'Ben', 'Zane'];
   const GUY_PRICES = [0, 0, 150, 200, 200, 250, 250, 300, 250, 300, 300, 350, 300, 400, 350, 350, 400, 400, 450, 450, 500, 500];
