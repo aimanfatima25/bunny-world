@@ -40,12 +40,13 @@ BW.account = (() => {
     if (!store.data.username || document.hidden) return;
     const r = await call('/api/ping', profile());
     if (r && r.status === 404) await call('/api/account', Object.assign({ username: store.data.username }, profile()));
-    if (r && r.ok) onIncoming(r.incoming || 0);
+    if (r && r.ok) { onIncoming(r.incoming || 0); if (BW.duo) BW.duo.onInvites(r.invites); }
   }
   function startPinging() {
     clearInterval(pingTimer);
     ping();
-    pingTimer = setInterval(ping, 60000);
+    // every 8 seconds, so game invites pop up quickly
+    pingTimer = setInterval(ping, 8000);
   }
   document.addEventListener('visibilitychange', () => { if (!document.hidden) ping(); });
 

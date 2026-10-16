@@ -178,8 +178,96 @@ BW.kit = (() => {
     return arr;
   }
 
+  // ---------- playing together (duo.js) ----------
+
+  // Their faces for the score box: the girls' card pictures, or the top of a guy's picture
+  const faces = {};
+  function face(id) {
+    if (!faces[id]) { faces[id] = new Image(); faces[id].src = BW.friends ? BW.friends.img(BW.friends.get(id) ? id : 'girl-1') : ''; }
+    return faces[id];
+  }
+  function roundFace(ctx, id, x, y, r, ring) {
+    ctx.save();
+    ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fillStyle = '#FFF4F2'; ctx.fill();
+    ctx.clip();
+    const im = face(id);
+    if (im.complete && im.naturalWidth) {
+      const guy = id.startsWith('guy-'), sw = im.naturalWidth * (guy ? 0.42 : 0.62), sh = sw;
+      ctx.drawImage(im, (im.naturalWidth - sw) / 2, im.naturalHeight * (guy ? 0.01 : 0.04), sw, sh, x - r, y - r, r * 2, r * 2);
+    }
+    ctx.restore();
+    ctx.lineWidth = 2; ctx.strokeStyle = ring;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.stroke();
+  }
+  function pill(ctx, str, x, y, w, h, fill, color, size) {
+    roundRect(ctx, x - w / 2, y - h / 2, w, h, h / 2);
+    ctx.fillStyle = fill; ctx.fill();
+    ctx.font = `800 ${size}px 'Baloo 2', 'Trebuchet MS', sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = color;
+    ctx.fillText(str, x, y + 1);
+  }
+
+  // The cream score box at the top right (Aiman's design): ★ Level n ★, both faces,
+  // "Me" in pink and the friend's name in blue, and both scores.
+  //   duo: the session; mine / theirs: what to show; label: 'Level 2' etc.; x, y: top left
+  function duoPanel(ctx, duo, mine, theirs, label, x, y) {
+    x = x == null ? W - 146 : x; y = y == null ? 8 : y;
+    const w = 138, h = 84;
+    ctx.save();
+    ctx.fillStyle = 'rgba(110, 74, 58, .18)'; roundRect(ctx, x + 2, y + 3, w, h, 12); ctx.fill();
+    ctx.fillStyle = '#FFF6EF'; roundRect(ctx, x, y, w, h, 12); ctx.fill();
+    ctx.lineWidth = 2.5; ctx.strokeStyle = '#E9B8BF'; roundRect(ctx, x, y, w, h, 12); ctx.stroke();
+    ctx.setLineDash([3, 3]); ctx.lineWidth = 1; ctx.strokeStyle = '#F1CFD3';
+    roundRect(ctx, x + 4, y + 4, w - 8, h - 8, 9); ctx.stroke(); ctx.setLineDash([]);
+    ctx.font = `800 12.5px 'Baloo 2', 'Trebuchet MS', sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#5C3B2A';
+    ctx.fillText(label || '', x + w / 2, y + 13);
+    star(ctx, x + w / 2 - 38, y + 13, 5.5, '#F9D77E'); star(ctx, x + w / 2 + 38, y + 13, 5.5, '#F9D77E');
+    const them = duo.other();
+    [[duo.me, 'Me', '#F07A98', '#C9506F', mine], [duo.them, duo.them.name || duo.them.username, '#6FA3D9', '#3E6FA8', theirs]].forEach(([p, name, fill, ring, val], i) => {
+      const cx = x + 36 + i * 66;
+      roundFace(ctx, p.girl || 'girl-1', cx, y + 37, 13, ring);
+      pill(ctx, String(name).slice(0, 8), cx, y + 56, 52, 13, fill, '#FFFFFF', 10);
+      ctx.fillStyle = '#FFFFFF'; roundRect(ctx, cx - 22, y + 64, 44, 15, 7.5); ctx.fill();
+      ctx.lineWidth = 1.5; ctx.strokeStyle = fill; roundRect(ctx, cx - 22, y + 64, 44, 15, 7.5); ctx.stroke();
+      ctx.font = `800 12px 'Baloo 2', 'Trebuchet MS', sans-serif`; ctx.fillStyle = '#5C3B2A';
+      ctx.fillText(String(val), cx, y + 72.5);
+      if (i === 1 && (them.left || them.done)) {
+        ctx.font = `800 8.5px 'Baloo 2', 'Trebuchet MS', sans-serif`; ctx.fillStyle = '#9B7B6A';
+        ctx.fillText(them.left ? 'left' : 'done', cx + 20, y + 30);
+      }
+    });
+    ctx.restore();
+  }
+
+  // 3, 2, 1, Go! before a game together; returns true while still counting down
+  function countdown(ctx, duo, title) {
+    const left = (duo.startAt - Date.now()) / 1000;
+    if (left <= -0.6) return false;
+    ctx.fillStyle = 'rgba(40, 30, 50, .35)'; ctx.fillRect(0, 0, W, H);
+    text(ctx, title || '', W / 2, 170, 30);
+    text(ctx, `you vs ${duo.them.name || duo.them.username}`, W / 2, 210, 20);
+    text(ctx, left > 0 ? String(Math.ceil(left)) : 'Go!', W / 2, 320, 80);
+    return left > 0;
+  }
+
+  // the big "Level 2" banner between rounds
+  function levelBanner(ctx, n, sub) {
+    ctx.fillStyle = 'rgba(255, 246, 239, .9)'; roundRect(ctx, 60, 250, W - 120, 96, 22); ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle = '#E9B8BF'; roundRect(ctx, 60, 250, W - 120, 96, 22); ctx.stroke();
+    text(ctx, `Level ${n}`, W / 2, 288, 38);
+    if (sub) text(ctx, sub, W / 2, 325, 16);
+  }
+
+  // a random number generator that gives the same numbers on both phones
+  function seeded(seed) {
+    let a = seed >>> 0;
+    return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+
   // the toolkit itself; app.js sets BW.kit.paused when the pause card is open
   const api = { paused: false };
 
-  return Object.assign(api, { W, H, INK, CREAM, TAU, run, text, title, roundRect, heart, hearts, carrot, coin, star, sparkles, shuffle });
+  return Object.assign(api, { W, H, INK, CREAM, TAU, run, text, title, roundRect, heart, hearts, carrot, coin, star, sparkles, shuffle,
+    duoPanel, countdown, levelBanner, seeded });
 })();

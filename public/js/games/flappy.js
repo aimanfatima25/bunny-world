@@ -2,6 +2,9 @@
 // When it opens it asks how you want to play: tap to hop, or (motion.js) let the bunny
 // follow your hand on the front camera, or the tilt of your phone. With a
 // motion control there's no gravity: the bunny flies to where you point it.
+// Together with a friend (options.duo): both fly through the very same pillars (same seed,
+// same speed by the clock), each pillar has two gaps, and the friend's animal flies along
+// as a see-through ghost with their name. Whoever passes more pillars wins.
 // Every game has the same shape: start(canvas, options) returns { restart, stop }.
 //   options.character   which friend to draw
 //   options.getBest()   best score so far (shown on the start screen)
@@ -11,6 +14,7 @@ BW.games = BW.games || {};
 
 BW.games.flappy = (() => {
   const W = 360, H = 640, GROUND = 588, TAU = Math.PI * 2;
+  const K = BW.kit;
   const PILLAR_W = 66, SPACING = 215;
 
   function start(canvas, options) {
@@ -19,6 +23,9 @@ BW.games.flappy = (() => {
     let t = 0, raf = 0, last = performance.now();
     // how you play: null (not picked yet), 'tap', 'hand' or 'tilt'
     let control = null, motion = null, message = '', seenFor = 0, lostFor = 0, aim = 0.5;
+    const duo = options.duo;
+    let rng = Math.random, pillarCount = 0;
+    if (duo) control = 'tap';
     const TOP_Y = 40, LOW_Y = GROUND - 30;     // where a motion-controlled bunny can fly
 
     // the choices on the first screen: [control, label, little picture]
@@ -40,6 +47,7 @@ BW.games.flappy = (() => {
     function reset() {
       state = control ? 'ready' : 'choose';
       seenFor = 0;
+      if (duo) { rng = K.seeded(duo.seed); pillarCount = 0; }
       bunny = { x: 110, y: 300, vy: 0, r: 13 };
       pillars = [];
       score = 0;
@@ -48,10 +56,23 @@ BW.games.flappy = (() => {
       clouds = clouds || Array.from({ length: 5 }, (_, i) => ({ x: i * 90 + Math.random() * 40, y: 60 + Math.random() * 220, s: 0.6 + Math.random() * 0.6 }));
     }
 
-    function speed() { return Math.min(150 + score * 4, 230); }
+    // together, the speed comes from the shared clock so both worlds stay the same
+    function speed() {
+      if (duo) return Math.min(150 + Math.max(0, Date.now() - duo.startAt) / 1000 * 2, 230);
+      return Math.min(150 + score * 4, 230);
+    }
     function gapSize() { return Math.max(165 - score * 1.5, 128); }
 
     function addPillar(x) {
+      if (duo) {
+        // two gaps in every pillar, from the shared random numbers
+        const g = Math.max(150 - pillarCount * 1.2, 118);
+        pillarCount++;
+        const top = 70 + rng() * (GROUND - 70 - 2 * g - 60 - 40);
+        const top2 = top + g + 60 + rng() * (GROUND - 40 - (top + 2 * g + 60));
+        pillars.push({ x, top, g, top2, passed: false });
+        return;
+      }
       const g = gapSize();
       const top = 90 + Math.random() * (GROUND - 90 - g - 70);
       pillars.push({ x, top, g, passed: false });
@@ -90,6 +111,7 @@ BW.games.flappy = (() => {
 
     function end() {
       state = 'over';
+      if (duo) duo.set({ score, y: Math.round(bunny.y), alive: false });
       BW.sound.play('bonk');
       flash = 1;
       options.onGameOver(score);
@@ -99,6 +121,11 @@ BW.games.flappy = (() => {
       t += dt;
       clouds.forEach(c => { c.x -= 12 * c.s * dt; if (c.x < -80) { c.x = W + 40; c.y = 60 + Math.random() * 220; } });
       if (state === 'choose' || state === 'loading') { bunny.y = 200 + Math.sin(t * 4) * 8; groundX = (groundX - 90 * dt) % 24; return; }
+      if (state === 'ready' && duo) {
+        bunny.y = 300 + Math.sin(t * 4) * 8; groundX = (groundX - 90 * dt) % 24;
+        if (Date.now() >= duo.startAt) { begin(); bunny.vy = -420; }
+        return;
+      }
       if (state === 'ready') {
         bunny.y = 300 + Math.sin(t * 4) * 8; groundX = (groundX - 90 * dt) % 24;
         // hand: start once it's been seen for a moment
@@ -135,10 +162,12 @@ BW.games.flappy = (() => {
       if (pillars.length && pillars[pillars.length - 1].x < W - SPACING) addPillar(W + 10);
       pillars = pillars.filter(p => p.x > -PILLAR_W - 20);
 
+      if (duo) duo.set({ score, y: Math.round(bunny.y), alive: true });
       if (bunny.y + bunny.r >= GROUND || bunny.y - bunny.r < -40) return end();
       for (const p of pillars) {
         const cx = Math.max(p.x, Math.min(bunny.x, p.x + PILLAR_W));
-        for (const [y1, y2] of [[-100, p.top], [p.top + p.g, GROUND]]) {
+        const blocks = p.top2 != null ? [[-100, p.top], [p.top + p.g, p.top2], [p.top2 + p.g, GROUND]] : [[-100, p.top], [p.top + p.g, GROUND]];
+        for (const [y1, y2] of blocks) {
           const cy = Math.max(y1, Math.min(bunny.y, y2));
           if ((bunny.x - cx) ** 2 + (bunny.y - cy) ** 2 < bunny.r ** 2) return end();
         }
@@ -220,6 +249,14 @@ BW.games.flappy = (() => {
 
     function drawPillar(p) {
       grassBlock(p.x, -20, PILLAR_W, p.top + 20, false);
+      if (p.top2 != null) {
+        // the middle block between the two gaps has grass on both sides
+        const y = p.top + p.g, h = p.top2 - y;
+        grassBlock(p.x, y, PILLAR_W, h, true);
+        grassBlock(p.x, y + h - 22, PILLAR_W, 22, false);
+        grassBlock(p.x, p.top2 + p.g, PILLAR_W, GROUND - p.top2 - p.g + 20, true);
+        return;
+      }
       grassBlock(p.x, p.top + p.g, PILLAR_W, GROUND - p.top - p.g + 20, true);
     }
 
@@ -362,16 +399,43 @@ BW.games.flappy = (() => {
       }
     }
 
+    // the friend's animal, see-through, flying where they are, with their name
+    let friendY = 300;
+    function drawFriend() {
+      const o = duo.other();
+      if (o.y == null) return;
+      friendY += (o.y - friendY) * 0.3;
+      const pic = BW.friends && BW.friends.cutout(duo.them.pet || 'bunny');
+      ctx.save();
+      ctx.globalAlpha = o.alive === false ? 0.3 : 0.55;
+      ctx.translate(bunny.x - 26, friendY);
+      if (pic && pic.complete && pic.naturalWidth) {
+        const k = 44 / Math.max(pic.naturalWidth, pic.naturalHeight);
+        if (BW.friends.facesLeft(duo.them.pet)) ctx.scale(-1, 1);
+        ctx.drawImage(pic, -pic.naturalWidth * k / 2, -pic.naturalHeight * k / 2, pic.naturalWidth * k, pic.naturalHeight * k);
+      } else { ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.arc(0, 0, 14, 0, TAU); ctx.fill(); }
+      ctx.restore();
+      ctx.save();
+      ctx.font = `800 11px 'Baloo 2', 'Trebuchet MS', sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillStyle = 'rgba(62, 111, 168, .85)';
+      ctx.fillText(duo.them.name || duo.them.username, bunny.x - 26, friendY - 30);
+      ctx.restore();
+    }
+
     function draw() {
       drawSky();
       pillars.forEach(drawPillar);
       drawGround();
+      if (duo) drawFriend();
       if (state !== 'choose') drawPlayer();
       if (state === 'choose') drawChooser();
       else if (state === 'loading') {
         text('Flappy Bunny', W / 2, 150, 46);
         text(message, W / 2, 400, 20);
         text('Allow it when your phone asks', W / 2, 432, 16);
+      } else if (state === 'ready' && duo) {
+        // the 3-2-1 is drawn below
       } else if (state === 'ready') {
         text('Flappy Bunny', W / 2, 150, 46);
         const how = {
@@ -383,11 +447,18 @@ BW.games.flappy = (() => {
         if (how[1]) text(how[1], W / 2, 434, 17);
         if (message && control === 'tap') text(message, W / 2, 470, 15);
         text('Best ' + options.getBest(), W / 2, how[1] ? 470 + (message && control === 'tap' ? 30 : 0) : 440, 20);
+      } else if (state === 'play' && duo) {
+        text(String(score), 110, 70, 50);
       } else if (state === 'play') {
         text(String(score), W / 2, 70, 56);
         if (motion && lostFor > 0.4) text(control === 'hand' ? "Can't see your hand!" : 'Tilt sensor lost', W / 2, 130, 20);
       }
       drawCamera();
+      if (duo) {
+        K.duoPanel(ctx, duo, score, Number(duo.other().score) || 0, 'Pillars');
+        if (state === 'ready') K.countdown(ctx, duo, 'Flappy Bunny');
+        if (state === 'over') text(`Waiting for ${duo.them.name || duo.them.username}…`, W / 2, 300, 18);
+      }
       if (flash > 0) { ctx.fillStyle = `rgba(255,255,255,${flash * 0.7})`; ctx.fillRect(0, 0, W, H); }
     }
 

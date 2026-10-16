@@ -146,9 +146,15 @@
     });
   }
 
-  function startGame(g) {
+  function startGame(g, duo) {
     if (g.soon) { toast(`${g.name} is coming soon!`); return; }
+    if (game) { game.stop(); game = null; }
+    if (aquarium) { aquarium.stop(); aquarium = null; }
+    ['friendsPage', 'shop', 'aquarium'].forEach(id => { $(id).hidden = true; });
+    resumeGame();
     current = g;
+    currentDuo = duo || null;
+    $('againBtn').textContent = duo ? 'Rematch' : 'Play again';
     cancelAnimationFrame(heroRaf);
     hub.hidden = true;
     play.hidden = false;
@@ -162,14 +168,20 @@
       character: store.data.character,
       getBest: () => store.best(g.id),
       pause: pauseGame,
+      duo: duo || null,
       onGameOver
     });
   }
+  let currentDuo = null;
+  // a game together with a friend (duo.js)
+  function startDuo(id, duo) { startGame(GAMES.find(g => g.id === id), duo); }
 
   // The home button during a game pauses it first: Resume or go Home
+  // (playing together can't pause: the friend keeps playing, so it asks to leave instead)
   function pauseGame() {
     if (!game) return;
     if (!over.hidden) { goHome(); return; }
+    if (currentDuo) { if (confirm(`Leave the game with ${currentDuo.them.name || currentDuo.them.username}?`)) goHome(); return; }
     BW.kit.paused = true;
     BW.sound.loop('boil', false); BW.sound.loop('bake', false);
     $('pause').hidden = false;
@@ -183,6 +195,8 @@
 
   function goHome() {
     resumeGame();
+    $('duoOver').hidden = true;
+    if (currentDuo) { BW.duo.ended(); currentDuo = null; }
     BW.sound.music('home');
     BW.sound.loop('boil', false);
     BW.sound.loop('bake', false);
@@ -443,6 +457,13 @@
     BW.sound.play('over');
 
     $('overTitle').textContent = g.overTitle;
+    $('duoResult').hidden = true;
+    if (currentDuo) {
+      // games together count for the Top 10 too
+      if (store.data.playerName && score > 0) BW.leaderboard.submit(g.id, score);
+      showDuoResult(currentDuo, g, score, earned);
+      return;
+    }
     $('score').textContent = score;
     $('best').textContent = store.best(g.id);
     $('badge').textContent = level >= 0 ? `${['Bronze', 'Silver', 'Golden'][level]} ${g.medal}!` : (isBest && score > 0 ? 'New best!' : '');
@@ -463,8 +484,65 @@
     }, 450);
   }
 
+  // ---------- the result of a game together ----------
+
+  const VS_ICON = { catch: '🐟', fish: '🐠', flappy: '🥕', sushi: '🍣', ramen: '🍜', cake: '🍰' };
+  function vsMessage(id, diff, who) {
+    const n = Math.abs(diff), me = diff > 0, x = me ? 'You' : who, y = me ? who : 'you';
+    if (diff === 0) return 'The very same score! Play again to break the tie ♥';
+    const s = n === 1 ? '' : 's';
+    return {
+      catch: `${x} caught ${n} more fish!`,
+      fish: `${x} scored ${n} more point${s}!`,
+      flappy: `${x} flew past ${n} more pillar${s}!`,
+      sushi: `${x} served ${n} more sushi order${s} than ${y}!`,
+      ramen: `${x} cooked ${n} more bowl${s} than ${y}!`,
+      cake: `${x} baked ${n} more cake${s} than ${y}!`
+    }[id];
+  }
+
+  function showDuoResult(duo, g, score, earned) {
+    const who = duo.them.name || duo.them.username, icon = VS_ICON[g.id] || '⭐';
+    $('vsTitle').textContent = 'Waiting…';
+    $('vsSub').textContent = BW.duo.NAMES[g.id];
+    $('vsFaceMe').src = BW.friends.img(store.data.girl);
+    $('vsFaceThem').src = BW.friends.img(BW.friends.get(duo.them.girl) ? duo.them.girl : 'girl-1');
+    $('vsFaceMe').classList.toggle('guy', store.data.girl.startsWith('guy-'));
+    $('vsFaceThem').classList.toggle('guy', String(duo.them.girl).startsWith('guy-'));
+    $('vsNameThem').textContent = who;
+    $('vsIconMe').textContent = $('vsIconThem').textContent = icon;
+    $('vsScoreMe').textContent = score;
+    $('vsScoreThem').textContent = '…';
+    $('vsCrownMe').hidden = $('vsCrownThem').hidden = true;
+    $('vsMascot').src = BW.friends.cutout(store.data.character).src;
+    $('vsMsgPet').src = BW.friends.cutout(store.data.character).src;
+    $('vsMsg').textContent = `${who} is still playing…`;
+    $('vsStars').textContent = `+${earned} stars`;
+    $('vsAgain').disabled = true;
+    setTimeout(() => { if (currentDuo === duo) $('duoOver').hidden = false; }, 450);
+    duo.finish(score).then(r => {
+      if (currentDuo !== duo) return;
+      $('vsScoreThem').textContent = r.theirs;
+      $('vsTitle').textContent = r.result === 'win' ? 'You Won!' : r.result === 'lose' ? `${who} Won!` : "It's a Tie!";
+      $('vsCrownMe').hidden = r.result === 'lose';
+      $('vsCrownThem').hidden = r.result === 'win';
+      $('vsMsg').textContent = r.left ? `${who} left the game, so you win!` : vsMessage(g.id, r.mine - r.theirs, who);
+      if (r.result === 'win') { store.addCoins(10); showCoins(); $('vsStars').textContent = `+${earned + 10} stars (10 for winning!)`; }
+      $('vsAgain').disabled = false;
+      BW.sound.play(r.result === 'lose' ? 'over' : 'sparkle');
+    });
+  }
+
   function playAgain() {
-    if (over.hidden || !game) return;
+    if ((over.hidden && $('duoOver').hidden) || !game) return;
+    if (currentDuo) {
+      // a rematch: invite the same friend to the same game again
+      const who = currentDuo.them.username, id = current.id;
+      $('duoOver').hidden = true;
+      goHome();
+      BW.duo.invite(who, id);
+      return;
+    }
     over.hidden = true;
     game.restart();
   }
@@ -603,6 +681,8 @@
   $('pauseHome').addEventListener('click', goHome);
   $('homeBtn').addEventListener('click', goHome);
   $('againBtn').addEventListener('click', playAgain);
+  $('vsAgain').addEventListener('click', playAgain);
+  $('vsHome').addEventListener('click', goHome);
   $('shopNav').addEventListener('click', () => openShop(store.data.girl.startsWith('guy-') ? 'guys' : 'girls'));
   document.querySelectorAll('.choose-switch button').forEach(b => b.addEventListener('click', () => openShop(b.dataset.mode)));
   $('shopBack').addEventListener('click', closeShop);
@@ -626,7 +706,8 @@
   $('idNumber').addEventListener('click', () => BW.social.openShare());
   $('avatarBtn').addEventListener('click', openId);
   BW.dressup.wire();
-  BW.app = { toast, showScreen };
+  BW.app = { toast, showScreen, startDuo };
+  BW.duo.wire();
   BW.social.wire();
   $('idClose').addEventListener('click', closeId);
   $('idForm').addEventListener('submit', saveId);

@@ -20,6 +20,16 @@
 //   POST /api/friends/accept              → { player, username }
 //   POST /api/friends/remove              → { player, username } remove, decline or cancel
 //
+// Playing together (matches live in memory; a match is forgotten 10 minutes after it ends):
+//   POST /api/match/invite                → { player, username, game } invite a friend → { match }
+//   POST /api/match/answer                → { player, id, accept } join or say no
+//   POST /api/match/state                 → { player, id, state } send your live state (score, round…),
+//                                           get the match back with both players' latest states
+//   POST /api/match/leave                 → { player, id } cancel or quit
+//   A match: { id, game, seed, status: invited|playing|declined|cancelled, startAt, now,
+//              host, guest (public profiles), states: { host, guest } }
+//   /api/ping also returns { invites: [match…] } waiting for you.
+//
 // A public profile: { username, name, girl, pet, stars, hearts, motto, online, friends }
 
 const http = require('node:http');
@@ -154,6 +164,31 @@ function relation(me, other) {
 }
 const withRelation = (me, u) => Object.assign(profile(u), { relation: relation(me, u.player) });
 
+// ---------- playing together ----------
+
+const MATCH_GAMES = new Set(['flappy', 'catch', 'fish', 'sushi', 'ramen', 'cake']);
+const matches = new Map();
+let matchCount = 0;
+
+function matchFor(m, player) {
+  const role = m.host === player ? 'host' : m.guest === player ? 'guest' : null;
+  return role && {
+    id: m.id, game: m.game, seed: m.seed, status: m.status, startAt: m.startAt, now: Date.now(), you: role,
+    host: profile(userByPlayer.get(m.host)), guest: profile(userByPlayer.get(m.guest)),
+    states: { host: m.states.host, guest: m.states.guest }
+  };
+}
+// old matches are tidied away
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, m] of matches) {
+    const idle = now - Math.max(m.seen.host || 0, m.seen.guest || 0, m.created);
+    if (idle > 10 * 60000 || (m.status === 'invited' && now - m.created > 3 * 60000)) matches.delete(id);
+  }
+}, 60000).unref();
+const invitesFor = player => [...matches.values()]
+  .filter(m => m.guest === player && m.status === 'invited').map(m => matchFor(m, player));
+
 // ---------- http plumbing ----------
 
 // Simple flood protection: at most 60 writes per minute from one address
@@ -200,7 +235,9 @@ const server = http.createServer(async (req, res) => {
   let body = {};
   if (req.method === 'POST') {
     const ip = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-    if (tooMany(ip, p === '/api/scores' ? 20 : 60)) return send(res, 429, { error: 'Slow down a little' });
+    // live match states come several times a second, so they get a much bigger allowance
+    const limit = p === '/api/scores' ? 20 : p === '/api/match/state' ? 900 : 60;
+    if (tooMany(ip + (p === '/api/match/state' ? ':m' : ''), limit)) return send(res, 429, { error: 'Slow down a little' });
     try { body = JSON.parse(await readBody(req)); } catch (e) { return send(res, 400, { error: 'Bad request' }); }
   }
   const player = String(body.player || url.searchParams.get('player') || '');
@@ -252,7 +289,7 @@ const server = http.createServer(async (req, res) => {
     const f = profileFields(body, me);
     pingUser.run(f.stars, f.hearts, f.girl, f.pet, Date.now(), player);
     const incoming = myPairs.all(player, player, player).filter(r => !r.accepted && r.to_player === player).length;
-    return send(res, 200, { ok: true, incoming });
+    return send(res, 200, { ok: true, incoming, invites: invitesFor(player) });
   }
 
   const user = p.match(/^\/api\/users\/([^/]+)$/);
@@ -306,6 +343,51 @@ const server = http.createServer(async (req, res) => {
       return send(res, 400, { error: 'No request to accept' });
     }
     return send(res, 200, withRelation(player, other));
+  }
+
+  // ---- playing together ----
+  if (req.method === 'POST' && p === '/api/match/invite') {
+    if (!me) return send(res, 400, { error: 'Pick a username first' });
+    const other = userByName.get(cleanUsername(body.username));
+    const game = String(body.game || '');
+    if (!other) return send(res, 404, { error: 'No player with that username' });
+    if (!MATCH_GAMES.has(game)) return send(res, 400, { error: "That game can't be played together yet" });
+    if (relation(player, other.player) !== 'friends') return send(res, 400, { error: 'You can only invite friends' });
+    // one invite at a time from you
+    for (const m of matches.values()) if (m.host === player && m.status === 'invited') m.status = 'cancelled';
+    const id = (++matchCount).toString(36) + Math.random().toString(36).slice(2, 8);
+    const m = { id, game, seed: Math.floor(Math.random() * 1e9), status: 'invited', host: player, guest: other.player,
+      created: Date.now(), startAt: 0, states: { host: null, guest: null }, seen: { host: Date.now(), guest: 0 } };
+    matches.set(id, m);
+    return send(res, 200, { match: matchFor(m, player) });
+  }
+
+  const mm = p.match(/^\/api\/match\/(answer|state|leave)$/);
+  if (req.method === 'POST' && mm) {
+    const m = matches.get(String(body.id || ''));
+    const role = m && (m.host === player ? 'host' : m.guest === player ? 'guest' : null);
+    if (!role) return send(res, 404, { error: 'That game has ended' });
+    m.seen[role] = Date.now();
+    if (mm[1] === 'answer') {
+      if (role !== 'guest' || m.status !== 'invited') return send(res, 400, { error: 'That invite has ended' });
+      m.status = body.accept ? 'playing' : 'declined';
+      if (body.accept) m.startAt = Date.now() + 4500;      // both count down 3, 2, 1 together
+    } else if (mm[1] === 'leave') {
+      if (m.status === 'invited') m.status = 'cancelled';
+      else m.states[role] = Object.assign({}, m.states[role] || {}, { left: true, done: true });
+    } else {
+      const st = body.state && typeof body.state === 'object' ? body.state : {};
+      // keep it small: only plain numbers, short strings, and a short list of fish
+      const clean = {};
+      for (const [k, v] of Object.entries(st).slice(0, 20)) {
+        if (typeof v === 'number' && Number.isFinite(v)) clean[k] = Math.round(v * 100) / 100;
+        else if (typeof v === 'boolean') clean[k] = v;
+        else if (typeof v === 'string') clean[k] = v.slice(0, 20);
+        else if (Array.isArray(v)) clean[k] = v.slice(0, 30).map(n => (Array.isArray(n) ? n.slice(0, 4).map(x => Math.round(Number(x) || 0)) : Math.round(Number(n) || 0)));
+      }
+      m.states[role] = clean;
+    }
+    return send(res, 200, { match: matchFor(m, player) });
   }
 
   send(res, 404, { error: 'Not found' });

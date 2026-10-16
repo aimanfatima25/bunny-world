@@ -4,6 +4,9 @@
 // when the tank is full, the game ends.
 // Making an axolotl opens a gift: the Fish Maker (fishmaker.js), where players
 // design their own fish for their Aquarium.
+// Together with a friend (options.duo): you both merge in your own tank for up to 3 minutes,
+// and a little live window shows your friend's tank (their fish, as they swim). An axolotl
+// floats away for a bonus instead of opening the gift. The higher score wins.
 window.BW = window.BW || {};
 BW.games = BW.games || {};
 
@@ -12,6 +15,7 @@ BW.games.fish = (() => {
   // where fish can swim
   const LEFT = 34, RIGHT = W - 34, TOP = 140, BOTTOM = 520;
   const START_FISH = 12, MAX_FISH = 24;
+  const DUO_TIME = 180, AXOLOTL_BONUS = 40;
 
   //              goldie clown puffer betta koi axolotl
   const POINTS = [0, 2, 6, 15, 35, 80];
@@ -34,6 +38,8 @@ BW.games.fish = (() => {
 
   function start(canvas, options) {
     let state, fish, selected, spawnIn, interval, merges, score, ghosts, gift, t = 0;
+    const duo = options.duo;
+    let timeLeft = DUO_TIME, sendIn = 0;
     const fx = K.sparkles();
     const bg = BW.aquarium.scene();
 
@@ -86,7 +92,7 @@ BW.games.fish = (() => {
 
     function tap(x, y) {
       if (state === 'over' || state === 'maker') return;
-      if (state === 'ready') { state = 'play'; return; }
+      if (state === 'ready') { if (!duo) state = 'play'; return; }
       if (state === 'gift') { if (gift.t > 0.6) openGift(); return; }
       const f = fishAt(x, y);
       if (!f) { selected = null; return; }
@@ -110,6 +116,15 @@ BW.games.fish = (() => {
       score += POINTS[f.type];
       fx.add(f.x, drawY(f), '#FFFFFF', 10, 150);
       fx.label(f.x, drawY(f) - 34, '+' + POINTS[f.type]);
+      if (f.type === LAST && duo) {
+        // together: the axolotl floats away with a bonus, no gift
+        score += AXOLOTL_BONUS;
+        fx.label(f.x, drawY(f) - 56, '+' + AXOLOTL_BONUS + ' bonus!');
+        fx.add(f.x, drawY(f), '#E3CCF2', 24, 260);
+        ghosts.push({ x0: f.x, y0: drawY(f), x1: f.x, y1: -80, type: LAST, face: f.face, t: 0, speed: 0.8, shrink: false });
+        fish.splice(fish.indexOf(f), 1);
+        return;
+      }
       if (f.type === LAST) {
         fx.add(f.x, drawY(f), '#E3CCF2', 24, 260);
         fx.add(f.x, drawY(f), '#F7C548', 16, 200);
@@ -161,6 +176,17 @@ BW.games.fish = (() => {
       if (gift) gift.t += dt;
       if (state === 'over') return;
       fish.forEach(f => swim(f, dt));
+      if (duo) {
+        // send my tank (where every fish is) a few times a second for the friend's window
+        sendIn -= dt;
+        if (sendIn <= 0) {
+          sendIn = 0.25;
+          duo.set({ score, fish: fish.slice(0, 30).map(f => [f.type, f.x, drawY(f), f.face > 0 ? 1 : 0]) });
+        }
+        if (state === 'ready') { if (Date.now() >= duo.startAt) state = 'play'; else return; }
+        timeLeft = Math.max(0, DUO_TIME - (Date.now() - duo.startAt) / 1000);
+        if (timeLeft <= 0 && state === 'play') { state = 'over'; selected = null; options.onGameOver(score); return; }
+      }
       if (state !== 'play') return;
       spawnIn -= dt;
       if (spawnIn <= 0) {
@@ -232,6 +258,7 @@ BW.games.fish = (() => {
 
       fx.draw(ctx);
 
+      if (duo) { drawDuo(ctx); return; }
       if (state === 'ready') {
         ctx.fillStyle = 'rgba(36,27,51,.35)'; ctx.fillRect(0, 0, W, H);
         K.title(ctx, 'Merge the Fish', 'Tap to start', options.getBest());
@@ -258,6 +285,43 @@ BW.games.fish = (() => {
         drawGift(ctx, W / 2, 340);
         K.text(ctx, 'Tap the gift to open it', W / 2, 450, 20);
       }
+    }
+
+    // playing together: my score, time and tank meter on the left, the score box at the top
+    // right, and under it a little live window of the friend's tank
+    function drawDuo(ctx) {
+      const o = duo.other();
+      K.duoPanel(ctx, duo, score, Number(o.score) || 0, 'Merge');
+      const x = W - 146, y = 98, w = 138, h = 92, k = w / W;
+      ctx.save();
+      K.roundRect(ctx, x, y, w, h, 10);
+      const g = ctx.createLinearGradient(0, y, 0, y + h);
+      g.addColorStop(0, '#BFE6F2'); g.addColorStop(1, '#7FC3DA');
+      ctx.fillStyle = g; ctx.fill();
+      ctx.clip();
+      (o.fish || []).forEach(([type, fx2, fy, face]) => {
+        ctx.save();
+        // the friend's tank, squeezed into the window (their fish swim between TOP and BOTTOM)
+        ctx.translate(x + fx2 * k, y + 8 + Math.max(0, Math.min(1, (fy - TOP) / (BOTTOM - TOP))) * (h - 26));
+        ctx.scale(face ? 1 : -1, 1);
+        drawCreature(ctx, Math.max(0, Math.min(LAST, type)), sizeOf(type) * 0.42, t);
+        ctx.restore();
+      });
+      ctx.restore();
+      ctx.lineWidth = 2.5; ctx.strokeStyle = '#E9B8BF'; K.roundRect(ctx, x, y, w, h, 10); ctx.stroke();
+      ctx.font = `800 10px 'Baloo 2', 'Trebuchet MS', sans-serif`; ctx.textAlign = 'center';
+      ctx.fillStyle = '#3E6FA8'; ctx.fillText(`${duo.them.name || duo.them.username}'s tank`, x + w / 2, y + h - 6);
+
+      if (K.countdown(ctx, duo, 'Merge the Fish')) return;
+      K.text(ctx, String(score), 110, 36, 38);
+      const full = fish.length / MAX_FISH;
+      ctx.fillStyle = 'rgba(255,255,255,.6)'; K.roundRect(ctx, 34, 72, 160, 12, 6); ctx.fill();
+      ctx.fillStyle = fish.length >= MAX_FISH - 4 ? `rgba(226,75,74,${0.6 + 0.4 * Math.sin(t * 12)})` : '#9FC9F2';
+      K.roundRect(ctx, 34, 72, Math.max(12, 160 * Math.min(1, full)), 12, 6); ctx.fill();
+      ctx.lineWidth = 2; ctx.strokeStyle = INK; K.roundRect(ctx, 34, 72, 160, 12, 6); ctx.stroke();
+      ctx.save(); ctx.translate(20, 78); drawCreature(ctx, 0, 9, t); ctx.restore();
+      K.text(ctx, `${Math.floor(timeLeft / 60)}:${String(Math.floor(timeLeft % 60)).padStart(2, '0')}`, 110, 104, 16);
+      if (state === 'over') K.text(ctx, `Waiting for ${duo.them.name || duo.them.username}…`, W / 2, 300, 18);
     }
 
     reset();

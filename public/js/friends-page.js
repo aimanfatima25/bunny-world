@@ -89,7 +89,7 @@ BW.social = (() => {
     const el = document.createElement('div');
     el.className = 'fr-row' + (opts.mine ? ' mine' : '');
     const action = opts.mine ? '' :
-      p.relation === 'friends' || opts.friend ? `<button class="fr-btn ghost" data-act="remove">Friends ✓</button>` :
+      p.relation === 'friends' || opts.friend ? `<button class="fr-btn play" data-act="play">▶ Play</button><button class="fr-btn ghost" data-act="remove">Friends ✓</button>` :
       p.relation === 'incoming' || opts.incoming ? `<button class="fr-btn" data-act="accept">Accept</button><button class="fr-btn ghost" data-act="remove">Decline</button>` :
       p.relation === 'requested' || opts.outgoing ? `<button class="fr-btn ghost" data-act="remove">Requested</button>` :
       `<button class="fr-btn" data-act="add">Add Friend</button>`;
@@ -113,6 +113,7 @@ BW.social = (() => {
   }
 
   async function act(what, p, btn) {
+    if (what === 'play') { BW.duo.pickGame(p.username); return; }
     if (what === 'remove' && (p.relation === 'friends' || btn.textContent === 'Friends ✓')) {
       if (!confirm(`Remove @${p.username} from your friends?`)) return;
     }

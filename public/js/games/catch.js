@@ -4,6 +4,9 @@
 // shark or a crocodile costs one. 45 seconds, or until your hearts run out; it gets faster
 // and busier as you go, with more sharks and crocs near the end.
 // Stars: 2 for every 6 fish caught (app.js), so it reports { fish } at game over.
+// Together with a friend (options.duo): 4 levels of 25 seconds, from easy (no sharks) to hard;
+// hearts refill each level (at 0 you wait for the next one). Both scores show in the box at
+// the top right; the higher total wins.
 window.BW = window.BW || {};
 BW.games = BW.games || {};
 
@@ -14,9 +17,15 @@ BW.games.catch = (() => {
   const DANGER = ['shark', 'croc'];
   const LIVES = 3;
   const BUCKET = { x: 180, y: 578 };   // the middle of the bucket's top
+  const LEVELS = 4, LEVEL_TIME = 25, BREAK = 3;   // playing together
+  // Aiman's net picture (assets/cut-net.mjs); the hoop's middle is at (95, 70) of 300 x 361
+  const netImg = new Image();
+  netImg.src = 'img/ui/net.webp';
 
   function start(canvas, options) {
     let state, fish, spawnIn, score, caught, timeLeft, shake, lives, flying, inBucket, bump, t = 0;
+    const duo = options.duo;
+    let level = 1, onBreak = false, lastLevel = 0;
     // the net stays on screen where your finger or mouse last was; scoop = its swoop timer
     const net = { x: W / 2, y: 380, scoop: 0 };
     const fx = K.sparkles();
@@ -38,11 +47,18 @@ BW.games.catch = (() => {
       fx.clear();
     }
 
+    // how busy it is, 0 (calm) to 1 (wild): through the 45 seconds, or through the 4 levels
+    function busyness() {
+      if (state !== 'play') return 0;
+      if (!duo) return 1 - timeLeft / TIME;
+      return Math.min(1, ((level - 1) + (1 - timeLeft / LEVEL_TIME) * 0.6) / (LEVELS - 1 + 0.6));
+    }
+
     function spawn() {
       const roll = Math.random();
-      const busy = state === 'play' ? 1 - timeLeft / TIME : 0;
-      // sharks and crocs: 1 in 10 at the start, 1 in 4 by the end
-      const danger = 0.1 + busy * 0.15;
+      const busy = busyness();
+      // sharks and crocs: 1 in 10 at the start, 1 in 4 by the end (together: none in level 1)
+      const danger = duo ? (level === 1 ? 0 : 0.06 + busy * 0.22) : 0.1 + busy * 0.15;
       const id = roll < danger ? DANGER[Math.floor(Math.random() * 2)]
         : roll < danger + 0.12 ? 'puffer'
         : roll < danger + 0.2 ? 'koi'
@@ -71,6 +87,7 @@ BW.games.catch = (() => {
     function tap(x, y) {
       if (state === 'over') return;
       aimNet(x, y);
+      if (duo && (state === 'ready' || onBreak || lives <= 0)) return;
       if (state === 'ready') { state = 'play'; return; }
       net.scoop = 0.35;
       BW.sound.play('splash');
@@ -91,7 +108,9 @@ BW.games.catch = (() => {
         shake = best.danger ? 0.5 : 0.35;
         fx.label(best.x, by - 32, best.danger ? 'Ouch! -♥' : 'Prickly! -♥');
         fx.add(best.x, by, '#F28C8C', 14, 180);
-        if (lives <= 0) end();
+        if (lives <= 0 && !duo) end();
+        if (lives <= 0 && duo) fx.label(W / 2, 300, 'Wait for the next level!');
+        sendState();
         return;
       }
       // a good catch flies into the bucket
@@ -104,7 +123,10 @@ BW.games.catch = (() => {
       fx.label(best.x, by - 30, '+' + pts);
       fx.add(best.x, by, '#FFFFFF', 10, 150);
       if (pts > 1) fx.add(best.x, by, '#F9D77E', 14, 200);
+      sendState();
     }
+
+    function sendState() { if (duo) duo.set({ score, caught, level }); }
 
     function end() {
       if (state === 'over') return;
@@ -129,6 +151,25 @@ BW.games.catch = (() => {
         else f.x += f.dir * f.speed * dt;
       });
       fish = fish.filter(f => (f.caught ? f.caught < 1 : f.x > -60 && f.x < W + 60));
+      if (duo && state !== 'over') {
+        // the levels run on the clock both phones share
+        const e = (Date.now() - duo.startAt) / 1000;
+        if (e < 0) { if (fish.length < 4 && Math.random() < dt * 2) spawn(); return; }
+        state = 'play';
+        const slot = LEVEL_TIME + BREAK, n = Math.floor(e / slot);
+        if (n >= LEVELS) { timeLeft = 0; end(); return; }
+        level = n + 1;
+        onBreak = e - n * slot < BREAK;
+        timeLeft = onBreak ? LEVEL_TIME : LEVEL_TIME - (e - n * slot - BREAK);
+        if (level !== lastLevel) { lastLevel = level; lives = LIVES; fish = fish.filter(f => !f.danger); sendState(); }
+        if (onBreak) return;
+        spawnIn -= dt;
+        if (spawnIn <= 0) {
+          spawn();
+          spawnIn = Math.max(0.24, 0.95 - busyness() * 0.7) * (0.6 + Math.random() * 0.8);
+        }
+        return;
+      }
       if (state !== 'play') {
         if (state === 'ready' && fish.length < 4 && Math.random() < dt * 2) spawn();
         return;
@@ -201,10 +242,19 @@ BW.games.catch = (() => {
       K.text(ctx, String(caught), x, y + 26, 20);
     }
 
-    // a little fishing net on a wooden handle; it swoops down when you tap
+    // Aiman's fishing net; it swoops down when you tap
     function drawNet() {
       const swoop = net.scoop > 0 ? 1 - net.scoop / 0.35 : 0;
       const x = net.x, y = net.y + Math.sin(swoop * Math.PI) * 10 + (state === 'play' && !net.scoop ? Math.sin(t * 2) * 2 : 0);
+      if (netImg.complete && netImg.naturalWidth) {
+        const k = 105 / netImg.naturalWidth;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(Math.sin(swoop * Math.PI) * 0.25);
+        ctx.drawImage(netImg, -95 * k * netImg.naturalWidth / 300, -70 * k * netImg.naturalWidth / 300, netImg.naturalWidth * k, netImg.naturalHeight * k);
+        ctx.restore();
+        return;
+      }
       ctx.save();
       ctx.strokeStyle = '#B98A5E'; ctx.lineWidth = 6; ctx.lineCap = 'round';
       ctx.beginPath(); ctx.moveTo(x + 22, y + 22); ctx.lineTo(x + 90, y + 120); ctx.stroke();
@@ -232,6 +282,7 @@ BW.games.catch = (() => {
       if (state !== 'ready') drawNet();
       fx.draw(ctx);
       ctx.restore();
+      if (duo) { drawDuo(); return; }
       if (state === 'ready') {
         ctx.fillStyle = 'rgba(40,70,90,.3)'; ctx.fillRect(0, 0, W, H);
         K.title(ctx, 'Catch the Fish', 'Tap to start', options.getBest());
@@ -254,11 +305,32 @@ BW.games.catch = (() => {
       }
     }
 
+    // playing together: score in the middle, the level's time bar and hearts on the left,
+    // and the score box (Aiman's design) at the top right
+    function drawDuo() {
+      const them = duo.other();
+      K.duoPanel(ctx, duo, score, Number(them.score) || 0, `Level ${level}`);
+      if (K.countdown(ctx, duo, 'Catch the Fish')) return;
+      K.text(ctx, String(score), 152, 40, 36);
+      ctx.fillStyle = 'rgba(255,255,255,.6)'; K.roundRect(ctx, 22, 70, 150, 12, 6); ctx.fill();
+      ctx.fillStyle = timeLeft < 8 ? '#F28C8C' : '#F9D77E';
+      K.roundRect(ctx, 22, 70, Math.max(12, 150 * timeLeft / LEVEL_TIME), 12, 6); ctx.fill();
+      ctx.strokeStyle = '#6E4A3A'; ctx.lineWidth = 2; K.roundRect(ctx, 22, 70, 150, 12, 6); ctx.stroke();
+      K.text(ctx, Math.ceil(timeLeft) + 's', 192, 76, 14);
+      for (let i = 0; i < LIVES; i++) K.heart(ctx, 34 + i * 24, 102, 18, i < lives);
+      K.star(ctx, BUCKET.x + 62, BUCKET.y + 22, 9, '#F9D77E');
+      K.text(ctx, String(Math.floor(caught / 6) * 2), BUCKET.x + 76, BUCKET.y + 23, 16, 'left');
+      if (onBreak && state === 'play') K.levelBanner(ctx, level, level === 1 ? 'No sharks yet!' : level === 4 ? 'The hardest one!' : 'Faster fish, more sharks');
+      if (lives <= 0 && !onBreak && state === 'play') K.text(ctx, 'Wait for the next level ♥', W / 2, 300, 18);
+      if (state === 'over') K.text(ctx, `Waiting for ${duo.them.name || duo.them.username}…`, W / 2, 300, 18);
+    }
+
     reset();
+    if (duo) sendState();
     const engine = K.run(canvas, {
       update, draw,
       down: tap,
-      move(x, y) { if (state === 'play') aimNet(x, y); },
+      move(x, y) { if (state === 'play' || duo) aimNet(x, y); },
       keydown(e) {
         if (state === 'ready' && (e.code === 'Space' || e.code === 'Enter')) { e.preventDefault(); state = 'play'; }
       }

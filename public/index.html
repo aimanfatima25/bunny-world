@@ -174,6 +174,38 @@
             </div>
           </div>
         </div>
+        <!-- the result of a game together (Aiman's "You Won!" design) -->
+        <div class="panel dim" id="duoOver" hidden>
+          <div class="vs-wrap">
+            <img class="vs-mascot" id="vsMascot" alt="">
+            <div class="vs-sign"><span>★</span><b id="vsTitle">Waiting…</b><span>★</span></div>
+            <div class="vs-card">
+              <p class="vs-sub" id="vsSub"></p>
+              <div class="vs-row">
+                <div class="vs-player me">
+                  <i class="vs-crown" id="vsCrownMe" hidden>👑</i>
+                  <img class="vs-face" id="vsFaceMe" alt="">
+                  <span class="vs-name">Me</span>
+                  <span class="vs-score"><em id="vsIconMe">⭐</em><b id="vsScoreMe">0</b></span>
+                </div>
+                <div class="vs-vs">VS</div>
+                <div class="vs-player them">
+                  <i class="vs-crown" id="vsCrownThem" hidden>👑</i>
+                  <img class="vs-face" id="vsFaceThem" alt="">
+                  <span class="vs-name" id="vsNameThem">Friend</span>
+                  <span class="vs-score"><em id="vsIconThem">⭐</em><b id="vsScoreThem">…</b></span>
+                </div>
+              </div>
+              <div class="vs-msg"><img id="vsMsgPet" alt=""><p id="vsMsg">Waiting for your friend to finish…</p></div>
+              <p class="vs-stars" id="vsStars"></p>
+              <div class="vs-buttons">
+                <button class="vs-btn home" id="vsHome" type="button">🏠 Back to Home</button>
+                <button class="vs-btn again" id="vsAgain" type="button">↻ Play Again</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="panel" id="over" hidden>
           <div class="card">
             <h2 id="overTitle">Bonk!</h2>
@@ -181,6 +213,7 @@
               <div class="stat"><span>Score</span><b id="score">0</b></div>
               <div class="stat"><span>Best</span><b id="best">0</b></div>
             </div>
+            <div class="duo-result" id="duoResult" hidden></div>
             <div class="badge" id="badge"></div>
             <div class="earned"><svg class="coin"><use href="#i-coin"/></svg>+<span id="earned">0</span></div>
             <div class="rank-line" id="rankLine"></div>
@@ -320,6 +353,32 @@
         </div>
       </div>
 
+      <!-- Playing together: pick a game, wait for the friend, or answer an invite -->
+      <div class="panel dim" id="duoPick" hidden>
+        <div class="card duo-card">
+          <h2 id="duoPickTitle">Play together</h2>
+          <div class="duo-games" id="duoPickList"></div>
+          <button class="btn ghost" id="duoPickClose" type="button">Close</button>
+        </div>
+      </div>
+      <div class="panel dim" id="duoWait" hidden>
+        <div class="card duo-card">
+          <div class="duo-spin" aria-hidden="true">♥</div>
+          <p class="duo-text" id="duoWaitText">Waiting…</p>
+          <button class="btn ghost" id="duoCancel" type="button">Cancel</button>
+        </div>
+      </div>
+      <div class="panel dim" id="invitePopup" hidden>
+        <div class="card duo-card">
+          <img class="duo-invite-img" id="inviteImg" alt="">
+          <p class="duo-text" id="inviteText"></p>
+          <div class="buttons">
+            <button class="btn ghost" id="inviteNo" type="button">No thanks</button>
+            <button class="btn" id="inviteYes" type="button">Join!</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Pick your unique username (the first time you open your ID card or Friends) -->
       <div class="panel dim" id="unPopup" hidden>
         <form class="card un-card" id="unForm" autocomplete="off">
@@ -412,6 +471,7 @@
   <script src="vendor/qrcode/qrcode.js"></script>
   <script src="js/account.js"></script>
   <script src="js/friends-page.js"></script>
+  <script src="js/duo.js"></script>
   <script src="js/dressup.js"></script>
   <script src="js/app.js"></script>
 </body>

@@ -10,6 +10,9 @@
 //  - Cake & Sweets bakes instead: put ingredients in the mixing bowl, tap it to bake the
 //    cake that recipe makes in the oven, then tap the cake when it's ready to serve it. A shift lasts 90 seconds, and ends early if 3 customers give up.
 // Score = orders served; app.js gives 2 stars for every 3.
+// Together with a friend (options.duo): straight into the kitchen after a 3-2-1, 4 levels of
+// 40 seconds, each busier with less patient customers; hearts refill each level (at 0 you wait
+// for the next one). Both "customers served" show in the score box; the most wins.
 window.BW = window.BW || {};
 BW.games = BW.games || {};
 
@@ -24,7 +27,8 @@ BW.cook = (() => {
   // the kitchen view, in game pixels
   const TOP = 120 * S;                // the design's top bar (pills and ≡ button)
   const WALL = [0, TOP, W, 238];      // her shop's wall behind the customers
-  const FRAME = [10, 50, 340, 68];    // the menu board hanging on the wall
+  let FRAME = [10, 50, 340, 68];      // the menu board hanging on the wall (narrower when playing together)
+  const LEVELS = 4, LEVEL_TIME = 40, BREAK = 3;
   const COUNTER = 284;                // customers stand behind the counter's edge
   const SLOTS = [78, 210];            // where the two customers stand
   const STATION = [4, 304, 100, 96];  // the cooking station picture
@@ -61,6 +65,9 @@ BW.cook = (() => {
       const bg = picture(`img/shops/${shop.id}.webp`);
       let ctx = canvas.getContext('2d');
       let mode, book, customers, tray, trayAt, pans, served, lives, timeLeft, spawnIn, shake, tip, t = 0;
+      const duo = options.duo;
+      let level = 1, lastLevel = 0, onBreak = false;
+      FRAME = duo ? [10, 50, 196, 68] : [10, 50, 340, 68];
       const fx = K.sparkles();
 
       function reset() {
@@ -89,7 +96,7 @@ BW.cook = (() => {
         const here = customers.map(c => c.who);
         const who = pick(BW.friends.people().filter(p => !here.includes(p.id))).id;
         const order = [pick(orderable)];
-        const wait = Math.max(15, 30 - served * 0.6) + (shop.bake ? 6 : 0);
+        const wait = (duo ? Math.max(14, 32 - (level - 1) * 5 - served * 0.3) : Math.max(15, 30 - served * 0.6)) + (shop.bake ? 6 : 0);
         customers.push({ slot: free, who, img: picture(`img/standing/${who}.webp`), order, wait, left: wait, enter: 0, leaving: 0, happy: false });
       }
 
@@ -131,6 +138,7 @@ BW.cook = (() => {
 
       function thank(c) {
         BW.sound.play('serve');
+        if (duo) setTimeout(() => duo.set({ score: served, level }), 0);
         served++;
         c.leaving = 0.01;
         c.happy = true;
@@ -209,6 +217,10 @@ BW.cook = (() => {
 
       function tap(x, y) {
         if (mode === 'over') return;
+        if (duo && (Date.now() < duo.startAt || onBreak || lives <= 0)) {
+          if (within(g(shop.ui.menu), x, y) && options.pause) options.pause();
+          return;
+        }
         if (book) { book = false; return; }
         if (within(g(shop.ui.menu), x, y)) { if (options.pause) options.pause(); return; }
         if (mode === 'menu') tapFront(x, y);
@@ -222,6 +234,24 @@ BW.cook = (() => {
         fx.update(dt);
         shake = Math.max(0, shake - dt);
         if (tip) { tip.life -= dt; if (tip.life <= 0) tip = null; }
+        if (duo && mode !== 'over') {
+          // the levels run on the clock both phones share
+          const e = (Date.now() - duo.startAt) / 1000;
+          if (e < 0) return;
+          mode = 'play';
+          const slot = LEVEL_TIME + BREAK, n = Math.floor(e / slot);
+          if (n >= LEVELS) {
+            timeLeft = 0; mode = 'over';
+            BW.sound.loop('boil', false); BW.sound.loop('bake', false);
+            options.onGameOver(served, { served });
+            return;
+          }
+          level = n + 1;
+          onBreak = e - n * slot < BREAK;
+          timeLeft = onBreak ? LEVEL_TIME : LEVEL_TIME - (e - n * slot - BREAK);
+          if (level !== lastLevel) { lastLevel = level; lives = LIVES; duo.set({ score: served, level }); }
+          if (onBreak) return;
+        }
         if (mode !== 'play' || book) return;
 
         BW.sound.loop(shop.bake ? 'bake' : 'boil', pans.some(p => p && p.time < cookTime));
@@ -250,10 +280,11 @@ BW.cook = (() => {
         customers = customers.filter(c => c.leaving < 1);
 
         spawnIn -= dt;
-        if (spawnIn <= 0 && customers.length < SLOTS.length) {
+        if (spawnIn <= 0 && customers.length < SLOTS.length && !(duo && lives <= 0)) {
           spawn();
-          spawnIn = 3 + Math.random() * 2;
+          spawnIn = duo ? Math.max(1.2, 3.4 - level * 0.55) + Math.random() * 1.5 : 3 + Math.random() * 2;
         }
+        if (duo) return;     // the clock above decides when it ends
 
         timeLeft -= dt;
         if (timeLeft <= 0 || lives <= 0) {
@@ -337,7 +368,7 @@ BW.cook = (() => {
           label('served', s[0] + 6 + nw, cy + 2, 10, '#9B7B6A', 'left', 700);
           label(`${Math.ceil(timeLeft)}s`, l[0] + 2, l[1] + 9, 13, BROWN, 'left');
           for (let i = 0; i < LIVES; i++) K.heart(ctx, l[0] + l[2] - 8 - (LIVES - 1 - i) * 15, l[1] + 9, 12, i < lives);
-          bar(l, timeLeft / TIME, timeLeft < 15 ? '#F28C8C' : '#8CC77A');
+          bar(l, timeLeft / (duo ? LEVEL_TIME : TIME), timeLeft < 15 ? '#F28C8C' : '#8CC77A');
         }
       }
       function bar(l, f, color) {
@@ -644,6 +675,12 @@ BW.cook = (() => {
         drawBar();
         drawPills();
         customers.forEach(drawBubble);
+        if (duo) {
+          K.duoPanel(ctx, duo, served, Number(duo.other().score) || 0, `Level ${level}`, W - 148, 44);
+          if (onBreak && mode === 'play') K.levelBanner(ctx, level, level === 4 ? 'The busiest one!' : level === 1 ? 'Cook as much as you can!' : 'Busier, less patient customers');
+          if (lives <= 0 && !onBreak && mode === 'play') label('Wait for the next level ♥', W / 2, 250, 16, CREAM);
+          if (mode === 'over') label(`Waiting for ${duo.them.name || duo.them.username}…`, W / 2, 250, 16, CREAM);
+        }
       }
 
       function draw(c) {
@@ -655,10 +692,12 @@ BW.cook = (() => {
         else drawKitchen();
         fx.draw(ctx);
         ctx.restore();
+        if (duo) K.countdown(ctx, duo, shop.title);
         if (book) drawBook();
       }
 
       reset();
+      if (duo) { mode = 'play'; timeLeft = LEVEL_TIME; duo.set({ score: 0, level: 1 }); }
       const engine = K.run(canvas, {
         update, draw,
         down: tap,
