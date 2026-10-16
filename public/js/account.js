@@ -36,10 +36,18 @@ BW.account = (() => {
   }
 
   let pingTimer = 0, onIncoming = () => {};
+  // the server doesn't know this username any more (accounts were reset): forget it here too,
+  // so the next visit to Friends asks for a username again
+  function forget() {
+    clearInterval(pingTimer);
+    delete store.data.username;
+    delete store.data.knownSocial;
+    store.save();
+  }
   async function ping() {
     if (!store.data.username || document.hidden) return;
     const r = await call('/api/ping', profile());
-    if (r && r.status === 404) await call('/api/account', Object.assign({ username: store.data.username }, profile()));
+    if (r && r.status === 404) { forget(); return; }
     if (r && r.ok) {
       onIncoming(r.incoming || 0);
       if (BW.duo) BW.duo.onInvites(r.invites);
@@ -196,12 +204,17 @@ BW.account = (() => {
     startPinging,
     async available(u) { return call(`/api/username/${q(u)}?player=${pid()}`); },
     async claim(u) {
-      const r = await call('/api/account', Object.assign({ username: u }, profile()));
+      const r = await call('/api/account', Object.assign({ username: u, create: true }, profile()));
       if (r && r.ok) { store.data.username = r.me.username; store.save(); startPinging(); }
       return r;
     },
     // send your latest name, picture and stars (after saving the ID card)
-    async sync() { return store.data.username ? call('/api/account', Object.assign({ username: store.data.username }, profile())) : null; },
+    async sync() {
+      if (!store.data.username) return null;
+      const r = await call('/api/account', Object.assign({ username: store.data.username }, profile()));
+      if (r && r.status === 404) forget();
+      return r;
+    },
     user: u => call(`/api/users/${q(u)}?player=${pid()}`),
     search: s => call(`/api/search?q=${q(s)}&player=${pid()}`),
     suggest: () => call(`/api/suggest?player=${pid()}`),

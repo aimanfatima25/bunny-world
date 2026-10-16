@@ -88,6 +88,12 @@ db.exec(`
     player     TEXT NOT NULL UNIQUE,
     created_at TEXT NOT NULL
   );
+  -- players whose account was deleted (the pre-launch reset): old versions of the game
+  -- re-create a missing account by themselves, so for these only a real "pick a username"
+  -- (create: true, newer game versions) may make a new one
+  CREATE TABLE IF NOT EXISTS retired (
+    player TEXT PRIMARY KEY
+  );
   CREATE TABLE IF NOT EXISTS saves (
     player   TEXT PRIMARY KEY,
     data     TEXT NOT NULL,
@@ -192,6 +198,9 @@ const withRelation = (me, u) => Object.assign(profile(u), { relation: relation(m
 // ---------- Google sign-in and cloud saves ----------
 
 // the Kawaii Corner web client in Google Cloud (project chat-assistant-510718); a client ID is public, not a secret
+const isRetired = db.prepare('SELECT 1 FROM retired WHERE player = ?');
+const unretire = db.prepare('DELETE FROM retired WHERE player = ?');
+
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '7932465743-6bfl2ckm59miptotf6frp5ngk5v7lveg.apps.googleusercontent.com';
 const loginBySub = db.prepare('SELECT * FROM logins WHERE google_sub = ?');
 const loginByPlayer = db.prepare('SELECT * FROM logins WHERE player = ?');
@@ -329,8 +338,10 @@ const server = http.createServer(async (req, res) => {
     }
     const taken = userByName.get(username);
     if (taken && taken.player !== player) return send(res, 409, { error: 'That username is taken' });
+    if (!me && !body.create && isRetired.get(player)) return send(res, 404, { error: 'No account yet' });
     const f = profileFields(body, me);
     const now = Date.now();
+    if (!me) unretire.run(player);
     if (me) updateUser.run(username, f.name, f.girl, f.pet, f.stars, f.hearts, f.motto, now, player);
     else insertUser.run(player, username, f.name, f.girl, f.pet, f.stars, f.hearts, f.motto, new Date().toISOString(), now);
     return send(res, 200, { ok: true, me: profile(userByPlayer.get(player)) });
