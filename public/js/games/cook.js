@@ -9,7 +9,8 @@
 //    Everything you add goes onto the plate (or into the ramen bowl) one by one; tap it to serve.
 //  - Cake & Sweets bakes instead: put ingredients in the mixing bowl, tap it to bake the
 //    cake that recipe makes in the oven, then tap the cake when it's ready to serve it. A shift lasts 90 seconds, and ends early if 3 customers give up.
-// Hand control (the ✋ button by Clear, motion.js): swipe your hand left / right (or up / down)
+// Every time the kitchen opens it asks how you want to play: Tap, or Hand gestures.
+// Hand control (or the ✋ button by Clear, motion.js): swipe your hand left / right (or up / down)
 // to move the pink box between the cooking spots and the ingredient boxes, make a fist ✊ to
 // pick what's in the box (it goes to cook or onto your plate), and make scissors ✌️ to serve.
 // The arrow keys, Enter and S do the same on a computer.
@@ -40,6 +41,8 @@ BW.cook = (() => {
   const BINS = [4, 404, 214, 144];    // ingredient boxes
   const CLEAR = [24, 604, 20];        // circle: x, y, r
   const HAND = [6, 550, 38, 32];      // the ✋ hand control button (shows your camera when on)
+  const ASK = [30, 180, 300, 270];    // the "how do you want to play?" card
+  const ASK_TAP = [48, 250, 126, 140], ASK_HAND = [186, 250, 126, 140];
   const TRAY = [48, 550, 172, 88];    // the plate / bowl / box you build the order on
   const BAR = [222, 304, 134, 330];   // the recipe bar
 
@@ -73,6 +76,7 @@ BW.cook = (() => {
       const duo = options.duo;
       let level = 1, lastLevel = 0, onBreak = false;
       let cam = null, pad = null, camStarting = false, cursor = 0, pointing = false;
+      let asking = false, askMsg = '';
       FRAME = duo ? [10, 50, 196, 68] : [10, 50, 340, 68];
       const fx = K.sparkles();
 
@@ -211,27 +215,61 @@ BW.cook = (() => {
         return list;
       }
 
-      async function toggleHand() {
-        if (cam) { cam.stop(); cam = null; pad = null; pointing = false; BW.sound.play('click'); return; }
-        if (camStarting) return;
-        if (!BW.motion || !BW.motion.can.camera) { say('No camera here', 90, HAND[1] - 8); return; }
+      function handOff() { if (cam) cam.stop(); cam = null; pad = null; pointing = false; }
+
+      // turns the camera on; returns '' when it worked, or what went wrong
+      async function handOn() {
+        if (cam) return '';
+        if (!BW.motion || !BW.motion.can.camera) return 'No camera here';
         camStarting = true;
-        say('Starting the camera...', 90, HAND[1] - 8);
         try {
           cam = await BW.motion.start('hand');
           pad = BW.motion.pad(cam);
           pointing = true;
           BW.sound.play('sparkle');
-          say('Swipe ✋  Fist ✊ = pick  ✌️ = serve', W / 2 - 10, HAND[1] - 8);
+          return '';
         } catch (e) {
-          say(e.message, 90, HAND[1] - 8);
+          return e.message;
+        } finally {
+          camStarting = false;
         }
-        camStarting = false;
+      }
+
+      async function toggleHand() {
+        if (camStarting) return;
+        if (cam) { handOff(); BW.sound.play('click'); return; }
+        say('Starting the camera...', 90, HAND[1] - 8);
+        const err = await handOn();
+        say(err || 'Swipe ✋  Fist ✊ = pick  ✌️ = serve', err ? 90 : W / 2 - 10, HAND[1] - 8);
+      }
+
+      // ---------- "how do you want to play?" (every time the kitchen opens) ----------
+
+      function openKitchen() {
+        mode = 'play';
+        spawnIn = 0.3;
+        asking = true;
+        askMsg = '';
+      }
+
+      async function answer(kind) {
+        if (camStarting) return;
+        BW.sound.play('click');
+        if (kind === 'tap') { handOff(); asking = false; return; }
+        askMsg = 'Starting the camera...';
+        const err = await handOn();
+        if (err) { askMsg = err + ' · try Tap'; return; }
+        asking = false;
+      }
+
+      function tapAsk(x, y) {
+        if (within(ASK_TAP, x, y)) answer('tap');
+        else if (within(ASK_HAND, x, y)) answer('hand');
       }
 
       // a swipe, a fist, scissors (or the same from the keyboard)
       function act(ev) {
-        if (!ev || mode !== 'play' || book) return;
+        if (!ev || mode !== 'play' || book || asking) return;
         if (duo && (Date.now() < duo.startAt || onBreak || lives <= 0)) return;
         const list = spots(), n = list.length;
         pointing = true;
@@ -260,7 +298,7 @@ BW.cook = (() => {
       function tapFront(x, y) {
         const ui = shop.ui, at = r => within(g(r), x, y);
         if (at(ui.recipes)) { book = true; return; }
-        if (at(ui.start)) { mode = 'play'; spawnIn = 0.3; BW.sound.play('click'); return; }
+        if (at(ui.start)) { openKitchen(); BW.sound.play('click'); return; }
         for (const k of ['upgrade', 'shop', 'trophies', 'decor', 'stats', 'map']) {
           if (at(ui[k])) {
             const r = g(ui[k]);
@@ -281,6 +319,7 @@ BW.cook = (() => {
 
       function tap(x, y) {
         if (mode === 'over') return;
+        if (asking && mode === 'play') { if (within(g(box('menu')), x, y) && options.pause) options.pause(); else tapAsk(x, y); return; }
         if (duo && (Date.now() < duo.startAt || onBreak || lives <= 0)) {
           if (within(g(box('menu')), x, y) && options.pause) options.pause();
           return;
@@ -316,7 +355,8 @@ BW.cook = (() => {
           if (level !== lastLevel) { lastLevel = level; lives = LIVES; duo.set({ score: served, level }); }
           if (onBreak) return;
         }
-        if (mode !== 'play' || book) return;
+        // the shift waits while you choose (playing together the shared clock keeps going)
+        if (mode !== 'play' || book || asking) return;
         if (pad) act(pad.update(dt));
 
         // boiling water only for noodles and rice (Ramen, Sushi); a warm hum for the oven and griddle
@@ -468,6 +508,28 @@ BW.cook = (() => {
         ctx.strokeStyle = `rgba(255,255,255,${0.35 + Math.sin(t * 4) * 0.25})`; ctx.lineWidth = 4;
         K.roundRect(ctx, r[0] + 4, r[1] + r[3] * 0.12, r[2] - 8, r[3] * 0.76, 40); ctx.stroke();
         drawTip();
+      }
+
+      // the "how do you want to play?" card, in the cream cottage style
+      function drawAsk() {
+        ctx.fillStyle = 'rgba(40, 25, 20, .5)'; ctx.fillRect(0, 0, W, H);
+        const [x, y, w, h] = ASK;
+        panel(x, y, w, h, 22);
+        label('How do you want to play?', W / 2, y + 30, 19);
+        label('You can change it with the ✋ button too', W / 2, y + 54, 11, '#9B7B6A', 'center', 700);
+        const choice = (r, icon, name, lines, on) => {
+          const [bx, by, bw, bh] = r;
+          ctx.fillStyle = on ? '#FCE4EA' : '#FFFDF8';
+          K.roundRect(ctx, bx, by, bw, bh, 16); ctx.fill();
+          ctx.strokeStyle = on ? '#F07A98' : EDGE; ctx.lineWidth = 2.5;
+          K.roundRect(ctx, bx, by, bw, bh, 16); ctx.stroke();
+          label(icon, bx + bw / 2, by + 34, 34);
+          label(name, bx + bw / 2, by + 72, 15);
+          lines.forEach((l, i) => label(l, bx + bw / 2, by + 94 + i * 15, 10, '#8A6A5C', 'center', 700));
+        };
+        choice(ASK_TAP, '👆', 'Tap', ['Tap the boxes', 'and the plate'], false);
+        choice(ASK_HAND, '✋', 'Hand gestures', ['Swipe · ✊ pick', '✌️ serve'], !!cam || camStarting);
+        if (askMsg) label(askMsg, W / 2, y + h - 18, 11.5, askMsg.includes('try') ? '#B0475E' : BROWN, 'center', 800);
       }
 
       // the full recipe book, from the front screen
@@ -801,17 +863,23 @@ BW.cook = (() => {
         else drawKitchen();
         fx.draw(ctx);
         ctx.restore();
+        if (asking && mode === 'play') drawAsk();
         if (duo) K.countdown(ctx, duo, shop.title);
         if (book) drawBook();
       }
 
       reset();
-      if (duo) { mode = 'play'; timeLeft = LEVEL_TIME; duo.set({ score: 0, level: 1 }); }
+      if (duo) { openKitchen(); timeLeft = LEVEL_TIME; duo.set({ score: 0, level: 1 }); }
       const engine = K.run(canvas, {
         update, draw,
         down: tap,
         keydown(e) {
-          if (mode === 'menu' && (e.code === 'Space' || e.code === 'Enter')) { e.preventDefault(); mode = 'play'; return; }
+          if (mode === 'menu' && (e.code === 'Space' || e.code === 'Enter')) { e.preventDefault(); openKitchen(); return; }
+          if (asking && mode === 'play') {
+            if (e.code === 'Enter' || e.code === 'Space' || e.code === 'Digit1') { e.preventDefault(); answer('tap'); }
+            else if (e.code === 'Digit2') answer('hand');
+            return;
+          }
           const keys = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down', Enter: 'fist', KeyS: 'scissors' };
           if (mode === 'play' && keys[e.code]) {
             e.preventDefault();
@@ -822,7 +890,7 @@ BW.cook = (() => {
         }
       });
       return {
-        restart() { reset(); mode = 'play'; },
+        restart() { reset(); openKitchen(); },
         stop() { BW.sound.loop('boil', false); BW.sound.loop('bake', false); if (cam) cam.stop(); cam = null; engine.stop(); }
       };
     }
