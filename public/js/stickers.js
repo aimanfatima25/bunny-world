@@ -41,6 +41,8 @@ BW.stickers = (() => {
     store.save();
     queue.push(id);
     if (queue.length === 1) showNext();
+    const s = LIST.find(x => x.id === id);
+    if (BW.mail) BW.mail.add('🎀', 'New sticker!', `You earned "${s.name}". Find it in your Collection.`);
     const nav = $('collectionNav');
     if (nav) nav.classList.add('has-dot');
   }
@@ -73,6 +75,10 @@ BW.stickers = (() => {
       v.last = t;
       store.data.visit = v;
       store.save();
+      // a note for each streak milestone
+      if ([2, 3, 5, 7, 10, 14, 21, 30].includes(v.streak) && BW.mail) {
+        BW.mail.add('🔥', `${v.streak}-day streak!`, `You've played ${v.streak} days in a row. Keep it going ♥`);
+      }
     }
     if (v.streak >= LOYAL_DAYS) award('loyal-member');
   }
@@ -95,7 +101,12 @@ BW.stickers = (() => {
   function topRank(game, rank) {
     if (!rank) return;
     const t = store.data.top10 = store.data.top10 || {};
-    if (rank <= 10 && (!t[game] || rank < t[game])) { t[game] = rank; store.save(); }
+    if (rank <= 10 && (!t[game] || rank < t[game])) {
+      t[game] = rank; store.save();
+      const names = { flappy: 'Flappy Bunny', catch: 'Catch the Fish', fish: 'Merge the Fish', bubble: 'Bubble Pop', memory: 'Memory',
+        sushi: 'Sushi Shop', ramen: 'Ramen Shop', cake: 'Cake & Sweets', pancake: 'Pancake Shop' };
+      if (BW.mail) BW.mail.add('🌟', `#${rank} in the Top 10!`, `You're #${rank} in ${names[game] || game}. Amazing!`);
+    }
     if (Object.keys(t).length >= TOWN_GAMES) award('winner-in-town');
   }
 

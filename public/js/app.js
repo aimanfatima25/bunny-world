@@ -534,6 +534,9 @@
       $('vsAgain').disabled = false;
       BW.sound.play(r.result === 'lose' ? 'over' : 'sparkle');
       setTimeout(() => BW.stickers.duoResult(r.left ? 'win' : r.result), 900);
+      const res = r.left ? 'win' : r.result;
+      BW.mail.add(res === 'win' ? '🏆' : res === 'tie' ? '🤝' : '💪', res === 'win' ? `You beat ${who}!` : res === 'tie' ? `A tie with ${who}` : `${who} won this time`,
+        `${BW.duo.NAMES[g.id]}: you ${r.mine}, ${who} ${r.theirs}${res === 'win' ? ' (+10 stars)' : ''}`);
     });
   }
 
@@ -596,6 +599,7 @@
     store.addCoins(GIFT_COINS);
     BW.sound.play('coin');
     toast(`+${GIFT_COINS} stars! See you tomorrow ♥`);
+    BW.mail.add('📅', `Daily reward: Day ${d.claimed}`, `You collected ${GIFT_COINS} stars. ${EVENT_DAYS - d.claimed > 0 ? `${EVENT_DAYS - d.claimed} days left in the event!` : 'You finished the 15-day event!'}`);
     renderDaily();
     showCoins();
     showGift();
@@ -704,6 +708,7 @@
     if (!$('unPopup').hidden) { if (e.code === 'Escape') $('unPopup').hidden = true; return; }
     if (!$('friendsPage').hidden) { if (e.code === 'Escape') backHome('friendsPage'); return; }
     if (!$('collectionPage').hidden) { if (e.code === 'Escape') backHome('collectionPage'); return; }
+    if (!$('mailPopup').hidden) { if (e.code === 'Escape') BW.mail.close(); return; }
     if (!$('idPopup').hidden) { if (e.code === 'Escape') closeId(); return; }
     if (!$('giftPopup').hidden && e.code === 'Escape') {
       e.preventDefault(); closeGift(); return;
@@ -760,7 +765,7 @@
   $('idPopup').addEventListener('click', e => { if (e.target === $('idPopup')) closeId(); });
   $('starPlus').addEventListener('click', () => toast('Play games to earn more stars!'));
   $('heartPlus').addEventListener('click', () => toast('Hearts are coming soon!'));
-  $('mailBtn').addEventListener('click', () => toast('No new messages'));
+  BW.mail.wire();
   $('settingsBtn').addEventListener('click', () => {
     $('sfxOn').checked = BW.sound.on.sfx;
     $('musicOn').checked = BW.sound.on.music;

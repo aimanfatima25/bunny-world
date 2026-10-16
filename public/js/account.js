@@ -44,6 +44,7 @@ BW.account = (() => {
       onIncoming(r.incoming || 0);
       if (BW.duo) BW.duo.onInvites(r.invites);
       if (BW.stickers) BW.stickers.richRank(r.rich);
+      if (BW.mail) BW.mail.checkFriends();
     }
   }
   function startPinging() {
