@@ -25,11 +25,13 @@ BW.leaderboard = (() => {
     async submit(game, score) {
       const name = BW.store.data.playerName;
       if (!name || score < 1) return null;
-      return call('/api/scores', {
+      const r = await call('/api/scores', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ game, name, score, player: BW.store.playerId() })
       });
+      if (r && BW.stickers) BW.stickers.topRank(game, r.rank);
+      return r;
     }
   };
 })();

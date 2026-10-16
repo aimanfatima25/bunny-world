@@ -150,7 +150,7 @@
     if (g.soon) { toast(`${g.name} is coming soon!`); return; }
     if (game) { game.stop(); game = null; }
     if (aquarium) { aquarium.stop(); aquarium = null; }
-    ['friendsPage', 'shop', 'aquarium'].forEach(id => { $(id).hidden = true; });
+    ['friendsPage', 'collectionPage', 'shop', 'aquarium'].forEach(id => { $(id).hidden = true; });
     resumeGame();
     current = g;
     currentDuo = duo || null;
@@ -530,6 +530,7 @@
       if (r.result === 'win') { store.addCoins(10); showCoins(); $('vsStars').textContent = `+${earned + 10} stars (10 for winning!)`; }
       $('vsAgain').disabled = false;
       BW.sound.play(r.result === 'lose' ? 'over' : 'sparkle');
+      setTimeout(() => BW.stickers.duoResult(r.left ? 'win' : r.result), 900);
     });
   }
 
@@ -660,6 +661,7 @@
     if (!$('sharePopup').hidden) { if (e.code === 'Escape') $('sharePopup').hidden = true; return; }
     if (!$('unPopup').hidden) { if (e.code === 'Escape') $('unPopup').hidden = true; return; }
     if (!$('friendsPage').hidden) { if (e.code === 'Escape') backHome('friendsPage'); return; }
+    if (!$('collectionPage').hidden) { if (e.code === 'Escape') backHome('collectionPage'); return; }
     if (!$('idPopup').hidden) { if (e.code === 'Escape') closeId(); return; }
     if (!$('giftPopup').hidden && (e.code === 'Escape' || e.code === 'Enter' || e.code === 'Space')) {
       e.preventDefault(); closeGift(); return;
@@ -690,7 +692,8 @@
   $('pickClose').addEventListener('click', closePick);
   $('pickSheet').addEventListener('click', e => { if (e.target === $('pickSheet')) closePick(); });
   $('aquariumNav').addEventListener('click', openAquarium);
-  $('collectionNav').addEventListener('click', () => toast('Your collection is coming soon!'));
+  $('collectionNav').addEventListener('click', () => BW.stickers.open());
+  $('colBack').addEventListener('click', () => backHome('collectionPage'));
   $('topBack').addEventListener('click', closeTop);
   $('nameForm').addEventListener('submit', saveName);
   $('joinTop').addEventListener('click', () => {
@@ -708,6 +711,7 @@
   BW.dressup.wire();
   BW.app = { toast, showScreen, startDuo };
   BW.duo.wire();
+  BW.stickers.wire();
   BW.social.wire();
   $('idClose').addEventListener('click', closeId);
   $('idForm').addEventListener('submit', saveId);

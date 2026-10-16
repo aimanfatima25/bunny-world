@@ -2,9 +2,10 @@
 // When it opens it asks how you want to play: tap to hop, or (motion.js) let the bunny
 // follow your hand on the front camera, or the tilt of your phone. With a
 // motion control there's no gravity: the bunny flies to where you point it.
-// Together with a friend (options.duo): both fly through the very same pillars (same seed,
-// same speed by the clock), each pillar has two gaps, and the friend's animal flies along
-// as a see-through ghost with their name. Whoever passes more pillars wins.
+// Together with a friend (options.duo): each picks tap, hand or tilt first; when both have
+// picked, both get the same 3-2-1 and fly through the very same pillars (same seed, same speed
+// by the clock). Each pillar has two gaps, and the friend's animal flies along as a
+// see-through ghost with their name. Whoever passes more pillars wins.
 // Every game has the same shape: start(canvas, options) returns { restart, stop }.
 //   options.character   which friend to draw
 //   options.getBest()   best score so far (shown on the start screen)
@@ -25,7 +26,7 @@ BW.games.flappy = (() => {
     let control = null, motion = null, message = '', seenFor = 0, lostFor = 0, aim = 0.5;
     const duo = options.duo;
     let rng = Math.random, pillarCount = 0;
-    if (duo) control = 'tap';
+    let synced = false;      // together: both have picked how to play and share a start time
     const TOP_Y = 40, LOW_Y = GROUND - 30;     // where a motion-controlled bunny can fly
 
     // the choices on the first screen: [control, label, little picture]
@@ -88,9 +89,12 @@ BW.games.flappy = (() => {
     }
 
     // picking how to play; camera and tilt ask for permission first
+    let myReadyAt = 0;
+    function readyUp() { if (duo && !myReadyAt) { myReadyAt = duo.serverNow(); duo.set({ readyAt: myReadyAt }); } }
+
     async function choose(kind) {
       BW.sound.play('click');
-      if (kind === 'tap') { control = 'tap'; state = 'ready'; return; }
+      if (kind === 'tap') { control = 'tap'; state = 'ready'; readyUp(); return; }
       state = 'loading';
       message = kind === 'tilt' ? 'Getting the tilt sensor...' : 'Starting the camera...';
       try {
@@ -100,11 +104,13 @@ BW.games.flappy = (() => {
         control = kind;
         state = 'ready';
         seenFor = 0;
+        readyUp();
       } catch (e) {
         if (stopped) return;
         control = 'tap';
         state = 'ready';
         message = `${e.message}. Playing with taps!`;
+        readyUp();
       }
     }
     let stopped = false;
@@ -123,7 +129,15 @@ BW.games.flappy = (() => {
       if (state === 'choose' || state === 'loading') { bunny.y = 200 + Math.sin(t * 4) * 8; groundX = (groundX - 90 * dt) % 24; return; }
       if (state === 'ready' && duo) {
         bunny.y = 300 + Math.sin(t * 4) * 8; groundX = (groundX - 90 * dt) % 24;
-        if (Date.now() >= duo.startAt) { begin(); bunny.vy = -420; }
+        // both picked: start 3 seconds after the later one, on the shared clock
+        const o = duo.other();
+        if (!synced && o.readyAt && myReadyAt) { duo.startAtServer(Math.max(o.readyAt, myReadyAt) + 3000); synced = true; }
+        if (synced && Date.now() >= duo.startAt) {
+          if (motion && motion.calibrate) motion.calibrate();
+          aim = 0.5;
+          begin();
+          if (!motion) bunny.vy = -420;
+        }
         return;
       }
       if (state === 'ready') {
@@ -456,7 +470,11 @@ BW.games.flappy = (() => {
       drawCamera();
       if (duo) {
         K.duoPanel(ctx, duo, score, Number(duo.other().score) || 0, 'Pillars');
-        if (state === 'ready') K.countdown(ctx, duo, 'Flappy Bunny');
+        if (state === 'ready' && synced) K.countdown(ctx, duo, 'Flappy Bunny');
+        else if (state === 'ready') {
+          text(`Waiting for ${duo.them.name || duo.them.username}`, W / 2, 400, 20);
+          text('to pick how to play…', W / 2, 430, 18);
+        }
         if (state === 'over') text(`Waiting for ${duo.them.name || duo.them.username}…`, W / 2, 300, 18);
       }
       if (flash > 0) { ctx.fillStyle = `rgba(255,255,255,${flash * 0.7})`; ctx.fillRect(0, 0, W, H); }
@@ -482,6 +500,7 @@ BW.games.flappy = (() => {
         });
         return;
       }
+      if (duo && state === 'ready') return;      // together, the shared 3-2-1 starts it
       if (control === 'tilt' && state === 'ready') { motion.calibrate(); aim = 0.5; begin(); return; }
       if (control === 'tap') hop();
     }

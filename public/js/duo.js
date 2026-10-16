@@ -41,6 +41,10 @@ BW.duo = (() => {
       startAt: match.startAt - offset,
       me: match[meKey], them: match[themKey],
       set(state) { mine = Object.assign(mine, state); },
+      // the server's clock (the same on both phones)
+      serverNow: () => Date.now() + offset,
+      // start at a server time: both phones turn it into their own clock
+      startAtServer(t) { s.startAt = t - offset; },
       other: () => theirs,
       leave() { ended = true; clearInterval(timer); post('/api/match/leave', { id: s.id }); }
     };

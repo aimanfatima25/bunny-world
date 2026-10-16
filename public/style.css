@@ -725,6 +725,24 @@ button:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
 .vs-btn.home { background: linear-gradient(#FBC2D1, #F49AB1); }
 .vs-btn.again { background: linear-gradient(#FFE08C, #F9C552); }
 .vs-btn:disabled { opacity: .6; }
+/* ---------- stickers ---------- */
+#stickerPopup { z-index: 45; }
+.sticker-card img { width: 190px; height: 190px; object-fit: contain; animation: sticker-in .6s ease-out; filter: drop-shadow(0 6px 8px rgba(0, 0, 0, .35)); }
+@keyframes sticker-in { from { transform: scale(.3) rotate(-20deg); opacity: 0; } 70% { transform: scale(1.1) rotate(4deg); } }
+.sticker-card p { margin: 0; font-size: 18px; font-weight: 800; color: #F9D77E; }
+.collection-page { display: flex; flex-direction: column; background: linear-gradient(#F7E6F4, #EBDDF7); color: #5C3B2A; }
+.col-count { position: absolute; right: 12px; top: 16px; padding: 2px 10px; border-radius: 12px; background: #FFF8F3; border: 2px solid #D9C2EA; font-size: 13px; font-weight: 800; }
+.col-rich { flex: none; margin: 0 12px 6px; padding: 6px 10px; border-radius: 12px; background: #FFF8F3; font-size: 12.5px; font-weight: 800; color: #8B6AA8; text-align: center; }
+.sticker-grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: 1fr 1fr 1fr; grid-auto-rows: max-content; gap: 8px; padding: 2px 10px 16px; scrollbar-width: none; }
+.sticker-grid::-webkit-scrollbar { display: none; }
+.sticker { position: relative; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 6px 4px; border-radius: 14px; background: #FFFDFB; border: 2px dashed #E3CFEF; text-align: center; }
+.sticker img { width: 92px; height: 92px; object-fit: contain; }
+.sticker b { font-size: 11.5px; line-height: 1.1; }
+.sticker small { font-size: 9.5px; line-height: 1.15; color: #9B7B8A; }
+.sticker.locked img { filter: grayscale(1) brightness(1.15); opacity: .35; }
+.sticker .lock { position: absolute; top: 30px; font-size: 22px; font-style: normal; }
+.home .nav button#collectionNav.has-dot { position: relative; }
+.home .nav button#collectionNav.has-dot::after { content: ""; position: absolute; top: 4px; right: 18px; width: 9px; height: 9px; border-radius: 50%; background: #F2607D; box-shadow: 0 0 0 2px #FFF6EA; }
 .gift-big { width: 56px; height: 56px; color: var(--pink); }
 .buttons { display: flex; gap: 10px; margin-top: 6px; }
 .btn {

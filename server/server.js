@@ -28,7 +28,9 @@
 //   POST /api/match/leave                 → { player, id } cancel or quit
 //   A match: { id, game, seed, status: invited|playing|declined|cancelled, startAt, now,
 //              host, guest (public profiles), states: { host, guest } }
-//   /api/ping also returns { invites: [match…] } waiting for you.
+//   /api/ping also returns { invites: [match…] } waiting for you, and { rich } your place among the
+//   richest players (most stars).
+//   GET  /api/rich?player=               → the 10 richest players and your place
 //
 // A public profile: { username, name, girl, pet, stars, hearts, motto, online, friends }
 
@@ -120,6 +122,8 @@ const insertUser = db.prepare(`INSERT INTO users (player, username, name, girl, 
 const updateUser = db.prepare(`UPDATE users SET username = ?, name = ?, girl = ?, pet = ?, stars = ?, hearts = ?, motto = ?, last_seen = ?
   WHERE player = ?`);
 const pingUser = db.prepare('UPDATE users SET stars = ?, hearts = ?, girl = ?, pet = ?, last_seen = ? WHERE player = ?');
+const richRankQuery = db.prepare('SELECT COUNT(*) + 1 AS rank FROM users WHERE stars > ?');
+const richTop = db.prepare('SELECT * FROM users ORDER BY stars DESC, created_at ASC LIMIT 10');
 const friendCount = db.prepare(`SELECT COUNT(*) AS n FROM friends WHERE accepted = 1 AND (from_player = ? OR to_player = ?)`);
 
 function profile(u) {
@@ -289,7 +293,8 @@ const server = http.createServer(async (req, res) => {
     const f = profileFields(body, me);
     pingUser.run(f.stars, f.hearts, f.girl, f.pet, Date.now(), player);
     const incoming = myPairs.all(player, player, player).filter(r => !r.accepted && r.to_player === player).length;
-    return send(res, 200, { ok: true, incoming, invites: invitesFor(player) });
+    const rich = richRankQuery.get(f.stars).rank;
+    return send(res, 200, { ok: true, incoming, invites: invitesFor(player), rich });
   }
 
   const user = p.match(/^\/api\/users\/([^/]+)$/);
@@ -304,6 +309,10 @@ const server = http.createServer(async (req, res) => {
     if (q.length < 2) return send(res, 200, { users: [] });
     const like = '%' + q.replace(/[\\%_]/g, c => '\\' + c) + '%';
     return send(res, 200, { users: searchQuery.all(player, like, like, q.toLowerCase()).map(u => withRelation(player, u)) });
+  }
+
+  if (req.method === 'GET' && p === '/api/rich') {
+    return send(res, 200, { top: richTop.all().map(profile), you: me ? richRankQuery.get(me.stars).rank : null });
   }
 
   if (req.method === 'GET' && p === '/api/suggest') {
