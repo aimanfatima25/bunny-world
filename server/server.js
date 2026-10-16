@@ -45,7 +45,7 @@ const TOP = 10;
 const ONLINE_MS = 2 * 60 * 1000;      // seen in the last 2 minutes = online
 
 // The games, and the highest score that's believable for each (anything above is rejected)
-const GAMES = { flappy: 1000, fish: 100000, memory: 1000, bubble: 200000, catch: 1000, sushi: 500, ramen: 500, cake: 500 };
+const GAMES = { flappy: 1000, fish: 100000, memory: 1000, bubble: 200000, catch: 1000, sushi: 500, ramen: 500, cake: 500, pancake: 500 };
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
 const db = new DatabaseSync(path.join(DATA_DIR, 'leaderboard.db'));
@@ -170,7 +170,7 @@ const withRelation = (me, u) => Object.assign(profile(u), { relation: relation(m
 
 // ---------- playing together ----------
 
-const MATCH_GAMES = new Set(['flappy', 'catch', 'fish', 'sushi', 'ramen', 'cake']);
+const MATCH_GAMES = new Set(['flappy', 'catch', 'fish', 'sushi', 'ramen', 'cake', 'pancake']);
 const matches = new Map();
 let matchCount = 0;
 

@@ -86,6 +86,9 @@ BW.cook = (() => {
       }
 
       const say = (text, x, y) => fx.label(x, y, text);
+      // the top pills and ≡ button: where they are on the front screen, or in the kitchen's top
+      // bar (the Pancake Shop's top bar is a different strip of its design, shop.kitchenUi)
+      const box = k => (mode !== 'menu' && shop.kitchenUi && shop.kitchenUi[k]) || shop.ui[k];
       const nameOf = id => shop.ingredients[id].name;
 
       // ---------- customers ----------
@@ -218,11 +221,11 @@ BW.cook = (() => {
       function tap(x, y) {
         if (mode === 'over') return;
         if (duo && (Date.now() < duo.startAt || onBreak || lives <= 0)) {
-          if (within(g(shop.ui.menu), x, y) && options.pause) options.pause();
+          if (within(g(box('menu')), x, y) && options.pause) options.pause();
           return;
         }
         if (book) { book = false; return; }
-        if (within(g(shop.ui.menu), x, y)) { if (options.pause) options.pause(); return; }
+        if (within(g(box('menu')), x, y)) { if (options.pause) options.pause(); return; }
         if (mode === 'menu') tapFront(x, y);
         else tapKitchen(x, y);
       }
@@ -352,7 +355,7 @@ BW.cook = (() => {
 
       // the two pills at the top show this game's numbers instead of the painted ones
       function drawPills() {
-        const s = g(shop.ui.stars), l = g(shop.ui.level);
+        const s = g(box('stars')), l = g(box('level'));
         ctx.fillStyle = shop.pill;
         K.roundRect(ctx, s[0], s[1], s[2], s[3], 8); ctx.fill();
         K.roundRect(ctx, l[0], l[1], l[2], l[3], 8); ctx.fill();
@@ -567,7 +570,7 @@ BW.cook = (() => {
           const ox = cx - w / 2, oy = cy + made[2] - h / 2;
           ctx.save();
           ctx.beginPath(); ctx.ellipse(cx, oy + h / 2, w / 2, h / 2, 0, 0, TAU); ctx.clip();
-          food(shop.dishes[done].pic, ox, oy, w, h);
+          dish(done, ox, oy, w, h);
           ctx.restore();
           if (pop < 1) fx.add(cx, oy + h / 2, '#FFF6C8', 1, 120);
           return;
@@ -665,7 +668,8 @@ BW.cook = (() => {
       function drawKitchen() {
         ctx.fillStyle = '#8F604A'; ctx.fillRect(0, 0, W, H);
         food(shop.wall, WALL[0], WALL[1], WALL[2], WALL[3]);
-        ctx.drawImage(bg, 0, 0, 941, 120, 0, 0, W, TOP);
+        const tb = shop.top || [0, 0, 941, 120];
+        ctx.drawImage(bg, tb[0], tb[1], tb[2], tb[3], 0, 0, W, TOP);
         drawFrame();
         customers.forEach(drawCustomer);
         drawCounter();
@@ -717,4 +721,4 @@ BW.cook = (() => {
   return { make };
 })();
 
-['sushi', 'ramen', 'cake'].forEach(id => { BW.games[id] = BW.cook.make(BW.shops[id]); });
+['sushi', 'ramen', 'cake', 'pancake'].forEach(id => { BW.games[id] = BW.cook.make(BW.shops[id]); });

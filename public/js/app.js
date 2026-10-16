@@ -21,7 +21,7 @@
     { id: 'bubble', name: 'Bubble Pop', icon: 'ic-bubble', overTitle: 'Pop!', medal: 'bubble', medals: [200, 600, 1500], coinRate: 0.05,
       hint: 'Aim, then let go to shoot. Match 3 to pop!' },
     // the cooking shops (games/cook.js): 2 stars for every 3 orders served; their own ≡ button pauses
-    ...[['sushi', 'Sushi Shop', 'sushi'], ['ramen', 'Ramen Shop', 'bowl'], ['cake', 'Cake & Sweets', 'cake']].map(([id, name, medal]) => ({
+    ...[['sushi', 'Sushi Shop', 'sushi'], ['ramen', 'Ramen Shop', 'bowl'], ['cake', 'Cake & Sweets', 'cake'], ['pancake', 'Pancake Shop', 'pancake']].map(([id, name, medal]) => ({
       id, name, overTitle: 'Shop closed!', medal, medals: [4, 9, 15], ownPause: true,
       stars: info => Math.floor(info.served / 3) * 2,
       hint: id === 'cake' ? 'Mix the recipe in the bowl, bake it, serve the cake' : 'Cook, add the toppings, then tap the plate to serve'
@@ -29,7 +29,7 @@
   ];
   const MEDAL_BONUS = [10, 25, 50];
   // background music in games (the others just have their sound effects)
-  const MUSIC = { bubble: 'bubble', sushi: 'cook', ramen: 'cook', cake: 'cook' };
+  const MUSIC = { bubble: 'bubble', sushi: 'cook', ramen: 'cook', cake: 'cook', pancake: 'cook' };
   const GIFT_COINS = 50;
   const HUB_HINT = 'Tap a game to play';
 
@@ -118,6 +118,7 @@
     { label: 'Sushi Shop', img: 'sushi', game: 'sushi' },
     { label: 'Ramen Shop', img: 'ramen', game: 'ramen' },
     { label: 'Cake & Sweets', img: 'cake', game: 'cake' },
+    { label: 'Pancake Shop', img: 'pancake', game: 'pancake' },
     { label: 'Adventure', img: 'adventure' },
     { label: 'Bubble Pop', img: 'bubble', game: 'bubble' },
     { label: 'Memory', img: 'match3', game: 'memory' },   // Match 3 and Memory were the same game
@@ -486,7 +487,7 @@
 
   // ---------- the result of a game together ----------
 
-  const VS_ICON = { catch: '🐟', fish: '🐠', flappy: '🥕', sushi: '🍣', ramen: '🍜', cake: '🍰' };
+  const VS_ICON = { catch: '🐟', fish: '🐠', flappy: '🥕', sushi: '🍣', ramen: '🍜', cake: '🍰', pancake: '🥞' };
   function vsMessage(id, diff, who) {
     const n = Math.abs(diff), me = diff > 0, x = me ? 'You' : who, y = me ? who : 'you';
     if (diff === 0) return 'The very same score! Play again to break the tie ♥';
@@ -497,7 +498,8 @@
       flappy: `${x} flew past ${n} more pillar${s}!`,
       sushi: `${x} served ${n} more sushi order${s} than ${y}!`,
       ramen: `${x} cooked ${n} more bowl${s} than ${y}!`,
-      cake: `${x} baked ${n} more cake${s} than ${y}!`
+      cake: `${x} baked ${n} more cake${s} than ${y}!`,
+      pancake: `${x} served ${n} more pancake stack${s} than ${y}!`
     }[id];
   }
 
@@ -550,19 +552,58 @@
 
   // ---------- daily gift ----------
 
+  // ---------- Daily Rewards (15-day login event, Aiman's design) ----------
+  // store.data.daily = { claimed: how many days claimed in this event, last: date of the last claim }.
+  // One day can be claimed each calendar day; after day 15 a new event begins.
+  const EVENT_DAYS = 15;
+  function daily() {
+    const d = store.data.daily = store.data.daily || { claimed: 0, last: '' };
+    if (d.claimed >= EVENT_DAYS && d.last !== today()) { d.claimed = 0; }
+    return d;
+  }
+  const canClaim = () => daily().last !== today();
+
   function showGift() {
-    $('giftBtn').classList.toggle('ready', store.data.lastGift !== today());
+    $('giftBtn').classList.toggle('ready', canClaim());
+  }
+
+  function renderDaily() {
+    const d = daily(), grid = $('dailyGrid');
+    const todayN = canClaim() ? d.claimed + 1 : d.claimed;   // the day that is "today"
+    grid.innerHTML = '';
+    for (let n = 1; n <= EVENT_DAYS; n++) {
+      const done = n <= d.claimed, now = n === todayN && canClaim();
+      const c = document.createElement('div');
+      c.className = 'day' + (done ? ' done' : '') + (now ? ' now' : '') + (!done && !now ? ' locked' : '');
+      c.innerHTML = (now ? '<span class="day-tag">TODAY</span>' : '') + `<b>Day ${n}</b>`
+        + `<span class="day-star"><i>⭐</i>${GIFT_COINS}</span>`
+        + (now ? `<button type="button" class="day-claim">CLAIM ${GIFT_COINS} ⭐</button>` : '')
+        + (done ? '<span class="day-check">✓</span>' : '') + (!done && !now ? '<span class="day-lock">🔒</span>' : '');
+      if (now) c.querySelector('button').addEventListener('click', claimDaily);
+      grid.appendChild(c);
+    }
+    $('dailyDay').textContent = `Day ${Math.max(1, todayN)} / ${EVENT_DAYS}`;
+    $('dailyBar').style.width = (d.claimed / EVENT_DAYS * 100) + '%';
+  }
+
+  function claimDaily() {
+    if (!canClaim()) return;
+    const d = daily();
+    d.claimed++;
+    d.last = today();
+    store.claimGift(today());
+    store.addCoins(GIFT_COINS);
+    BW.sound.play('coin');
+    toast(`+${GIFT_COINS} stars! See you tomorrow ♥`);
+    renderDaily();
+    showCoins();
+    showGift();
   }
 
   function openGift() {
-    if (store.data.lastGift === today()) { toast('Come back tomorrow for another gift!'); return; }
-    store.claimGift(today());
-    store.addCoins(GIFT_COINS);
-    $('giftAmount').textContent = GIFT_COINS;
+    renderDaily();
     $('giftPopup').hidden = false;
     BW.sound.play('sparkle');
-    $('giftOk').focus();
-    showGift();
   }
 
   // ---------- Dress Up ----------
@@ -663,7 +704,7 @@
     if (!$('friendsPage').hidden) { if (e.code === 'Escape') backHome('friendsPage'); return; }
     if (!$('collectionPage').hidden) { if (e.code === 'Escape') backHome('collectionPage'); return; }
     if (!$('idPopup').hidden) { if (e.code === 'Escape') closeId(); return; }
-    if (!$('giftPopup').hidden && (e.code === 'Escape' || e.code === 'Enter' || e.code === 'Space')) {
+    if (!$('giftPopup').hidden && e.code === 'Escape') {
       e.preventDefault(); closeGift(); return;
     }
     if (!game) return;

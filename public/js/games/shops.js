@@ -1,8 +1,9 @@
-// The three cooking shops, drawn from Aiman's shop designs (img/shops/<id>.webp, 941 x 1671).
+// The cooking shops (Sushi, Ramen, Cake & Sweets, Pancake), drawn from Aiman's shop designs (img/shops/<id>.webp, 941 x 1671).
 // Every place is a box [x, y, width, height] in the design picture's own pixels:
 //   pic:     the food picture (used on the menu board, boxes, plate, bubbles and recipe bar)
 //   tap:     where you tap it on the shop picture (the front screen)
 //   wall:    the part of the shop shown behind the customers in the kitchen view
+//   top:     (optional) the strip of the design used as the kitchen's top bar
 //   station: the cooking spot cut from the design (rice cooker, stove, mixer)
 //   cook:    ingredients that must cook on the station first ('*' = everything)
 //   plate:   what you build the order in: a sushi 'plate', a ramen 'bowl' or a 'mixing bowl'
@@ -12,6 +13,9 @@
 window.BW = window.BW || {};
 
 BW.shops = (() => {
+  // the Pancake Shop design (922 x 1152) placed in the usual 941 x 1671 (make-pancake-shop.mjs)
+  const PK = 941 / 922, PY = 248;
+  const P = (x, y, w, h) => [Math.round(x * PK), Math.round(y * PK + PY), Math.round(w * PK), Math.round(h * PK)];
   // the painted buttons are in the same places on all three designs
   const ui = (o) => Object.assign({
     stars: [190, 50, 140, 52],        // the number in the top-left pill
@@ -115,6 +119,41 @@ BW.shops = (() => {
         cupcakes: { name: 'Cupcakes', art: 'cupcakes', needs: ['flour', 'eggs', 'butter', 'strawberry'] },
         cookies: { name: 'Cookies', art: 'cookies', needs: ['flour', 'butter', 'sugar', 'chocolate'] },
         brownies: { name: 'Brownies', art: 'brownies', needs: ['flour', 'eggs', 'butter', 'chocolate'] }
+      }
+    },
+
+    // Pancake Shop: Aiman's design is 922 x 1152, so assets/make-pancake-shop.mjs puts it into the
+    // usual 941 x 1671 (scaled by 941/922, starting 248 down). P() turns her design's own pixels
+    // into that. Batter cooks on the griddle into a pancake; toppings go on top.
+    pancake: {
+      id: 'pancake', title: 'Pancake Shop', pill: '#F7E8D2',
+      ui: ui({ stars: P(232, 32, 200, 48), level: P(462, 28, 230, 52), menu: P(832, 34, 60, 62),
+        upgrade: P(32, 226, 80, 72), recipes: P(32, 316, 80, 78), shop: P(32, 494, 80, 78),
+        trophies: P(830, 236, 80, 72), decor: P(830, 316, 80, 74),
+        map: P(92, 1008, 128, 112), start: P(328, 990, 276, 140), stats: P(718, 1008, 130, 112) }),
+      top: P(0, 0, 922, 100),
+      // in the kitchen her top strip (rows 0–100) fills the 120-high top bar, so the pills move
+      kitchenUi: { stars: [237, 38, 204, 58], level: [471, 34, 235, 62], menu: [849, 41, 61, 74] },
+      wall: P(96, 236, 730, 484),
+      station: { name: 'Griddle', pic: P(330, 524, 280, 180), verb: 'Cooking' },
+      cook: ['batter'],
+      plate: 'plate',
+      ingredients: {
+        batter: { name: 'Batter', art: 'batter-bowl' },
+        blueberries: { name: 'Blueberries', pic: P(118, 812, 108, 66) },
+        strawberries: { name: 'Strawberries', pic: P(236, 812, 108, 66) },
+        cream: { name: 'Cream', pic: P(352, 806, 108, 70) },
+        chocolate: { name: 'Chocolate', pic: P(470, 812, 108, 66) },
+        nuts: { name: 'Nuts', pic: P(588, 812, 108, 66) },
+        banana: { name: 'Banana', pic: P(96, 904, 110, 62) },
+        butter: { name: 'Butter', pic: P(708, 904, 110, 62) }
+      },
+      dishes: {
+        berry: { name: 'Berry Stack', art: 'pancake-berry', needs: ['batter', 'strawberries', 'blueberries'] },
+        choco: { name: 'Choco-Nut Delight', art: 'pancake-choco', needs: ['batter', 'chocolate', 'nuts'] },
+        cream: { name: 'Cream Dream', art: 'pancake-cream', needs: ['batter', 'cream', 'strawberries'] },
+        banana: { name: 'Banana Butter', art: 'pancake-banana', needs: ['batter', 'banana', 'butter'] },
+        butter: { name: 'Simple Butter', art: 'pancake-butter', needs: ['batter', 'butter'] }
       }
     }
   };

@@ -322,13 +322,23 @@
         <p class="maker-note">Fish you've made: <b id="makerCount">0</b></p>
       </section>
 
-      <!-- Daily gift pop-up -->
+      <!-- Daily Rewards: the calendar button (Aiman's 15-day login event design) -->
       <div class="panel dim" id="giftPopup" hidden>
-        <div class="card">
-          <svg class="gift-big"><use href="#i-gift"/></svg>
-          <h2>Daily gift!</h2>
-          <div class="earned big"><svg class="coin"><use href="#i-coin"/></svg>+<span id="giftAmount">50</span></div>
-          <button class="btn" id="giftOk" type="button">Yay!</button>
+        <div class="daily">
+          <button class="daily-x" id="giftOk" type="button" aria-label="Close">✕</button>
+          <div class="daily-head">
+            <span class="daily-cal">📅</span>
+            <h2>DAILY REWARDS</h2>
+          </div>
+          <p class="daily-event">⭐ 15-Day Login Event ⭐</p>
+          <p class="daily-sub">Collect 50 stars every day!</p>
+          <div class="daily-grid" id="dailyGrid"></div>
+          <div class="daily-foot">
+            <img src="img/friends/cat.webp" alt="">
+            <div class="daily-prog"><b id="dailyDay">Day 1 / 15</b><i><span id="dailyBar"></span></i></div>
+            <span class="daily-star">⭐</span>
+          </div>
+          <p class="daily-note">♥ Come back daily! A new event starts after Day 15. ♥</p>
         </div>
       </div>
 

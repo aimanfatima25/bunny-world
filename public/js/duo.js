@@ -16,7 +16,7 @@ window.BW = window.BW || {};
 BW.duo = (() => {
   const $ = id => document.getElementById(id);
   const acc = BW.account;
-  const NAMES = { flappy: 'Flappy Bunny', catch: 'Catch the Fish', fish: 'Merge the Fish', sushi: 'Sushi Shop', ramen: 'Ramen Shop', cake: 'Cake & Sweets' };
+  const NAMES = { flappy: 'Flappy Bunny', catch: 'Catch the Fish', fish: 'Merge the Fish', sushi: 'Sushi Shop', ramen: 'Ramen Shop', cake: 'Cake & Sweets', pancake: 'Pancake Shop' };
   const GAMES = Object.keys(NAMES);
 
   async function post(path, body) {

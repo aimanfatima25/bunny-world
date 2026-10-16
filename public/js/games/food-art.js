@@ -2,7 +2,7 @@
 // round shapes, gentle shading, thin dark outlines.
 //   cooked rice and noodles (they come out of the rice cooker / pot looking cooked),
 //   the bakery's ingredients (eggs, flour, sugar, milk, butter, chocolate, strawberries, cream),
-//   its oven, and the cakes and treats that come out of it.
+//   its oven, and the cakes and treats that come out of it; the Pancake Shop's batter and pancakes.
 // BW.food.draw(ctx, key, x, y, w, h, t) fits one into a box; each is drawn in a 100 x 80 space.
 window.BW = window.BW || {};
 
@@ -217,6 +217,75 @@ BW.food = (() => {
       });
     }
   };
+
+  // ---------- pancakes ----------
+
+  // a stack of golden pancakes on a plate with syrup; top(ctx) adds the toppings
+  function stack(ctx, n, top, syrup) {
+    shadow(ctx, 50, 72, 40);
+    ell(ctx, 50, 66, 42, 10, '#FFFDF8');
+    for (let i = 0; i < n; i++) {
+      const y = 58 - i * 9;
+      ctx.beginPath(); ctx.ellipse(50, y, 32, 9, 0, 0, TAU);
+      const g = ctx.createLinearGradient(0, y - 9, 0, y + 9);
+      g.addColorStop(0, '#F7D08A'); g.addColorStop(1, '#D9954A');
+      ctx.fillStyle = g; ctx.fill(); ctx.stroke();
+    }
+    const ty = 58 - (n - 1) * 9;
+    ell(ctx, 50, ty - 2, 30, 7, '#F9DC9C');
+    if (syrup !== false) {
+      ctx.fillStyle = 'rgba(214, 133, 40, .85)';
+      ctx.beginPath(); ctx.ellipse(50, ty - 2, 22, 5, 0, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(30, ty); ctx.quadraticCurveTo(28, ty + 12, 31, ty + 14); ctx.quadraticCurveTo(34, ty + 10, 35, ty + 3); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(66, ty + 1); ctx.quadraticCurveTo(67, ty + 16, 70, ty + 18); ctx.quadraticCurveTo(72, ty + 12, 71, ty + 2); ctx.fill();
+    }
+    if (top) top(ty - 4);
+  }
+  const blue = (ctx, x, y) => { ctx.fillStyle = '#5B6FC9'; ctx.beginPath(); ctx.arc(x, y, 3.6, 0, TAU); ctx.fill(); ctx.lineWidth = 1; ctx.stroke(); ctx.lineWidth = 2; };
+  const butterPat = (ctx, y) => { ctx.fillStyle = '#FBE08A'; rr(ctx, 42, y - 7, 16, 10, 2); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#FFF1B8'; rr(ctx, 43, y - 7, 14, 4, 2); ctx.fill(); };
+  Object.assign(kinds, {
+    // the batter bowl in the ingredient box
+    'batter-bowl'(ctx) {
+      shadow(ctx, 50, 70, 34);
+      ctx.beginPath(); ctx.moveTo(18, 42); ctx.quadraticCurveTo(22, 70, 50, 70); ctx.quadraticCurveTo(78, 70, 82, 42); ctx.closePath();
+      ctx.fillStyle = '#C98F6B'; ctx.fill(); ctx.stroke();
+      ell(ctx, 50, 42, 32, 9, '#FBE7B5');
+      ctx.strokeStyle = 'rgba(201, 150, 80, .6)'; ctx.beginPath(); ctx.ellipse(50, 42, 18, 4, 0, 0.3, 4); ctx.stroke(); ctx.strokeStyle = LINE;
+      ctx.lineWidth = 3.5; ctx.strokeStyle = '#B98A5E'; ctx.beginPath(); ctx.moveTo(60, 40); ctx.lineTo(78, 14); ctx.stroke();
+      ctx.lineWidth = 2; ctx.strokeStyle = LINE; ell(ctx, 59, 41, 6, 3, '#E9E2D6');
+    },
+    // cooked batter: a soft golden pancake stack
+    batter(ctx) { stack(ctx, 3, null, false); },
+    'pancake-butter'(ctx) { stack(ctx, 3, y => butterPat(ctx, y)); },
+    'pancake-berry'(ctx) {
+      stack(ctx, 3, y => {
+        [[40, y], [56, y - 2], [48, y - 6]].forEach(([x, yy]) => berry(ctx, x, yy, 0.9));
+        [[34, y + 2], [62, y + 1], [52, y + 3], [45, y - 2]].forEach(([x, yy]) => blue(ctx, x, yy));
+      });
+    },
+    'pancake-choco'(ctx) {
+      stack(ctx, 3, y => {
+        ctx.fillStyle = '#5E3524';
+        ctx.beginPath(); ctx.ellipse(50, y + 2, 24, 6, 0, 0, TAU); ctx.fill();
+        [[34, y + 4, 12], [48, y + 6, 16], [63, y + 4, 11]].forEach(([x, yy, d]) => { ctx.beginPath(); ctx.ellipse(x, yy + d / 2, 2.5, d / 2, 0, 0, TAU); ctx.fill(); });
+        ctx.fillStyle = '#C99566';
+        [[40, y - 2], [52, y - 4], [59, y]].forEach(([x, yy]) => { ctx.beginPath(); ctx.ellipse(x, yy, 4, 3, 0.4, 0, TAU); ctx.fill(); ctx.lineWidth = 1; ctx.stroke(); ctx.lineWidth = 2; });
+      }, false);
+    },
+    'pancake-cream'(ctx) {
+      stack(ctx, 3, y => {
+        [[50, y - 2, 14, 6], [50, y - 9, 9, 5], [50, y - 15, 5, 4]].forEach(([x, yy, rx, ry]) => ell(ctx, x, yy, rx, ry, '#FFFDF8'));
+        berry(ctx, 50, y - 20, 0.8);
+        berry(ctx, 33, y + 2, 0.7); berry(ctx, 67, y + 2, 0.7);
+      });
+    },
+    'pancake-banana'(ctx) {
+      stack(ctx, 3, y => {
+        [[36, y + 1], [46, y - 1], [56, y + 1], [64, y - 2]].forEach(([x, yy]) => { ell(ctx, x, yy, 5, 3.5, '#FFF3C4'); ctx.fillStyle = '#E9D58A'; ctx.beginPath(); ctx.arc(x, yy, 1.2, 0, TAU); ctx.fill(); });
+        butterPat(ctx, y - 5);
+      });
+    }
+  });
 
   function berry(ctx, x, y, s) {
     s = s || 1;
