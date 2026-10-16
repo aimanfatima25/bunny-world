@@ -6,7 +6,7 @@
 //   c.video  the camera picture (hand), c.point the tracked spot in it, c.stop()
 //   c.gesture  the hand's shape: 'open', 'fist', 'scissors' (✌️) or 'other'
 // BW.motion.pad(c) turns hand moves into game buttons (the cooking shops use it):
-//   swipe left / right / up / down, make a fist ✊ (pick), make scissors ✌️ (serve).
+//   move your hand left / right / up / down, make a fist ✊ (pick), make scissors ✌️ (serve).
 // Hand tracking uses Google's MediaPipe (public/vendor/mediapipe), loaded only when
 // someone picks it. Throws an Error with a friendly message if it can't start.
 window.BW = window.BW || {};
@@ -92,43 +92,54 @@ BW.motion = (() => {
     return 'other';
   }
 
-  // Hand moves as game buttons. Call pad.update(dt) every frame; it returns one of
-  // 'left' 'right' 'up' 'down' 'fist' 'scissors', or null.
-  //  - a swipe is the palm moving a fifth of the camera picture quickly; bringing your hand
-  //    back to the middle afterwards (the opposite way, within a second) doesn't count
+  // Hand moves as game buttons, like a joystick. Call pad.update(dt) every frame; it returns
+  // one of 'left' 'right' 'up' 'down' 'fist' 'scissors', or null.
+  //  - Where you first hold your hand still is the middle (pad.center). Move it a little to the
+  //    left / right / up / down of there and the pink box steps that way once; keep it there and
+  //    it steps again every 0.7 s; come back to the middle to stop. (Fast swipes blur the hand
+  //    and the tracker loses it, so moving and holding works much better.)
   //  - a fist or scissors counts once you've held it a moment, and again only after
   //    your hand changes shape (so one fist = one pick)
+  //  - pad.offset is where the hand is from the middle (for drawing), pad.zone the way it points
+  const OUT = 0.13, BACK = 0.08, REPEAT = 0.7;
   function pad(c) {
-    let trail = [], held = null, heldFor = 0, used = false, rest = 0, last = null, lastAt = 0;
-    const opposite = { left: 'right', right: 'left', up: 'down', down: 'up' };
-    return {
-      update(dt) {
-        rest = Math.max(0, rest - dt);
-        if (!c.seen || !c.point) { trail = []; held = null; heldFor = 0; return null; }
-        const now = performance.now(), g = c.gesture;
-        if (g === 'fist' || g === 'scissors') {
-          trail = [];
-          if (g !== held) { held = g; heldFor = 0; used = false; }
-          heldFor += dt;
-          if (!used && heldFor > 0.18) { used = true; rest = 0.35; return g; }
-          return null;
-        }
-        held = null;
-        // swipes (closing the hand moves the palm a little, so wait a moment after a shape)
-        trail.push({ t: now, x: c.point.x, y: c.point.y });
-        trail = trail.filter(p => now - p.t < 350);
-        if (rest > 0 || trail.length < 3) return null;
-        const a = trail[0], b = trail[trail.length - 1], dx = b.x - a.x, dy = b.y - a.y;
-        if (Math.max(Math.abs(dx), Math.abs(dy)) < 0.2) return null;
-        trail = []; rest = 0.3;
-        const dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
-        const goingBack = last && dir === opposite[last] && now - lastAt < 1000;
-        lastAt = now;
-        if (goingBack) { last = null; return null; }
-        last = dir;
-        return dir;
+    let held = null, heldFor = 0, used = false, lost = 9, still = 0, last = null, again = 0;
+    const p = { center: null, offset: null, zone: null };
+    p.update = dt => {
+      if (!c.seen || !c.point) {
+        lost += dt; held = null; heldFor = 0; p.offset = null; p.zone = null;
+        if (lost > 1.5) p.center = null;           // hand gone a while: find the middle again
+        return null;
       }
+      lost = 0;
+      const g = c.gesture, pt = c.point;
+      if (g === 'fist' || g === 'scissors') {
+        p.zone = null;
+        if (g !== held) { held = g; heldFor = 0; used = false; }
+        heldFor += dt;
+        if (!used && heldFor > 0.18) { used = true; return g; }
+        return null;
+      }
+      held = null;
+      // the middle: where the hand first rests for a moment
+      if (!p.center) {
+        still = last && Math.hypot(pt.x - last.x, pt.y - last.y) < 0.02 ? still + dt : 0;
+        last = { x: pt.x, y: pt.y };
+        if (still > 0.3) p.center = { x: Math.min(0.7, Math.max(0.3, pt.x)), y: Math.min(0.7, Math.max(0.3, pt.y)) };
+        return null;
+      }
+      const dx = pt.x - p.center.x, dy = pt.y - p.center.y;
+      p.offset = { x: dx, y: dy };
+      const far = Math.max(Math.abs(dx), Math.abs(dy));
+      if (far < BACK) { p.zone = null; return null; }          // back in the middle
+      if (far < OUT && !p.zone) return null;                   // not far enough yet
+      const zone = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+      if (zone !== p.zone) { p.zone = zone; again = REPEAT; return zone; }
+      again -= dt;
+      if (again <= 0) { again = REPEAT; return zone; }
+      return null;
     };
+    return p;
   }
 
   // tilt: the phone's forward/back tilt, measured from how you held it at the start

@@ -10,7 +10,7 @@
 //  - Cake & Sweets bakes instead: put ingredients in the mixing bowl, tap it to bake the
 //    cake that recipe makes in the oven, then tap the cake when it's ready to serve it. A shift lasts 90 seconds, and ends early if 3 customers give up.
 // Every time the kitchen opens it asks how you want to play: Tap, or Hand gestures.
-// Hand control (or the ✋ button by Clear, motion.js): swipe your hand left / right (or up / down)
+// Hand control (or the ✋ button by Clear, motion.js): move your hand left / right / up / down
 // to move the pink box between the cooking spots and the ingredient boxes, make a fist ✊ to
 // pick what's in the box (it goes to cook or onto your plate), and make scissors ✌️ to serve.
 // The arrow keys, Enter and S do the same on a computer.
@@ -240,7 +240,7 @@ BW.cook = (() => {
         if (cam) { handOff(); BW.sound.play('click'); return; }
         say('Starting the camera...', 90, HAND[1] - 8);
         const err = await handOn();
-        say(err || 'Swipe ✋  Fist ✊ = pick  ✌️ = serve', err ? 90 : W / 2 - 10, HAND[1] - 8);
+        say(err || 'Move hand ✋  Fist ✊ = pick  ✌️ = serve', err ? 90 : W / 2 - 10, HAND[1] - 8);
       }
 
       // ---------- "how do you want to play?" (every time the kitchen opens) ----------
@@ -267,7 +267,7 @@ BW.cook = (() => {
         else if (within(ASK_HAND, x, y)) answer('hand');
       }
 
-      // a swipe, a fist, scissors (or the same from the keyboard)
+      // a hand move, a fist, scissors (or the same from the keyboard)
       function act(ev) {
         if (!ev || mode !== 'play' || book || asking) return;
         if (duo && (Date.now() < duo.startAt || onBreak || lives <= 0)) return;
@@ -528,7 +528,7 @@ BW.cook = (() => {
           lines.forEach((l, i) => label(l, bx + bw / 2, by + 94 + i * 15, 10, '#8A6A5C', 'center', 700));
         };
         choice(ASK_TAP, '👆', 'Tap', ['Tap the boxes', 'and the plate'], false);
-        choice(ASK_HAND, '✋', 'Hand gestures', ['Swipe · ✊ pick', '✌️ serve'], !!cam || camStarting);
+        choice(ASK_HAND, '✋', 'Hand gestures', ['Move hand · ✊ pick', '✌️ serve'], !!cam || camStarting);
         if (askMsg) label(askMsg, W / 2, y + h - 18, 11.5, askMsg.includes('try') ? '#B0475E' : BROWN, 'center', 800);
       }
 
@@ -796,8 +796,18 @@ BW.cook = (() => {
       // the pink box around the spot the hand (or arrow keys) is on, and the gesture help
       function drawPointer() {
         if (cam) {
-          const help = cam.seen ? 'Swipe to choose  ·  ✊ pick  ·  ✌️ serve' : 'Show your hand to the camera ✋';
-          label(help, 111, 297, 10, cam.seen ? CREAM : '#FFD3DC', 'center', 800);
+          const ready = cam.seen && pad && pad.center;
+          const help = !cam.seen ? 'Show your hand to the camera ✋' : !ready ? 'Hold your hand still a moment…' : 'Move hand ◀ ▶ ▲ ▼  ·  ✊ pick  ·  ✌️ serve';
+          label(help, 111, 297, 10, ready ? CREAM : '#FFD3DC', 'center', 800);
+          // a little joystick: the ring is the middle, the dot is your hand
+          const jx = 236, jy = 295, jr = 8;
+          ctx.fillStyle = 'rgba(255, 246, 234, .9)'; ctx.strokeStyle = EDGE; ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.arc(jx, jy, jr, 0, TAU); ctx.fill(); ctx.stroke();
+          if (ready && pad.offset) {
+            const k = jr / 0.16, ox = Math.max(-1.3, Math.min(1.3, pad.offset.x * k / jr)) * jr, oy = Math.max(-1.3, Math.min(1.3, pad.offset.y * k / jr)) * jr;
+            ctx.fillStyle = pad.zone ? '#FF6F96' : '#8EC25E';
+            ctx.beginPath(); ctx.arc(jx + ox, jy + oy, 3.5, 0, TAU); ctx.fill();
+          }
         }
         if (!pointing || mode !== 'play') return;
         const list = spots(), s = list[Math.min(cursor, list.length - 1)], [x, y, w, h] = s.box;
