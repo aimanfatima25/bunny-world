@@ -124,7 +124,8 @@ BW.shops = (() => {
 
     // Pancake Shop: Aiman's design is 922 x 1152, so assets/make-pancake-shop.mjs puts it into the
     // usual 941 x 1671 (scaled by 941/922, starting 248 down). P() turns her design's own pixels
-    // into that. Batter cooks on the griddle into a pancake; toppings go on top.
+    // into that. Batter cooks on the griddle into a pancake; toppings go on top. The toppings
+    // are drawn (food-art.js) so they look clean, not cut out of the display case.
     pancake: {
       id: 'pancake', title: 'Pancake Shop', pill: '#F7E8D2',
       ui: ui({ stars: P(232, 32, 200, 48), level: P(462, 28, 230, 52), menu: P(832, 34, 60, 62),
@@ -140,13 +141,13 @@ BW.shops = (() => {
       plate: 'plate',
       ingredients: {
         batter: { name: 'Batter', art: 'batter-bowl' },
-        blueberries: { name: 'Blueberries', pic: P(118, 812, 108, 66) },
-        strawberries: { name: 'Strawberries', pic: P(236, 812, 108, 66) },
-        cream: { name: 'Cream', pic: P(352, 806, 108, 70) },
-        chocolate: { name: 'Chocolate', pic: P(470, 812, 108, 66) },
-        nuts: { name: 'Nuts', pic: P(588, 812, 108, 66) },
-        banana: { name: 'Banana', pic: P(96, 904, 110, 62) },
-        butter: { name: 'Butter', art: 'butter' }      // drawn: the design's butter bowl is cut off at the edge
+        blueberries: { name: 'Blueberries', art: 'blueberries' },
+        strawberries: { name: 'Strawberries', art: 'strawberry' },
+        cream: { name: 'Cream', art: 'cream' },
+        chocolate: { name: 'Chocolate', art: 'choc-sauce' },
+        nuts: { name: 'Nuts', art: 'nuts' },
+        banana: { name: 'Banana', art: 'banana' },
+        butter: { name: 'Butter', art: 'butter' }
       },
       dishes: {
         berry: { name: 'Berry Stack', art: 'pancake-berry', needs: ['batter', 'strawberries', 'blueberries'] },

@@ -241,6 +241,13 @@ BW.food = (() => {
     }
     if (top) top(ty - 4);
   }
+  // a cream bowl seen a little from above, for toppings
+  function toppingBowl(ctx, inside) {
+    shadow(ctx, 50, 70, 36);
+    ctx.beginPath(); ctx.moveTo(16, 44); ctx.quadraticCurveTo(20, 70, 50, 70); ctx.quadraticCurveTo(80, 70, 84, 44); ctx.closePath();
+    ctx.fillStyle = shade(ctx, 40, 50, 30, '#FFFFFF', '#EFE6DC'); ctx.fill(); ctx.stroke();
+    ell(ctx, 50, 44, 34, 10, inside);
+  }
   const blue = (ctx, x, y) => { ctx.fillStyle = '#5B6FC9'; ctx.beginPath(); ctx.arc(x, y, 3.6, 0, TAU); ctx.fill(); ctx.lineWidth = 1; ctx.stroke(); ctx.lineWidth = 2; };
   const butterPat = (ctx, y) => { ctx.fillStyle = '#FBE08A'; rr(ctx, 42, y - 7, 16, 10, 2); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#FFF1B8'; rr(ctx, 43, y - 7, 14, 4, 2); ctx.fill(); };
   Object.assign(kinds, {
@@ -254,6 +261,41 @@ BW.food = (() => {
       ctx.lineWidth = 3.5; ctx.strokeStyle = '#B98A5E'; ctx.beginPath(); ctx.moveTo(60, 40); ctx.lineTo(78, 14); ctx.stroke();
       ctx.lineWidth = 2; ctx.strokeStyle = LINE; ell(ctx, 59, 41, 6, 3, '#E9E2D6');
     },
+    // ---- the Pancake Shop's toppings, drawn so they look clean ----
+    blueberries(ctx) {
+      toppingBowl(ctx, '#BFD8F2');
+      [[36, 44], [48, 42], [60, 44], [42, 36], [55, 35], [49, 29], [66, 38], [32, 38]].forEach(([x, y]) => {
+        ctx.fillStyle = shade(ctx, x, y, 7, '#8EA3E8', '#4E5FB8'); ctx.beginPath(); ctx.arc(x, y, 6.5, 0, TAU); ctx.fill(); ctx.lineWidth = 1.4; ctx.stroke();
+        ctx.fillStyle = '#2E3A7A'; ctx.beginPath(); ctx.arc(x + 1, y - 2, 1.4, 0, TAU); ctx.fill(); ctx.lineWidth = 2;
+      });
+    },
+    'choc-sauce'(ctx) {
+      toppingBowl(ctx, '#F3E2CC');
+      ctx.fillStyle = shade(ctx, 46, 40, 26, '#8A5A40', '#4E2B1E');
+      ctx.beginPath(); ctx.ellipse(50, 44, 28, 8, 0, 0, TAU); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.beginPath(); ctx.ellipse(40, 42, 8, 2.5, -0.2, 0, TAU); ctx.fill();
+      ctx.lineWidth = 3.5; ctx.strokeStyle = '#C0C3CC'; ctx.beginPath(); ctx.moveTo(58, 42); ctx.lineTo(76, 14); ctx.stroke();
+      ctx.lineWidth = 2; ctx.strokeStyle = LINE;
+    },
+    nuts(ctx) {
+      toppingBowl(ctx, '#F3E2CC');
+      [[36, 42, .4], [48, 40, -.3], [61, 42, .7], [42, 33, -.6], [55, 32, .2], [67, 36, -.4], [32, 36, .9], [49, 26, .5]].forEach(([x, y, a]) => {
+        ctx.save(); ctx.translate(x, y); ctx.rotate(a);
+        ctx.fillStyle = shade(ctx, -1, -1, 7, '#E3B47C', '#B47A44'); ctx.beginPath(); ctx.ellipse(0, 0, 7, 5, 0, 0, TAU); ctx.fill(); ctx.lineWidth = 1.4; ctx.stroke();
+        ctx.strokeStyle = 'rgba(110, 70, 40, .6)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-4, 0); ctx.quadraticCurveTo(0, -2, 4, 0); ctx.stroke();
+        ctx.restore(); ctx.lineWidth = 2; ctx.strokeStyle = LINE;
+      });
+    },
+    banana(ctx) {
+      shadow(ctx, 50, 70, 36);
+      ell(ctx, 50, 62, 38, 10, '#FFFDF8');
+      [[34, 56], [50, 58], [66, 56], [42, 47], [58, 47], [50, 38]].forEach(([x, y]) => {
+        ell(ctx, x, y, 10, 7, shade(ctx, x, y, 10, '#FFFBE6', '#F6E3A0'));
+        ctx.fillStyle = 'rgba(200, 170, 90, .55)';
+        for (let i = 0; i < 5; i++) { const a = i * TAU / 5; ctx.beginPath(); ctx.arc(x + Math.cos(a) * 3.5, y + Math.sin(a) * 2.4, 0.9, 0, TAU); ctx.fill(); }
+      });
+    },
+
     // cooked batter: a soft golden pancake stack
     batter(ctx) { stack(ctx, 3, null, false); },
     'pancake-butter'(ctx) { stack(ctx, 3, y => butterPat(ctx, y)); },

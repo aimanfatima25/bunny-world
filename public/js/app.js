@@ -29,8 +29,8 @@
   ];
   const MEDAL_BONUS = [10, 25, 50];
   // background music in games (the others just have their sound effects)
-  // Aiman's own music files (sound.js FILES): home music also in Flappy and Catch the Fish
-  const MUSIC = { bubble: 'bubble', sushi: 'cook', ramen: 'cook', cake: 'caramel', pancake: 'caramel', flappy: 'home', catch: 'home', fish: 'avocado' };
+  // Aiman's own music files (sound.js FILES): the home song in every game except the cooking shops
+  const MUSIC = { sushi: 'cook', ramen: 'cook', cake: 'caramel', pancake: 'caramel', flappy: 'home', catch: 'home', fish: 'home', bubble: 'home', memory: 'home' };
   const GIFT_COINS = 50;
   const HUB_HINT = 'Tap a game to play';
 
