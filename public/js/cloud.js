@@ -175,6 +175,23 @@ BW.cloud = (() => {
     render();
   }
 
+  // Settings → Delete my account: everything about you on the server goes (username, friends,
+  // Top 10 scores, Google save). What's saved on this phone (stars, stickers…) stays.
+  async function deleteAccount() {
+    if (!confirm('Delete your Kawaii Corner account? Your username, friends, Top 10 scores and Google save will be deleted from our server. This can\'t be undone.')) return;
+    clearTimeout(saveTimer);
+    const r = await post('/api/account/delete', {});
+    if (!r || r.error) { BW.app.toast((r && r.error) || "Can't reach the server right now"); return; }
+    if (inApp() && nativeLogin()) nativeLogin().logout({ provider: 'google' }).catch(() => {});
+    delete store.data.cloud;
+    delete store.data.username;
+    delete store.data.knownSocial;
+    writeLocal();
+    render();
+    BW.app.toast('Your account was deleted');
+  }
+  document.addEventListener('click', e => { if (e.target && e.target.id === 'deleteAccount') deleteAccount(); });
+
   // save when leaving the app too
   document.addEventListener('visibilitychange', () => { if (document.hidden && linked()) saveNow(); });
 

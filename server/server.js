@@ -40,6 +40,9 @@
 //                                           → { player, save } the linked player and their saved progress
 //   POST /api/save                        → { player, data } keep the progress (only for linked players)
 //   POST /api/google/signout              → { player } this device stops saving (the save stays)
+//   POST /api/account/delete              → { player } deletes everything about this player: username,
+//                                           profile, friends, Top 10 scores, Google link and save
+//                                           (Settings → Delete my account; the Play Store asks for it)
 //
 // A public profile: { username, name, girl, pet, stars, hearts, motto, online, friends }
 
@@ -200,6 +203,11 @@ const withRelation = (me, u) => Object.assign(profile(u), { relation: relation(m
 // the Kawaii Corner web client in Google Cloud (project chat-assistant-510718); a client ID is public, not a secret
 const isRetired = db.prepare('SELECT 1 FROM retired WHERE player = ?');
 const unretire = db.prepare('DELETE FROM retired WHERE player = ?');
+const retire = db.prepare('INSERT OR IGNORE INTO retired (player) VALUES (?)');
+const deleteEverything = [
+  'DELETE FROM users WHERE player = ?', 'DELETE FROM friends WHERE from_player = ?1 OR to_player = ?1',
+  'DELETE FROM scores WHERE player = ?', 'DELETE FROM logins WHERE player = ?', 'DELETE FROM saves WHERE player = ?'
+].map(sql => db.prepare(sql));
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '7932465743-6bfl2ckm59miptotf6frp5ngk5v7lveg.apps.googleusercontent.com';
 const loginBySub = db.prepare('SELECT * FROM logins WHERE google_sub = ?');
@@ -438,6 +446,18 @@ const server = http.createServer(async (req, res) => {
     const now = Date.now();
     putSave.run(player, JSON.stringify(body.data), now);
     return send(res, 200, { ok: true, savedAt: now });
+  }
+
+  if (req.method === 'POST' && p === '/api/account/delete') {
+    if (!goodPlayer(player)) return send(res, 400, { error: 'Bad player id' });
+    db.exec('BEGIN');
+    try {
+      for (const q of deleteEverything) q.run(player);
+      // old versions of the game would quietly make the account again, so remember it was deleted
+      retire.run(player);
+      db.exec('COMMIT');
+    } catch (e) { db.exec('ROLLBACK'); return send(res, 500, { error: "Couldn't delete, try again" }); }
+    return send(res, 200, { ok: true });
   }
 
   if (req.method === 'POST' && p === '/api/google/signout') {
