@@ -1,7 +1,7 @@
 // Catch the Fish: like its card picture. Sea friends swim across the water. Your net is
-// always there (it follows your finger or mouse); tap to scoop, and the fish you catch fly
-// into your bucket. Koi are worth 5. You have 3 hearts: catching a prickly pufferfish, a
-// shark or a crocodile costs one. 45 seconds, or until your hearts run out; it gets faster
+// always there (it follows your finger or mouse) and catches any fish it touches by itself;
+// the fish you catch fly into your bucket. Koi are worth 5. You have 3 hearts: touching a
+// prickly pufferfish, a shark or a crocodile with the net costs one, so steer around them. 45 seconds, or until your hearts run out; it gets faster
 // and busier as you go, with more sharks and crocs near the end.
 // Stars: 2 for every 6 fish caught (app.js), so it reports { fish } at game over.
 // Together with a friend (options.duo): 4 levels of 25 seconds, from easy (no sharks) to hard;
@@ -89,16 +89,23 @@ BW.games.catch = (() => {
       aimNet(x, y);
       if (duo && (state === 'ready' || onBreak || lives <= 0)) return;
       if (state === 'ready') { state = 'play'; return; }
-      net.scoop = 0.35;
-      BW.sound.play('splash');
-      x = net.x; y = net.y;
-      // the closest fish under the net gets caught
-      let best = null, bestD = 40 * 40;
+    }
+
+    // a fish inside the net's hoop is caught straight away (no tapping)
+    const REACH = 34;
+    function netTouches() {
+      if (state !== 'play' || (duo && (onBreak || lives <= 0 || Date.now() < duo.startAt))) return;
+      let best = null, bestD = REACH * REACH;
       fish.forEach(f => {
-        const d = (f.x - x) ** 2 + (fishY(f) - y) ** 2;
+        const d = (f.x - net.x) ** 2 + (fishY(f) - net.y) ** 2;
         if (!f.caught && d < bestD) { bestD = d; best = f; }
       });
-      if (!best) return;
+      if (best) scoop(best);
+    }
+
+    function scoop(best) {
+      net.scoop = 0.35;
+      BW.sound.play('splash');
       const by = fishY(best);
       if (best.danger || best.id === 'puffer') {
         // wrong catch: it wriggles away and you lose a heart
@@ -151,6 +158,7 @@ BW.games.catch = (() => {
         else f.x += f.dir * f.speed * dt;
       });
       fish = fish.filter(f => (f.caught ? f.caught < 1 : f.x > -60 && f.x < W + 60));
+      netTouches();
       if (duo && state !== 'over') {
         // the levels run on the clock both phones share
         const e = (Date.now() - duo.startAt) / 1000;
@@ -242,7 +250,7 @@ BW.games.catch = (() => {
       K.text(ctx, String(caught), x, y + 26, 20);
     }
 
-    // Aiman's fishing net; it swoops down when you tap
+    // Aiman's fishing net; it swoops down when it catches something
     function drawNet() {
       const swoop = net.scoop > 0 ? 1 - net.scoop / 0.35 : 0;
       const x = net.x, y = net.y + Math.sin(swoop * Math.PI) * 10 + (state === 'play' && !net.scoop ? Math.sin(t * 2) * 2 : 0);
@@ -286,9 +294,9 @@ BW.games.catch = (() => {
       if (state === 'ready') {
         ctx.fillStyle = 'rgba(40,70,90,.3)'; ctx.fillRect(0, 0, W, H);
         K.title(ctx, 'Catch the Fish', 'Tap to start', options.getBest());
-        K.text(ctx, 'Tap fish to scoop them into your bucket!', W / 2, 240, 15);
+        K.text(ctx, 'Move the net over fish to catch them!', W / 2, 240, 15);
         K.text(ctx, 'Koi = 5 points', W / 2, 270, 16);
-        K.text(ctx, 'Pufferfish, sharks & crocs = -1 heart', W / 2, 296, 15);
+        K.text(ctx, 'Keep away from pufferfish, sharks & crocs!', W / 2, 296, 14);
         K.text(ctx, 'Every 6 fish = 2 stars', W / 2, 322, 16);
       } else {
         K.text(ctx, String(score), W / 2, 40, 38);
