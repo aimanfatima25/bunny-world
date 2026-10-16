@@ -49,6 +49,16 @@ I'm Aiman (beginner developer, Pakistan; I like short plain explanations and pic
 - Pre-launch reset (2026-10-16): every username, friendship, Top 10 score, Google link and cloud save was deleted on the live server (backup first: /data/backup-before-launch-2026-10-16.db in the server container, volume kawaii-server-data). The deleted player ids are in a `retired` table: old game versions re-create a missing account on every ping, so for those players the server only makes a new account from a real username pick (`create: true`). New game versions forget a username the server doesn't know (account.js forget()) and ask for one again. Done with node:sqlite in the Coolify Terminal of the server app.
 - Hearts have no purpose yet. Music to add later. Dress-up design (my "Pastel Kawaii Dress-Up Room.png" in Downloads) for later.
 
+**Play Store (prepared 2026-10-16)**
+- Upload file: `KawaiiCorner-1.0.aab` (`cd android; gradlew clean bundleRelease` with Java 21 → app/build/outputs/bundle/release/app-release.aab). Before each new upload raise `versionCode` (and `versionName`) in android/app/build.gradle.
+- Upload key: C:/Users/QA/KawaiiCorner-signing/upload-keystore.jks (alias kawaii-upload), password in keystore.properties next to it (copied to android/keystore.properties, gitignored). BACK UP that folder (e.g. Google Drive). SHA-1 2E:6B:54:8B:F1:F8:6E:C1:0C:6C:27:31:B9:33:1D:2C:9A:12:1F:B6 → Google Cloud Android client "Kawaii Corner Android release".
+- After the first upload, Play Console → Test and release → App integrity shows the **app signing key** SHA-1: add one more Android OAuth client with it, or Google sign-in fails in the Play Store version.
+- Targets Android 16 (API 36, Play's rule since 2026-08-31), compileSdk 36, AGP 8.9.1, Gradle 8.11.1.
+- Listing text, form answers (content rating, data safety, target audience 13+), screenshots, feature graphic, 512 icon: assets/store/ (LISTING.md). Screenshots were taken with headless Edge at 405x720 x 2.667.
+- Privacy policy: public/privacy.html (live at /privacy.html). Settings has Privacy policy + Delete my account (POST /api/account/delete).
+- Still to do: publish the Google OAuth consent screen (Testing → In production) so everyone can sign in; delete /data/backup-before-launch-2026-10-16.db within 30 days (the privacy page promises it).
+- New personal Play developer accounts must run a closed test with at least 12 testers for 14 days before production.
+
 **Android app (update at the END, after all changes)**
 - Capacitor 7 project in `android/` (app id `com.aimanfatima.bunnyworld`, portrait). Icon/splash from `assets/make-images.mjs` (animal friends + castle) — may need a new icon matching the new design.
 - To rebuild: `npm run sync`, then build with **Java 21** (Android Studio's own Java 25 breaks Gradle 8.11):
