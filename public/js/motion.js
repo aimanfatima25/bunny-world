@@ -4,6 +4,9 @@
 //   const c = await BW.motion.start('hand' | 'tilt')
 //   c.value  where to fly, 0..1      c.seen  true while the hand is found
 //   c.video  the camera picture (hand), c.point the tracked spot in it, c.stop()
+//   c.gesture  the hand's shape: 'open', 'fist', 'scissors' (✌️) or 'other'
+// BW.motion.pad(c) turns hand moves into game buttons (the cooking shops use it):
+//   swipe left / right / up / down, make a fist ✊ (pick), make scissors ✌️ (serve).
 // Hand tracking uses Google's MediaPipe (public/vendor/mediapipe), loaded only when
 // someone picks it. Throws an Error with a friendly message if it can't start.
 window.BW = window.BW || {};
@@ -62,7 +65,8 @@ BW.motion = (() => {
           const y = (h[0].y + h[9].y) / 2;
           c.point = { x: 1 - h[9].x, y };
           c.value = clamp((y - 0.18) / 0.62);
-        }
+          c.gesture = shape(h);
+        } else c.gesture = null;
       }
       raf = requestAnimationFrame(loop);
     }
@@ -74,6 +78,57 @@ BW.motion = (() => {
       stream.getTracks().forEach(tr => tr.stop());
     };
     return c;
+  }
+
+  // Which fingers are straight: a finger is straight when its tip is further from the wrist
+  // than its middle knuckle. Thumbs are left out (they're hard to read from the front).
+  function shape(h) {
+    const d = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+    const up = [[8, 6], [12, 10], [16, 14], [20, 18]].map(([tip, pip]) => d(h[tip], h[0]) > d(h[pip], h[0]) * 1.15);
+    const n = up.filter(Boolean).length;
+    if (n === 0) return 'fist';
+    if (up[0] && up[1] && !up[2] && !up[3]) return 'scissors';
+    if (n >= 3) return 'open';
+    return 'other';
+  }
+
+  // Hand moves as game buttons. Call pad.update(dt) every frame; it returns one of
+  // 'left' 'right' 'up' 'down' 'fist' 'scissors', or null.
+  //  - a swipe is the palm moving a fifth of the camera picture quickly; bringing your hand
+  //    back to the middle afterwards (the opposite way, within a second) doesn't count
+  //  - a fist or scissors counts once you've held it a moment, and again only after
+  //    your hand changes shape (so one fist = one pick)
+  function pad(c) {
+    let trail = [], held = null, heldFor = 0, used = false, rest = 0, last = null, lastAt = 0;
+    const opposite = { left: 'right', right: 'left', up: 'down', down: 'up' };
+    return {
+      update(dt) {
+        rest = Math.max(0, rest - dt);
+        if (!c.seen || !c.point) { trail = []; held = null; heldFor = 0; return null; }
+        const now = performance.now(), g = c.gesture;
+        if (g === 'fist' || g === 'scissors') {
+          trail = [];
+          if (g !== held) { held = g; heldFor = 0; used = false; }
+          heldFor += dt;
+          if (!used && heldFor > 0.18) { used = true; rest = 0.35; return g; }
+          return null;
+        }
+        held = null;
+        // swipes (closing the hand moves the palm a little, so wait a moment after a shape)
+        trail.push({ t: now, x: c.point.x, y: c.point.y });
+        trail = trail.filter(p => now - p.t < 350);
+        if (rest > 0 || trail.length < 3) return null;
+        const a = trail[0], b = trail[trail.length - 1], dx = b.x - a.x, dy = b.y - a.y;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < 0.2) return null;
+        trail = []; rest = 0.3;
+        const dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+        const goingBack = last && dir === opposite[last] && now - lastAt < 1000;
+        lastAt = now;
+        if (goingBack) { last = null; return null; }
+        last = dir;
+        return dir;
+      }
+    };
   }
 
   // tilt: the phone's forward/back tilt, measured from how you held it at the start
@@ -110,6 +165,7 @@ BW.motion = (() => {
       camera: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
       tilt: 'DeviceOrientationEvent' in window && (navigator.maxTouchPoints || 0) > 0
     },
-    start(kind) { return kind === 'tilt' ? tilt() : camera(kind); }
+    start(kind) { return kind === 'tilt' ? tilt() : camera(kind); },
+    pad, shape
   };
 })();

@@ -9,6 +9,10 @@
 //    Everything you add goes onto the plate (or into the ramen bowl) one by one; tap it to serve.
 //  - Cake & Sweets bakes instead: put ingredients in the mixing bowl, tap it to bake the
 //    cake that recipe makes in the oven, then tap the cake when it's ready to serve it. A shift lasts 90 seconds, and ends early if 3 customers give up.
+// Hand control (the ✋ button by Clear, motion.js): swipe your hand left / right (or up / down)
+// to move the pink box between the cooking spots and the ingredient boxes, make a fist ✊ to
+// pick what's in the box (it goes to cook or onto your plate), and make scissors ✌️ to serve.
+// The arrow keys, Enter and S do the same on a computer.
 // Score = orders served; app.js gives 2 stars for every 3.
 // Together with a friend (options.duo): straight into the kitchen after a 3-2-1, 4 levels of
 // 40 seconds, each busier with less patient customers; hearts refill each level (at 0 you wait
@@ -35,6 +39,7 @@ BW.cook = (() => {
   const PANS = [[106, 308, 56, 88], [162, 308, 56, 88]];   // two cooking spots
   const BINS = [4, 404, 214, 144];    // ingredient boxes
   const CLEAR = [24, 604, 20];        // circle: x, y, r
+  const HAND = [6, 550, 38, 32];      // the ✋ hand control button (shows your camera when on)
   const TRAY = [48, 550, 172, 88];    // the plate / bowl / box you build the order on
   const BAR = [222, 304, 134, 330];   // the recipe bar
 
@@ -67,6 +72,7 @@ BW.cook = (() => {
       let mode, book, customers, tray, trayAt, pans, served, lives, timeLeft, spawnIn, shake, tip, t = 0;
       const duo = options.duo;
       let level = 1, lastLevel = 0, onBreak = false;
+      let cam = null, pad = null, camStarting = false, cursor = 0, pointing = false;
       FRAME = duo ? [10, 50, 196, 68] : [10, 50, 340, 68];
       const fx = K.sparkles();
 
@@ -195,6 +201,60 @@ BW.cook = (() => {
         }
       }
 
+      // ---------- hand control ----------
+
+      // the spots the pink box moves between: the two cooking spots, then the ingredient boxes
+      // row by row (row 0 is the cooking spots)
+      function spots() {
+        const list = PANS.map((b, i) => ({ box: b, row: 0, pick: () => tapPan(i) }));
+        binIds.forEach((id, i) => list.push({ box: binBox(i), row: 1 + Math.floor(i / binCols), pick: () => tapBin(id) }));
+        return list;
+      }
+
+      async function toggleHand() {
+        if (cam) { cam.stop(); cam = null; pad = null; pointing = false; BW.sound.play('click'); return; }
+        if (camStarting) return;
+        if (!BW.motion || !BW.motion.can.camera) { say('No camera here', 90, HAND[1] - 8); return; }
+        camStarting = true;
+        say('Starting the camera...', 90, HAND[1] - 8);
+        try {
+          cam = await BW.motion.start('hand');
+          pad = BW.motion.pad(cam);
+          pointing = true;
+          BW.sound.play('sparkle');
+          say('Swipe ✋  Fist ✊ = pick  ✌️ = serve', W / 2 - 10, HAND[1] - 8);
+        } catch (e) {
+          say(e.message, 90, HAND[1] - 8);
+        }
+        camStarting = false;
+      }
+
+      // a swipe, a fist, scissors (or the same from the keyboard)
+      function act(ev) {
+        if (!ev || mode !== 'play' || book) return;
+        if (duo && (Date.now() < duo.startAt || onBreak || lives <= 0)) return;
+        const list = spots(), n = list.length;
+        pointing = true;
+        cursor = Math.min(cursor, n - 1);
+        if (ev === 'left' || ev === 'right') {
+          cursor = (cursor + (ev === 'right' ? 1 : -1) + n) % n;
+          BW.sound.play('click');
+        } else if (ev === 'up' || ev === 'down') {
+          const rows = list[n - 1].row + 1, row = (list[cursor].row + (ev === 'down' ? 1 : -1) + rows) % rows;
+          const mid = b => b[0] + b[2] / 2, x = mid(list[cursor].box);
+          let best = -1;
+          list.forEach((s, i) => { if (s.row === row && (best < 0 || Math.abs(mid(s.box) - x) < Math.abs(mid(list[best].box) - x))) best = i; });
+          cursor = best;
+          BW.sound.play('click');
+        } else if (ev === 'fist') {
+          const b = list[cursor].box;
+          fx.add(b[0] + b[2] / 2, b[1] + b[3] / 2, '#FF9FB2', 6, 90);
+          list[cursor].pick();
+        } else if (ev === 'scissors') {
+          serve();
+        }
+      }
+
       // ---------- tapping ----------
 
       function tapFront(x, y) {
@@ -212,6 +272,7 @@ BW.cook = (() => {
       }
 
       function tapKitchen(x, y) {
+        if (within(HAND, x, y)) { toggleHand(); return; }
         if (within(TRAY, x, y)) { serve(); return; }
         if (Math.hypot(x - CLEAR[0], y - CLEAR[1]) < CLEAR[2] + 4) { tray = []; trayAt = []; return; }
         for (let i = 0; i < PANS.length; i++) if (within(PANS[i], x, y)) { tapPan(i); return; }
@@ -256,6 +317,7 @@ BW.cook = (() => {
           if (onBreak) return;
         }
         if (mode !== 'play' || book) return;
+        if (pad) act(pad.update(dt));
 
         // boiling water only for noodles and rice (Ramen, Sushi); a warm hum for the oven and griddle
         BW.sound.loop(shop.bake || shop.id === 'pancake' ? 'bake' : 'boil', pans.some(p => p && p.time < cookTime));
@@ -642,6 +704,47 @@ BW.cook = (() => {
         ctx.strokeStyle = PINK; ctx.lineWidth = 3.5; ctx.lineCap = 'round';
         ctx.beginPath(); ctx.moveTo(kx - 6, ky - 10); ctx.lineTo(kx + 6, ky + 2); ctx.moveTo(kx + 6, ky - 10); ctx.lineTo(kx - 6, ky + 2); ctx.stroke();
         label('Clear', kx, ky + 11, 9);
+        drawHandButton();
+      }
+
+      // the ✋ button: your camera (mirrored) while hand control is on
+      function drawHandButton() {
+        const [x, y, w, h] = HAND;
+        ctx.save();
+        K.roundRect(ctx, x, y, w, h, 9);
+        ctx.fillStyle = cam ? '#FCE4EA' : CREAM; ctx.fill();
+        if (cam && cam.video && cam.video.readyState >= 2) {
+          ctx.save(); ctx.clip();
+          const v = cam.video, k = Math.max(w / v.videoWidth, h / v.videoHeight);
+          ctx.translate(x + w, y); ctx.scale(-1, 1);
+          ctx.drawImage(v, (w - v.videoWidth * k) / 2, (h - v.videoHeight * k) / 2, v.videoWidth * k, v.videoHeight * k);
+          ctx.restore();
+          if (cam.seen && cam.point) {
+            ctx.fillStyle = '#FF7FA0';
+            ctx.beginPath(); ctx.arc(x + cam.point.x * w, y + cam.point.y * h, 3, 0, TAU); ctx.fill();
+          }
+        } else {
+          label(camStarting ? '…' : '✋', x + w / 2, y + h / 2 + 1, 17);
+        }
+        ctx.lineWidth = 2.5; ctx.strokeStyle = cam ? (cam.seen ? '#8EC25E' : '#F28C8C') : EDGE;
+        K.roundRect(ctx, x, y, w, h, 9); ctx.stroke();
+        ctx.restore();
+      }
+
+      // the pink box around the spot the hand (or arrow keys) is on, and the gesture help
+      function drawPointer() {
+        if (cam) {
+          const help = cam.seen ? 'Swipe to choose  ·  ✊ pick  ·  ✌️ serve' : 'Show your hand to the camera ✋';
+          label(help, 111, 297, 10, cam.seen ? CREAM : '#FFD3DC', 'center', 800);
+        }
+        if (!pointing || mode !== 'play') return;
+        const list = spots(), s = list[Math.min(cursor, list.length - 1)], [x, y, w, h] = s.box;
+        const glow = 0.6 + Math.sin(t * 6) * 0.4;
+        ctx.save();
+        ctx.shadowColor = '#FF7FA0'; ctx.shadowBlur = 10 * glow;
+        ctx.strokeStyle = '#FF6F96'; ctx.lineWidth = 3.5;
+        K.roundRect(ctx, x + 1, y + 1, w - 2, h - 2, 9); ctx.stroke();
+        ctx.restore();
       }
 
       // the recipe bar on the right: every recipe, the ones being ordered glow pink
@@ -678,6 +781,7 @@ BW.cook = (() => {
         drawBins();
         drawTray();
         drawBar();
+        drawPointer();
         drawPills();
         customers.forEach(drawBubble);
         if (duo) {
@@ -707,12 +811,19 @@ BW.cook = (() => {
         update, draw,
         down: tap,
         keydown(e) {
-          if (mode === 'menu' && (e.code === 'Space' || e.code === 'Enter')) { e.preventDefault(); mode = 'play'; }
+          if (mode === 'menu' && (e.code === 'Space' || e.code === 'Enter')) { e.preventDefault(); mode = 'play'; return; }
+          const keys = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down', Enter: 'fist', KeyS: 'scissors' };
+          if (mode === 'play' && keys[e.code]) {
+            e.preventDefault();
+            // the first arrow press only shows the pink box
+            if (!pointing && keys[e.code] !== 'scissors') { pointing = true; return; }
+            act(keys[e.code]);
+          }
         }
       });
       return {
         restart() { reset(); mode = 'play'; },
-        stop() { BW.sound.loop('boil', false); BW.sound.loop('bake', false); engine.stop(); }
+        stop() { BW.sound.loop('boil', false); BW.sound.loop('bake', false); if (cam) cam.stop(); cam = null; engine.stop(); }
       };
     }
 
