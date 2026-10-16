@@ -5,5 +5,15 @@
   "backgroundColor": "#241B33",
   "android": {
     "backgroundColor": "#241B33"
+  },
+  "plugins": {
+    "SocialLogin": {
+      "providers": {
+        "google": true,
+        "facebook": false,
+        "apple": true,
+        "twitter": false
+      }
+    }
   }
 }

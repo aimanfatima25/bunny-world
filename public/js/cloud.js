@@ -4,6 +4,9 @@
 // On a new phone or after reinstalling, signing in with the same Google account brings it
 // all back. Uses Google's own "Sign in with Google" button (accounts.google.com/gsi/client);
 // the server checks the sign-in with Google and keeps the save (server.js /api/google, /api/save).
+// In the Android app Google doesn't allow that button, so it uses the phone's own Google
+// sign-in instead (the @capgo/capacitor-social-login plugin), which gives the same kind of
+// token, so the server treats both the same.
 window.BW = window.BW || {};
 
 BW.cloud = (() => {
@@ -13,6 +16,10 @@ BW.cloud = (() => {
   let clientId = null, gisLoaded = null, saveTimer = 0;
 
   const linked = () => !!store.data.cloud && !!store.data.cloud.email;
+  // inside the Android app (Capacitor) rather than a browser
+  const inApp = () => !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+  const nativeLogin = () => window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SocialLogin;
+  let nativeReady = null;
 
   async function post(path, body) {
     try {
@@ -104,6 +111,24 @@ BW.cloud = (() => {
     render();
   }
 
+  // the phone's own Google account picker (Android app)
+  async function signInOnPhone(id) {
+    const SL = nativeLogin();
+    if (!SL) { setStatus('Google sign-in needs the newest app'); return; }
+    try {
+      nativeReady = nativeReady || SL.initialize({ google: { webClientId: id } });
+      await nativeReady;
+      const res = await SL.login({ provider: 'google', options: { scopes: ['email', 'profile'] } });
+      const token = res && res.result && res.result.idToken;
+      if (!token) { setStatus('Google sign-in failed, try again'); return; }
+      await onCredential({ credential: token });
+    } catch (e) {
+      nativeReady = null;
+      const msg = String((e && e.message) || e);
+      setStatus(/cancel/i.test(msg) ? '' : 'Google sign-in failed, try again');
+    }
+  }
+
   function setStatus(text) { const el = $('cloudStatus'); if (el) el.textContent = text; }
 
   function ago(t) {
@@ -128,6 +153,11 @@ BW.cloud = (() => {
       <div id="googleBtn" class="google-btn"></div><p class="cloud-status" id="cloudStatus"></p>`;
     const id = await config();
     if (!id) { setStatus(clientId === '' ? 'Google sign-in is coming soon!' : "Can't reach the server right now"); return; }
+    if (inApp()) {
+      $('googleBtn').innerHTML = '<button type="button" class="g-native"><span class="g-logo">G</span>Continue with Google</button>';
+      $('googleBtn').firstChild.addEventListener('click', () => { setStatus('Opening Google…'); signInOnPhone(id); });
+      return;
+    }
     try {
       await loadGis();
       google.accounts.id.initialize({ client_id: id, callback: onCredential, ux_mode: 'popup', auto_select: false });
@@ -138,6 +168,8 @@ BW.cloud = (() => {
   async function signOut() {
     if (!confirm('Sign out on this phone? Your game stays saved to your Google account.')) return;
     await saveNow();
+    // in the app, forget the Google account too, so next time it asks which one
+    if (inApp() && nativeLogin()) nativeLogin().logout({ provider: 'google' }).catch(() => {});
     delete store.data.cloud;
     writeLocal();
     render();
