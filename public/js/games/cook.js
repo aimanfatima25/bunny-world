@@ -257,7 +257,8 @@ BW.cook = (() => {
         }
         if (mode !== 'play' || book) return;
 
-        BW.sound.loop(shop.bake ? 'bake' : 'boil', pans.some(p => p && p.time < cookTime));
+        // boiling water only for noodles and rice (Ramen, Sushi); a warm hum for the oven and griddle
+        BW.sound.loop(shop.bake || shop.id === 'pancake' ? 'bake' : 'boil', pans.some(p => p && p.time < cookTime));
         pans.forEach((p, i) => {
           if (!p) return;
           const before = p.time;

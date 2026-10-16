@@ -162,9 +162,36 @@ BW.sound = (() => {
     }
   }
 
+  // Aiman's music files (public/audio/): these songs play the file instead of a made-up tune
+  const FILES = { home: 'audio/home.mp3', caramel: 'audio/caramel.mp3', avocado: 'audio/avocado.mp3' };
+  const tracks = {};
+  function track(src, vol) {
+    if (!tracks[src]) { const a = new Audio(src); a.loop = true; a.preload = 'auto'; tracks[src] = a; }
+    tracks[src].volume = vol;
+    return tracks[src];
+  }
+  function stopFiles(except) {
+    Object.entries(tracks).forEach(([src, a]) => { if (src !== except && !a.paused) a.pause(); });
+  }
+  // the noodle / rice pot boiling, while something is cooking (Ramen and Sushi)
+  let boilOn = false;
+  function boilFile() {
+    const a = track('audio/boiling.mp3', 0.7);
+    const want = boilOn && prefs.sfx && !document.hidden;
+    if (want && a.paused) a.play().catch(() => {});
+    if (!want && !a.paused) a.pause();
+  }
+
   function startMusic() {
     clearInterval(timer);
     playing = wanted;
+    const file = FILES[playing];
+    stopFiles(file);
+    if (file) {
+      const a = track(file, 0.45);
+      if (prefs.music && !document.hidden) a.play().catch(() => {});
+      return;
+    }
     if (!ac || !playing) return;
     step = 0; nextAt = ac.currentTime + 0.1;
     timer = setInterval(schedule, 100);
@@ -180,6 +207,9 @@ BW.sound = (() => {
   ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, unlock, { capture: true }));
   // quiet while the app is in the background
   document.addEventListener('visibilitychange', () => {
+    const f = FILES[playing] && tracks[FILES[playing]];
+    if (f) { if (document.hidden) f.pause(); else if (prefs.music) f.play().catch(() => {}); }
+    boilFile();
     if (!ac) return;
     if (document.hidden) ac.suspend(); else ac.resume();
   });
@@ -194,11 +224,17 @@ BW.sound = (() => {
       wanted = name;
       if (ac) startMusic();
     },
-    loop(name, on) { loops[name] = !!on; },
+    loop(name, on) {
+      if (name === 'boil') { if (boilOn !== !!on) { boilOn = !!on; boilFile(); } return; }
+      loops[name] = !!on;
+    },
     get on() { return { sfx: prefs.sfx, music: prefs.music }; },
     setOn(sfx, music) {
       prefs.sfx = sfx; prefs.music = music;
       if (BW.store) BW.store.setSound(prefs);
+      const f = FILES[playing] && tracks[FILES[playing]];
+      if (f) { if (music) f.play().catch(() => {}); else f.pause(); }
+      boilFile();
       if (ac) {
         sfxBus.gain.setTargetAtTime(sfx ? 0.55 : 0, ac.currentTime, 0.05);
         musicBus.gain.setTargetAtTime(music ? 0.22 : 0, ac.currentTime, 0.05);
