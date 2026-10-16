@@ -770,6 +770,7 @@
     $('sfxOn').checked = BW.sound.on.sfx;
     $('musicOn').checked = BW.sound.on.music;
     $('settingsPopup').hidden = false;
+    BW.cloud.render();
   });
   const soundSwitch = () => BW.sound.setOn($('sfxOn').checked, $('musicOn').checked);
   $('sfxOn').addEventListener('change', () => { soundSwitch(); BW.sound.play('click'); });

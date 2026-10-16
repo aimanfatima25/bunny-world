@@ -10,6 +10,8 @@ BW.store = (() => {
   }
   function save() {
     try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {}
+    // signed in with Google: the cloud copy follows a few seconds later (cloud.js)
+    if (BW.cloud) BW.cloud.changed();
   }
 
   const data = Object.assign({

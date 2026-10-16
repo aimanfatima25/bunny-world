@@ -32,6 +32,15 @@
 //   richest players (most stars).
 //   GET  /api/rich?player=               → the 10 richest players and your place
 //
+// Saving progress with a Google account (so a new phone gets everything back):
+//   GET  /api/config                      → { googleClientId } (from the GOOGLE_CLIENT_ID setting)
+//   POST /api/google                      → { player, credential } sign in with the Google ID token from
+//                                           the "Sign in with Google" button. First time: this device's
+//                                           player is linked to the Google account. Later (new phone):
+//                                           → { player, save } the linked player and their saved progress
+//   POST /api/save                        → { player, data } keep the progress (only for linked players)
+//   POST /api/google/signout              → { player } this device stops saving (the save stays)
+//
 // A public profile: { username, name, girl, pet, stars, hearts, motto, online, friends }
 
 const http = require('node:http');
@@ -71,6 +80,18 @@ db.exec(`
     motto      TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL,
     last_seen  INTEGER NOT NULL DEFAULT 0
+  );
+  -- Google accounts linked to a player, and that player's saved progress
+  CREATE TABLE IF NOT EXISTS logins (
+    google_sub TEXT PRIMARY KEY,
+    email      TEXT NOT NULL,
+    player     TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS saves (
+    player   TEXT PRIMARY KEY,
+    data     TEXT NOT NULL,
+    saved_at INTEGER NOT NULL
   );
   -- one row per pair: from asked to; accepted = 1 once to said yes
   CREATE TABLE IF NOT EXISTS friends (
@@ -168,6 +189,30 @@ function relation(me, other) {
 }
 const withRelation = (me, u) => Object.assign(profile(u), { relation: relation(me, u.player) });
 
+// ---------- Google sign-in and cloud saves ----------
+
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
+const loginBySub = db.prepare('SELECT * FROM logins WHERE google_sub = ?');
+const loginByPlayer = db.prepare('SELECT * FROM logins WHERE player = ?');
+const addLogin = db.prepare('INSERT INTO logins (google_sub, email, player, created_at) VALUES (?, ?, ?, ?)');
+const getSave = db.prepare('SELECT * FROM saves WHERE player = ?');
+const putSave = db.prepare(`INSERT INTO saves (player, data, saved_at) VALUES (?, ?, ?)
+  ON CONFLICT (player) DO UPDATE SET data = excluded.data, saved_at = excluded.saved_at`);
+
+// Google checks the sign-in token for us and tells us who it is
+async function checkGoogle(credential) {
+  if (!GOOGLE_CLIENT_ID) return { error: 'Google sign-in is not set up yet' };
+  try {
+    const r = await fetch('https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(credential));
+    const t = await r.json();
+    if (!r.ok || t.aud !== GOOGLE_CLIENT_ID || !t.sub) return { error: 'Google sign-in failed, try again' };
+    if (t.email_verified !== 'true' && t.email_verified !== true) return { error: 'That Google email is not verified' };
+    return { sub: String(t.sub), email: String(t.email || '') };
+  } catch (e) {
+    return { error: "Can't reach Google right now" };
+  }
+}
+
 // ---------- playing together ----------
 
 const MATCH_GAMES = new Set(['flappy', 'catch', 'fish', 'sushi', 'ramen', 'cake', 'pancake']);
@@ -218,12 +263,13 @@ function send(res, status, body) {
   res.end(JSON.stringify(body));
 }
 
-function readBody(req) {
+function readBody(req, limit) {
+  limit = limit || 4000;
   return new Promise((resolve, reject) => {
     let data = '';
     req.on('data', chunk => {
       data += chunk;
-      if (data.length > 4000) { reject(new Error('too big')); req.destroy(); }
+      if (data.length > limit) { reject(new Error('too big')); req.destroy(); }
     });
     req.on('end', () => resolve(data));
     req.on('error', reject);
@@ -242,7 +288,8 @@ const server = http.createServer(async (req, res) => {
     // live match states come several times a second, so they get a much bigger allowance
     const limit = p === '/api/scores' ? 20 : p === '/api/match/state' ? 900 : 60;
     if (tooMany(ip + (p === '/api/match/state' ? ':m' : ''), limit)) return send(res, 429, { error: 'Slow down a little' });
-    try { body = JSON.parse(await readBody(req)); } catch (e) { return send(res, 400, { error: 'Bad request' }); }
+    // a saved game can be big (fish designs, stickers, mail…)
+    try { body = JSON.parse(await readBody(req, p === '/api/save' ? 400000 : p === '/api/google' ? 8000 : 4000)); } catch (e) { return send(res, 400, { error: 'Bad request' }); }
   }
   const player = String(body.player || url.searchParams.get('player') || '');
   const me = goodPlayer(player) ? userByPlayer.get(player) : null;
@@ -352,6 +399,38 @@ const server = http.createServer(async (req, res) => {
       return send(res, 400, { error: 'No request to accept' });
     }
     return send(res, 200, withRelation(player, other));
+  }
+
+  // ---- Google sign-in and cloud saves ----
+  if (req.method === 'GET' && p === '/api/config') return send(res, 200, { googleClientId: GOOGLE_CLIENT_ID });
+
+  if (req.method === 'POST' && p === '/api/google') {
+    if (!goodPlayer(player)) return send(res, 400, { error: 'Bad player id' });
+    const g = await checkGoogle(String(body.credential || ''));
+    if (g.error) return send(res, 400, { error: g.error });
+    const linked = loginBySub.get(g.sub);
+    if (linked) {
+      // this Google account already has a player: hand it (and its save) to this device
+      const sv = getSave.get(linked.player);
+      return send(res, 200, { ok: true, email: g.email, player: linked.player, save: sv ? JSON.parse(sv.data) : null, savedAt: sv ? sv.saved_at : 0 });
+    }
+    const other = loginByPlayer.get(player);
+    if (other) return send(res, 400, { error: 'This game is already saved to another Google account' });
+    addLogin.run(g.sub, g.email, player, new Date().toISOString());
+    return send(res, 200, { ok: true, email: g.email, player, save: null, linkedNow: true });
+  }
+
+  if (req.method === 'POST' && p === '/api/save') {
+    if (!goodPlayer(player) || !loginByPlayer.get(player)) return send(res, 403, { error: 'Sign in with Google first' });
+    if (!body.data || typeof body.data !== 'object') return send(res, 400, { error: 'Nothing to save' });
+    const now = Date.now();
+    putSave.run(player, JSON.stringify(body.data), now);
+    return send(res, 200, { ok: true, savedAt: now });
+  }
+
+  if (req.method === 'POST' && p === '/api/google/signout') {
+    // only this device stops: the Google account keeps its player and save for next time
+    return send(res, 200, { ok: true });
   }
 
   // ---- playing together ----
